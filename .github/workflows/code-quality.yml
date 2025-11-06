@@ -1,0 +1,36 @@
+name: Code Quality
+
+on:
+    pull_request:
+        branches: [main]
+    push:
+        branches: [main]
+
+permissions:
+    contents: read
+    actions: read
+    checks: write
+
+jobs:
+    quality:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Setup pixi
+              uses: prefix-dev/setup-pixi@v0.8.1
+              with:
+                  pixi-version: latest
+                  cache: true
+                  cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+
+            - name: Tests
+              run: pixi run test
+
+            - name: Ruff lint
+              if: always()
+              run: pixi run lint
+
+            - name: Ruff format check
+              if: always()
+              run: pixi run format-check

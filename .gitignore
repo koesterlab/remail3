@@ -5,7 +5,21 @@
 __pycache__
 /llm/db
 database.db
-database.db
 database.db.wal
 MemStorage.txt
 /remail/database/attachments
+
+# Pixi
+.pixi/
+pixi.lock
+
+# Testing
+.pytest_cache/
+test-results.xml
+*.pyc
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
