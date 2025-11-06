@@ -1,14 +1,13 @@
-from remail.database.models import Email, EmailReception, Contact, RecipientKind
-from remail.email_api.service import ImapProtocol, ExchangeProtocol
-import remail.email_api.credentials_helper as ch
 from contextlib import contextmanager
 from datetime import datetime
-from email.utils import format_datetime
 from email.message import EmailMessage
-from exchangelib import Message, EWSDateTime, Mailbox
+
+from exchangelib import EWSDateTime, Mailbox, Message
 from pytz import timezone
 
+import remail.email_api.credentials_helper as ch
 from remail.controller import controller
+from remail.email_api.service import ExchangeProtocol, ImapProtocol
 
 
 @contextmanager

@@ -1,5 +1,5 @@
-import streamlit as st
 import RAG_Backend as rag
+import streamlit as st
 
 st.set_page_config(page_title="🦙💬 Llama-cpp Chatbot")
 llm = rag.LLM()

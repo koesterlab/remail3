@@ -1,27 +1,26 @@
-import json
-import chromadb as db
 import hashlib
-import os, sys
-
+import json
+import os
+import sys
+from pathlib import Path
 
 # Add the Remail directory (parent folder) to sys.path
 remail_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(remail_path)
 
+import chromadb as db  # noqa: E402
+import controller  # noqa: E402
+import requests  # noqa: E402
+from llama_cpp import Llama  # noqa: E402
+from llama_index.core import Settings, StorageContext, VectorStoreIndex  # noqa: E402
+from llama_index.core.evaluation import RelevancyEvaluator  # noqa: E402
+from llama_index.core.query_engine import RetrySourceQueryEngine  # noqa: E402
+from llama_index.core.schema import Document  # noqa: E402
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding  # noqa: E402
+from llama_index.vector_stores.chroma import ChromaVectorStore  # noqa: E402
 
-import requests
-from llama_cpp import Llama
-from llama_index.core import Settings, VectorStoreIndex, SimpleDirectoryReader, StorageContext
-from llama_index.vector_stores.chroma import ChromaVectorStore
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from pathlib import Path
-from llama_index.core.query_engine import RetrySourceQueryEngine
-from llama_index.core.evaluation import RelevancyEvaluator
-from llama_index.core.schema import Document
-import controller
 
-
-class LLM(object):
+class LLM:
     # for installing the model can be changed to any model later
     TARGET_DIR = "./remail/llm/models"
     MODEL_FILE = "Llama-3.2-1B-Instruct-Q6_K_L.gguf"
@@ -73,7 +72,7 @@ class LLM(object):
 
             # Read the previous hash if it exists
             if Path(self._hash_file).exists():
-                with open(self._hash_file, "r") as f:
+                with open(self._hash_file) as f:
                     previous_hash = f.read().strip()
             # check differences
             if self._current_hash == previous_hash:

@@ -32,6 +32,6 @@ jobs:
               if: always()
               run: pixi run lint
 
-            - name: Ruff format check
+            - name: Format check (code & imports)
               if: always()
               run: pixi run format-check

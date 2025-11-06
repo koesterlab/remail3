@@ -1,16 +1,17 @@
-import streamlit as st
-import time
-import random
 import mimetypes  # Für die korrekte Erkennung von MIME-Types
-import sys
 import os
+import random
+import sys
+import time
 
 # Add the Remail directory (parent folder) to sys.path
 remail_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(remail_path)
 
+import streamlit as st  # noqa: E402
+
 # Import the RAG_Backend module using the full package path
-from llm import RAG_Backend as rag
+from llm import RAG_Backend as rag  # noqa: E402
 
 llm = rag.LLM()
 
@@ -237,7 +238,7 @@ with col2:
                         <span style="color: white; font-weight: bold;">
                             {sender_display}:
                         </span>
-                        
+
                     </div>
                 """,
                     unsafe_allow_html=True,
@@ -322,7 +323,7 @@ with col3:
                 response = llm.prompt(prompt)
                 st.write(response)
                 st.session_state.messages.append({"role": "assistant", "content": response})
-            except Exception as e:
+            except Exception:
                 error_message = "I apologize, but I'm having trouble processing your request right now. Please try again later."
                 st.error(error_message)
                 st.session_state.messages.append({"role": "assistant", "content": error_message})

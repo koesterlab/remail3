@@ -1,22 +1,23 @@
-from sqlmodel import Session, select, create_engine
-from remail.database.models import (
-    Email,
-    Contact,
-    EmailReception,
-    RecipientKind,
-    Attachment,
-    User,
-    Protocol,
-)
-from datetime import datetime
-import duckdb
 import logging
-from sqlmodel import SQLModel
-from remail.email_api.service import ImapProtocol, ExchangeProtocol, ProtocolTemplate
-import remail.email_api.email_errors as errors
-import keyring
-from tzlocal import get_localzone
 import threading
+from datetime import datetime
+
+import duckdb
+import keyring
+from sqlmodel import Session, SQLModel, create_engine, select
+from tzlocal import get_localzone
+
+import remail.email_api.email_errors as errors
+from remail.database.models import (
+    Attachment,
+    Contact,
+    Email,
+    EmailReception,
+    Protocol,
+    RecipientKind,
+    User,
+)
+from remail.email_api.service import ExchangeProtocol, ImapProtocol, ProtocolTemplate
 
 
 def error_handler(func):

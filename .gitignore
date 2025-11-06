@@ -11,7 +11,6 @@ MemStorage.txt
 
 # Pixi
 .pixi/
-pixi.lock
 
 # Testing
 .pytest_cache/

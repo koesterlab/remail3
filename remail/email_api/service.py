@@ -1,47 +1,54 @@
+import email
+import mimetypes
+import os
 from abc import ABC, abstractmethod
-from remail.database.models import (
-    Email,
-    EmailReception,
-    Attachment,
-    RecipientKind,
-)
-from imapclient import IMAPClient
+from datetime import datetime
+from email.header import decode_header
+from email.message import EmailMessage
+from email.utils import getaddresses, parsedate_to_datetime
 from smtplib import (
     SMTP_SSL,
     SMTP_SSL_PORT,
     SMTPAuthenticationError,
+    SMTPConnectError,
+    SMTPDataError,
+    SMTPHeloError,
     SMTPRecipientsRefused,
     SMTPServerDisconnected,
-    SMTPDataError,
-    SMTPConnectError,
-    SMTPHeloError,
 )
-import email
+from typing import TYPE_CHECKING
+
+from exchangelib import (
+    UTC,
+    Account,
+    Credentials,
+    FileAttachment,
+    FolderCollection,
+    Message,
+)
+from exchangelib import (
+    errors as exch_errors,
+)
+from imapclient import IMAPClient
 from imapclient.exceptions import (
-    LoginError,
+    CapabilityError,
     IMAPClientAbortError,
     IMAPClientError,
-    CapabilityError,
+    LoginError,
 )
-from email.message import EmailMessage
-from datetime import datetime
-from exchangelib import (
-    Credentials,
-    Account,
-    Message,
-    FileAttachment,
-    errors as exch_errors,
-    FolderCollection,
-    UTC,
-)
-import os
-import mimetypes
-from werkzeug.utils import secure_filename
-import tempfile
-from email.header import decode_header
-from email.utils import parsedate_to_datetime, getaddresses
-import remail.email_api.email_errors as ee
 from pytz import timezone
+from werkzeug.utils import secure_filename
+
+import remail.email_api.email_errors as ee
+from remail.database.models import (
+    Attachment,
+    Email,
+    EmailReception,
+    RecipientKind,
+)
+
+if TYPE_CHECKING:
+    from remail.controller import EmailController
 
 
 def error_handler(func):
@@ -69,17 +76,17 @@ def error_handler(func):
             raise e
         except ValueError as e:
             if "is not an email address" in str(e):
-                raise ee.InvalidLoginData()
+                raise ee.InvalidLoginData() from e
             else:
                 raise ee.UnknownError(f"An unexpected error occurred: {str(e)}") from e
-        except INVALIDLOGINDATA:
-            raise ee.InvalidLoginData()
-        except CONNECTIONFAIL:
-            raise ee.ServerConnectionFail()
-        except SMTPDataError:
-            raise ee.SMTPDataFalse()
-        except RECIPIENTSFAIL:
-            raise ee.RecipientsFail()
+        except INVALIDLOGINDATA as e:
+            raise ee.InvalidLoginData() from e
+        except CONNECTIONFAIL as e:
+            raise ee.ServerConnectionFail() from e
+        except SMTPDataError as e:
+            raise ee.SMTPDataFalse() from e
+        except RECIPIENTSFAIL as e:
+            raise ee.RecipientsFail() from e
         except Exception as e:
             raise ee.UnknownError(f"An unexpected error occurred: {str(e)}") from e
 
