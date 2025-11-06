@@ -19,9 +19,7 @@ with st.sidebar:
 
 # Initialize Chat History
 if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {"role": "assistant", "content": "How may I assist you today?"}
-    ]
+    st.session_state.messages = [{"role": "assistant", "content": "How may I assist you today?"}]
 
 # Display Chat Messages
 for message in st.session_state.messages:

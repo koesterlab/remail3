@@ -24,13 +24,9 @@ def error_handler(func):
         try:
             return func(*args, **kwargs)
         except errors.InvalidLoginData:
-            logging.error(
-                "Fehler beim Aktualisieren der E-Mails: Ungültige Anmeldedaten"
-            )
+            logging.error("Fehler beim Aktualisieren der E-Mails: Ungültige Anmeldedaten")
         except errors.ServerConnectionFail:
-            logging.error(
-                "Fehler beim Aktualisieren der E-Mails: Serververbindung fehlgeschlagen"
-            )
+            logging.error("Fehler beim Aktualisieren der E-Mails: Serververbindung fehlgeschlagen")
         except Exception as e:
             logging.error(e, exc_info=True)
             logging.error("Fehler beim Aktualisieren der E-Mails")
@@ -122,13 +118,9 @@ class EmailController:
     ):
         """Erstellt einen neuen Benutzer und speichert ihn in der Datenbank. extra_information ist username (Exchange) oder host (IMAP)"""
         with Session(self.engine) as session:
-            existing_user = session.exec(
-                select(User).where(User.email == email)
-            ).first()
+            existing_user = session.exec(select(User).where(User.email == email)).first()
             if existing_user:
-                raise ValueError(
-                    f"Ein Benutzer mit der E-Mail {email} existiert bereits."
-                )
+                raise ValueError(f"Ein Benutzer mit der E-Mail {email} existiert bereits.")
 
             user = User(
                 name=name,
@@ -178,9 +170,7 @@ class EmailController:
                 ).first()
                 if not contact:
                     raise ValueError(f"Empfänger {recipient_email} nicht gefunden")
-                recipients.append(
-                    EmailReception(contact=contact, kind=RecipientKind.to)
-                )
+                recipients.append(EmailReception(contact=contact, kind=RecipientKind.to))
 
             for recipient_email in recipient_emails_cc:
                 contact = session.exec(
@@ -188,9 +178,7 @@ class EmailController:
                 ).first()
                 if not contact:
                     raise ValueError(f"Empfänger {recipient_email} nicht gefunden")
-                recipients.append(
-                    EmailReception(contact=contact, kind=RecipientKind.cc)
-                )
+                recipients.append(EmailReception(contact=contact, kind=RecipientKind.cc))
 
             for recipient_email in recipient_emails_bcc:
                 contact = session.exec(
@@ -198,9 +186,7 @@ class EmailController:
                 ).first()
                 if not contact:
                     raise ValueError(f"Empfänger {recipient_email} nicht gefunden")
-                recipients.append(
-                    EmailReception(contact=contact, kind=RecipientKind.bcc)
-                )
+                recipients.append(EmailReception(contact=contact, kind=RecipientKind.bcc))
 
             email = Email(
                 id=id,
@@ -216,9 +202,7 @@ class EmailController:
             )
 
             with Session(self.engine) as session:
-                user = session.exec(
-                    select(User).where(User.email == sender_email)
-                ).first()
+                user = session.exec(select(User).where(User.email == sender_email)).first()
                 password = keyring.get_password("remail/Account", user.email)
                 if user.protocol == Protocol.IMAP:
                     protocol = ImapProtocol(
@@ -237,9 +221,7 @@ class EmailController:
                 protocol.logout()
 
             if attachments:
-                email.attachments = [
-                    Attachment(filename=filename) for filename in attachments
-                ]
+                email.attachments = [Attachment(filename=filename) for filename in attachments]
 
             session.add(email)
             session.commit()
@@ -297,9 +279,7 @@ class EmailController:
                 query = query.where(Email.sender.has(email_address=sender_email))
             if recipient_email:
                 query = query.where(
-                    Email.recipients.any(
-                        EmailReception.contact.has(email_address=recipient_email)
-                    )
+                    Email.recipients.any(EmailReception.contact.has(email_address=recipient_email))
                 )
             emails = session.exec(query).all()
             return emails
@@ -346,9 +326,7 @@ class EmailController:
                     select(Contact).where(Contact.email_address == email_address)
                 ).first()
                 if existing_contact:
-                    raise ValueError(
-                        f"Kontakt mit E-Mail {email_address} existiert bereits."
-                    )
+                    raise ValueError(f"Kontakt mit E-Mail {email_address} existiert bereits.")
 
                 contact = Contact(email_address=email_address, name=name)
                 session.add(contact)
@@ -384,40 +362,36 @@ class EmailController:
             return contact[0]
         else:
             return self.create_contact(email, name)
-        
 
     def get_contact_by_id(self, id: int) -> Contact:
         """Returns contact by ID"""
-        contacts=self.get_contacts()
+        contacts = self.get_contacts()
         contact = [con for con in contacts if con.id == id]
         if len(contact) > 0:
             return contact[0]
         else:
             return None
-    
+
     def get_recipients(self, mail_id: int):
         """Returns a list of all recipients of an email"""
-        #query: Select em.id, c.email_address  
-        # from database.main.email em inner join database.main.emailreception er on em.id=er.email_id inner join database.main.contact c on er.contact_id=c.id  
+        # query: Select em.id, c.email_address
+        # from database.main.email em inner join database.main.emailreception er on em.id=er.email_id inner join database.main.contact c on er.contact_id=c.id
         with Session(self.engine) as session:
-            query = (select(Contact)
-                     .join(EmailReception, Contact.id==EmailReception.contact_id)
-                     .join(Email, EmailReception.email_id == Email.id)
-                     .where(Email.id==mail_id)
-                    )
+            query = (
+                select(Contact)
+                .join(EmailReception, Contact.id == EmailReception.contact_id)
+                .join(Email, EmailReception.email_id == Email.id)
+                .where(Email.id == mail_id)
+            )
             contacts = session.exec(query).all()
         return contacts
 
     def get_mail_by_message_id(self, mail_id: str):
         """Returns Email Object by message_id"""
         with Session(self.engine) as session:
-            query =(
-                select(Email).where(Email.message_id==mail_id)
-            )
-            mail=session.exec(query).all()
+            query = select(Email).where(Email.message_id == mail_id)
+            mail = session.exec(query).all()
         return mail
-        
-
 
     def get_full_email_data(self, mail: Email):
         """Returns all metadata about an email"""
@@ -433,22 +407,26 @@ class EmailController:
         recipients_str = ", ".join(recipients)
         # Attachments are to be handled separately
 
-        return {"id":id,
-                "message_id":message_id,
-                "subject":subject,
-                "body":body,
-                "date":date,
-                "urgency":urgency,
-                "sender":sender,
-                "recipients":recipients_str}
+        return {
+            "id": id,
+            "message_id": message_id,
+            "subject": subject,
+            "body": body,
+            "date": date,
+            "urgency": urgency,
+            "sender": sender,
+            "recipients": recipients_str,
+        }
 
-    def get_attachments(self, mail:Email):
+    def get_attachments(self, mail: Email):
         """Returns Attachments for an Email"""
         with Session(self.engine) as session:
-            query = (select(Attachment)
-                    .join(Email, Attachment.email_id == Email.id)
-                    .where(Email.id==mail.id))
-            attachments= session.exec(query).all()
+            query = (
+                select(Attachment)
+                .join(Email, Attachment.email_id == Email.id)
+                .where(Email.id == mail.id)
+            )
+            attachments = session.exec(query).all()
         return attachments
 
 

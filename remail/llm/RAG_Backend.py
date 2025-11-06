@@ -20,13 +20,13 @@ from llama_index.core.evaluation import RelevancyEvaluator
 from llama_index.core.schema import Document
 import controller
 
+
 class LLM(object):
     # for installing the model can be changed to any model later
     TARGET_DIR = "./remail/llm/models"
     MODEL_FILE = "Llama-3.2-1B-Instruct-Q6_K_L.gguf"
     MODEL_URL = (
-        "https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/"
-        + MODEL_FILE
+        "https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/" + MODEL_FILE
     )
     MODEL_PATH = "./remail/llm/models/" + MODEL_FILE
     EMBEDDING_MODEL_PATH = "BAAI/bge-large-en-v1.5"
@@ -46,7 +46,7 @@ class LLM(object):
         # Disable OpenAI usage by explicitly! Never remove this
         Settings.llm = None
         Settings.context_window = 8192  # arbitrary number, llama 3.2 can do up to 128k
-        Settings.chunk_size=4096 #required because the emails can be large. Should probably either be bumped up or implement a node parser/splitter
+        Settings.chunk_size = 4096  # required because the emails can be large. Should probably either be bumped up or implement a node parser/splitter
         # Llama-cpp Configuration
         self._llama = Llama(
             model_path=self.MODEL_PATH,
@@ -56,21 +56,15 @@ class LLM(object):
         )  # disabling verbosity to reduce console logging
 
         # Hugging Face Embedding Model
-        Settings.embed_model = HuggingFaceEmbedding(
-            model_name=self.EMBEDDING_MODEL_PATH
-        )
+        Settings.embed_model = HuggingFaceEmbedding(model_name=self.EMBEDDING_MODEL_PATH)
 
         # Initialize ChromaDB client and collection
         self._chroma_client = db.PersistentClient(path=self._db_path)
         self._chroma_collection = self._chroma_client.get_or_create_collection(
             self._collection_name
         )
-        self._vector_store = ChromaVectorStore(
-            chroma_collection=self._chroma_collection
-        )
-        self._storage_context = StorageContext.from_defaults(
-            vector_store=self._vector_store
-        )
+        self._vector_store = ChromaVectorStore(chroma_collection=self._chroma_collection)
+        self._storage_context = StorageContext.from_defaults(vector_store=self._vector_store)
 
         # Check for new documents, and either load the vector db from file or recreate it.
         try:
@@ -117,13 +111,15 @@ class LLM(object):
     def _compute_data_hash(self):
         """Compute a hash of all documents' content and metadata to detect changes."""
         hash_obj = hashlib.sha256()
-        
+
         # Loop through each document in docstore (or whichever data you use)
         for doc in self._db_to_nodes():  # Ensure this method returns the actual documents
             # Concatenate document text and metadata (subject, sender, etc.)
-            doc_str = doc.text + json.dumps(doc.metadata, sort_keys=True)  # Sorting metadata for consistent hashing
-            hash_obj.update(doc_str.encode('utf-8'))
-        
+            doc_str = doc.text + json.dumps(
+                doc.metadata, sort_keys=True
+            )  # Sorting metadata for consistent hashing
+            hash_obj.update(doc_str.encode("utf-8"))
+
         return hash_obj.hexdigest()
 
     def _setup_index(self):
@@ -145,7 +141,7 @@ class LLM(object):
             with open(self._hash_file, "w") as f:
                 f.write(self._current_hash)
             return index
-            
+
         except Exception as e:
             raise e
 
@@ -164,10 +160,8 @@ class LLM(object):
     #                 continue
     #     return hash_obj.hexdigest()
 
-
-
-#LLM File Management
-#-------------------------------------------
+    # LLM File Management
+    # -------------------------------------------
     def _ensure_directory_exists(self, directory):
         if not os.path.exists(directory):
             os.makedirs(directory)
@@ -193,13 +187,13 @@ class LLM(object):
             print(f"[INFO] Model file installed successfully at {destination_path}.")
         except Exception as e:
             print(f"[ERROR] Failed to download the file: {e}")
-#---------------------------------------------
 
+    # ---------------------------------------------
 
-#Node/Document management
-#---------------------------------------------
+    # Node/Document management
+    # ---------------------------------------------
     def _db_to_nodes(self):
-        """"Converts all Emails to Documents to embed into Vector DB"""
+        """ "Converts all Emails to Documents to embed into Vector DB"""
         emails = controller.controller.get_emails()
         docstore = []
 
@@ -218,36 +212,39 @@ class LLM(object):
                     "time": email_data["date"],
                     "urgency": email_data["urgency"],
                     "sender": email_data["sender"],
-                    "recipients": email_data["recipients"]
-                }
+                    "recipients": email_data["recipients"],
+                },
             )
             # Only to see what gets hashed (for testing)
             f = open("MemStorage.txt", "a")
-            f.write(json.dumps({"text": doc.text, "metadata": doc.metadata}) + "\n")            
+            f.write(json.dumps({"text": doc.text, "metadata": doc.metadata}) + "\n")
             f.close()
             docstore.append(doc)
         return docstore
-    
-    #TODO
+
+    # TODO
     def _attachment_metadata(self):
-        #If there are not attachments, do nothing
-        if not (os.path.exists(self._attach_folder) or os.listdir(self._attach_folder)>0):
+        # If there are not attachments, do nothing
+        if not (os.path.exists(self._attach_folder) or os.listdir(self._attach_folder) > 0):
             return
-        
-        #attachments are stored in folders corresponding to their mail ids
-        #if there are multiple attachments per mail, they are still stored in one folder
-        mail_ids=os.listdir(self._attach_folder) #get list of all mail ids
-        email_data=[]
+
+        # attachments are stored in folders corresponding to their mail ids
+        # if there are multiple attachments per mail, they are still stored in one folder
+        mail_ids = os.listdir(self._attach_folder)  # get list of all mail ids
+        email_data = []
         for mail in mail_ids:
-            email_data.append(controller.controller.get_mail_by_id(mail)) #append all mails to a list
-        
-        
-#------------------------------------------
+            email_data.append(
+                controller.controller.get_mail_by_id(mail)
+            )  # append all mails to a list
+
+    # ------------------------------------------
     def prompt(self, prompt: str) -> str:
         """Use this for prompting. Takes a string as the input and returns the response as a string"""
         try:
             context = self._query_engine.query(prompt).response
-            response = self._llama(context, max_tokens=Settings.context_window)["choices"][0]["text"].strip()
+            response = self._llama(context, max_tokens=Settings.context_window)["choices"][0][
+                "text"
+            ].strip()
             return response
         except Exception as e:
             return f"An error occurred: {str(e)}"

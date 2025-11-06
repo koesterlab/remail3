@@ -101,9 +101,7 @@ def test_get_emails_with_mocking_exchange(mocker):
 
     mocked_self.controller = controller
     mocked_self._get_items.return_value = [item]
-    mocked_self._get_email_exchange = ExchangeProtocol._get_email_exchange.__get__(
-        mocked_self
-    )
+    mocked_self._get_email_exchange = ExchangeProtocol._get_email_exchange.__get__(mocked_self)
 
     result = ExchangeProtocol.get_emails(mocked_self, date=date_filter)
     print(result)
