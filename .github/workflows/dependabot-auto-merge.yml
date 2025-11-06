@@ -1,0 +1,60 @@
+name: Dependabot Pull Request Approve and Merge
+
+on:
+    pull_request_target:
+        types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+    pull-requests: write
+    contents: write
+    actions: read
+
+jobs:
+    dependabot:
+        runs-on: ubuntu-latest
+
+        # Checking the actor will prevent your Action run failing on non-Dependabot
+        # PRs but also ensures that it only does work for Dependabot PRs.
+        if: ${{ github.actor == 'dependabot[bot]' }}
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  token: ${{ secrets.GITHUB_TOKEN }}
+                  ref: ${{ github.event.pull_request.head.sha }}
+
+            # This first step will fail if there's no metadata and so the approval will not occur.
+            - name: Dependabot metadata
+              id: dependabot-metadata
+              uses: dependabot/fetch-metadata@v2.4.0
+              with:
+                  github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+            - name: Log dependency information
+              run: |
+                  echo "Dependency names: ${{ steps.dependabot-metadata.outputs.dependency-names }}"
+                  echo "Update type: ${{ steps.dependabot-metadata.outputs.update-type }}"
+                  echo "Package ecosystem: ${{ steps.dependabot-metadata.outputs.package-ecosystem }}"
+
+              # Here the PR gets approved for minor and patch updates, and security updates
+            - name: Approve a PR
+              if: ${{ steps.dependabot-metadata.outputs.update-type == 'version-update:semver-minor' || steps.dependabot-metadata.outputs.update-type == 'version-update:semver-patch' || steps.dependabot-metadata.outputs.update-type == 'security-update' }}
+              run: gh pr review --approve "$PR_URL"
+              env:
+                  PR_URL: ${{ github.event.pull_request.html_url }}
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            # Finally, this sets the PR to allow auto-merging for patch and minor updates if all checks pass
+            - name: Enable auto-merge for Dependabot PRs
+              if: ${{ steps.dependabot-metadata.outputs.update-type == 'version-update:semver-minor' || steps.dependabot-metadata.outputs.update-type == 'version-update:semver-patch' || steps.dependabot-metadata.outputs.update-type == 'security-update' }}
+              run: |
+                  echo "Enabling auto-merge for PR: $PR_URL"
+                  gh pr merge --auto --squash "$PR_URL" || {
+                    echo "Failed to enable auto-merge. Checking PR status..."
+                    gh pr view "$PR_URL" --json state,mergeable,mergeStateStatus
+                    exit 1
+                  }
+              env:
+                  PR_URL: ${{ github.event.pull_request.html_url }}
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
