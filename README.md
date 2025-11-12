@@ -34,6 +34,9 @@ The project includes several pixi tasks defined in `pixi.toml`:
 - **`pixi run lint`** - Check code for linting errors with Ruff
 - **`pixi run format`** - Automatically fix linting issues and format code
 - **`pixi run format-check`** - Check formatting and linting without making changes (used in CI)
+- **`pixi run typecheck`** - Run mypy (currently scoped to modules not excluded in `mypy.ini`)
+- **`pixi run deadcode`** - Identify unused code paths with Vulture (legacy-heavy modules are excluded)
+- **`pixi run security`** - Execute Bandit security scans (legacy-heavy modules are excluded)
 
 ### Development Workflow
 
@@ -53,6 +56,9 @@ Runs on all pull requests to `main`:
 - ✅ Runs test suite
 - ✅ Checks code linting
 - ✅ Verifies code formatting and import organization
+- ✅ Runs mypy type checks
+- ✅ Executes Vulture for dead code detection
+- ✅ Executes Bandit security scan
 
 #### Auto-assign Author (`.github/workflows/auto-assign-author.yml`)
 
