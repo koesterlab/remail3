@@ -3,8 +3,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from remail.interfaces.email import errors as ee
-from remail.interfaces.email.services import SmtpSender
+from remail import errors as ee
+from remail.interfaces.email.services.smtp_sender import SmtpSender
 
 
 def test_validate_send_state_ok():

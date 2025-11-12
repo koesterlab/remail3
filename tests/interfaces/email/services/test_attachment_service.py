@@ -1,5 +1,3 @@
-"""Unit tests for attachment service."""
-
 import os
 from unittest.mock import patch
 

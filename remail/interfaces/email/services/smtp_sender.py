@@ -1,7 +1,7 @@
 from email.message import EmailMessage
 from smtplib import SMTP_SSL, SMTP_SSL_PORT
 
-from remail.interfaces.email import errors as ee
+from remail import errors as ee
 
 
 class SmtpSender:

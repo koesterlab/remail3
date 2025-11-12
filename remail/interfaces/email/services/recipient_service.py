@@ -1,6 +1,7 @@
 """Recipient processing service for email operations."""
 
-from remail.database.models import Email, RecipientKind
+from remail.enums import RecipientKind
+from remail.models import Email
 
 
 class RecipientService:
@@ -28,13 +29,13 @@ class RecipientService:
             if not addr:
                 continue
 
-            if r.kind is RecipientKind.to:
+            if r.kind is RecipientKind.TO:
                 to.append(addr)
 
-            elif r.kind is RecipientKind.cc:
+            elif r.kind is RecipientKind.CC:
                 cc.append(addr)
 
-            elif r.kind is RecipientKind.bcc:
+            elif r.kind is RecipientKind.BCC:
                 bcc.append(addr)
 
         return to, cc, bcc

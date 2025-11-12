@@ -21,10 +21,10 @@ from imapclient.exceptions import (  # type: ignore
     LoginError,
 )
 
-from remail.interfaces.email import errors as ee
+from remail import errors as ee
 
 if TYPE_CHECKING:
-    from remail.database.models import Email
+    from remail.models import Email
 
 
 def error_handler(func):

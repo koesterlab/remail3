@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from remail.database.models import RecipientKind
+from remail.enums import RecipientKind
 from remail.interfaces.email.services.recipient_service import RecipientService
 
 
@@ -21,11 +21,11 @@ class DummyEmail:
 
 def test_split_recipients_correct_grouping():
     recipients = [
-        DummyRecipient(RecipientKind.to, "to1@example.com"),
-        DummyRecipient(RecipientKind.cc, "cc1@example.com"),
-        DummyRecipient(RecipientKind.bcc, "bcc1@example.com"),
-        DummyRecipient(RecipientKind.to, "to2@example.com"),
-        DummyRecipient(RecipientKind.cc, "cc2@example.com"),
+        DummyRecipient(RecipientKind.TO, "to1@example.com"),
+        DummyRecipient(RecipientKind.CC, "cc1@example.com"),
+        DummyRecipient(RecipientKind.BCC, "bcc1@example.com"),
+        DummyRecipient(RecipientKind.TO, "to2@example.com"),
+        DummyRecipient(RecipientKind.CC, "cc2@example.com"),
     ]
     mail = DummyEmail(recipients)
     to, cc, bcc = RecipientService.split_recipients(mail)
@@ -37,9 +37,9 @@ def test_split_recipients_correct_grouping():
 
 def test_split_recipients_skips_missing_addresses():
     recipients = [
-        DummyRecipient(RecipientKind.to, None),
-        DummyRecipient(RecipientKind.cc, ""),
-        DummyRecipient(RecipientKind.bcc, "bcc@example.com"),
+        DummyRecipient(RecipientKind.TO, None),
+        DummyRecipient(RecipientKind.CC, ""),
+        DummyRecipient(RecipientKind.BCC, "bcc@example.com"),
     ]
     mail = DummyEmail(recipients)
     to, cc, bcc = RecipientService.split_recipients(mail)
@@ -57,7 +57,7 @@ def test_split_recipients_ignores_unknown_kind():
 
     recipients = [
         DummyRecipient(FakeKind(), "unknown@example.com"),
-        DummyRecipient(RecipientKind.to, "to@example.com"),
+        DummyRecipient(RecipientKind.TO, "to@example.com"),
     ]
     mail = DummyEmail(recipients)
     to, cc, bcc = RecipientService.split_recipients(mail)

@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 import remail.interfaces.email.protocols.imap as proto_mod
-from remail.interfaces.email import errors as ee
+from remail import errors as ee
 from remail.interfaces.email.protocols.imap import ImapProtocol
 
 

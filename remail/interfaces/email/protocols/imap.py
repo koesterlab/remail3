@@ -8,8 +8,7 @@ from imapclient import IMAPClient  # type: ignore
 from imapclient.exceptions import LoginError  # type: ignore
 from pytz import timezone
 
-from remail.database.models import Email
-from remail.interfaces.email import errors as ee
+from remail import errors as ee
 from remail.interfaces.email.protocols.base import EmailProtocol, error_handler
 from remail.interfaces.email.services import (
     EmailParser,
@@ -18,6 +17,7 @@ from remail.interfaces.email.services import (
     RecipientService,
     SmtpSender,
 )
+from remail.models import Email
 
 UTC = timezone("UTC")
 
@@ -106,6 +106,7 @@ class ImapProtocol(EmailProtocol):
             flags: IMAP search terms (e.g., ["UNSEEN"], ["SEEN"], ["DELETED"],
                 ["HEADER","From","x@y"]).
         """
+
         if not self.logged_in:
             raise ee.NotLoggedIn()
 
@@ -116,8 +117,10 @@ class ImapProtocol(EmailProtocol):
         for box in boxes:
             with self.folder_service.selected_folder(box):
                 uids = self.IMAP.search(criteria)
+
                 if not uids:
                     continue
+
                 fetched = self.IMAP.fetch(uids, ["RFC822"])
 
             for _, data in fetched.items():
@@ -145,7 +148,6 @@ class ImapProtocol(EmailProtocol):
                                 continue
 
                         except Exception:  # nosec B112
-                            # Skip emails with invalid or missing date headers
                             continue
 
                 out.append(self.email_parser.parse_email_message(em))
@@ -173,7 +175,6 @@ class ImapProtocol(EmailProtocol):
         if mail.attachments:
             MessageBuilder.attach_files(msg, (a.filename for a in mail.attachments))
 
-        # Do not set Bcc header; include in SMTP envelope only.
         ordered_recipients = [*to, *cc, *bcc]
         envelope = list(OrderedDict.fromkeys(ordered_recipients).keys())
 

@@ -5,7 +5,7 @@ import io
 import pytest
 import requests
 
-from remail.util.request import RequestBuilder
+from remail.utils.request import RequestBuilder
 
 
 def _make_response(status_code: int, request: requests.PreparedRequest) -> requests.Response:

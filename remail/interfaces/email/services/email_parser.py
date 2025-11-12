@@ -5,8 +5,8 @@ from typing import cast
 
 from pytz import timezone
 
-from remail.database.models import Attachment, Email
 from remail.interfaces.email.services.attachment_service import save_attachment
+from remail.models import Attachment, Email
 
 UTC = timezone("UTC")
 

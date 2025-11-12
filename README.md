@@ -73,7 +73,7 @@ Automatically approves and merges Dependabot pull requests for patch and minor v
 ### Tech Stack
 
 - **Python 3.12+**
-- **Database**: DuckDB with SQLModel ORM
+- **Database**: SQLite with SQLModel ORM
 - **Frontend**: Streamlit / Flet
 - **AI/LLM**: LlamaIndex, ChromaDB for RAG, Hugging Face embeddings
 - **Email**: IMAP and Exchange protocol support
