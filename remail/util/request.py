@@ -1,31 +1,32 @@
-from _future_ import annotations
+from __future__ import annotations
 
-from dataclasses import dataclass, field, replace
-from typing import Any, Dict, Iterable, Mapping, MutableMapping, Optional, Tuple, Union
 import io
+from collections.abc import Mapping, MutableMapping
+from dataclasses import dataclass, field, replace
+from typing import Any
+
 import requests
 
-
-JSONType = Union[dict, list, str, int, float, bool, None]
-TimeoutType = Union[float, Tuple[float, float]]
+JSONType = dict | list | str | int | float | bool | None
+TimeoutType = float | tuple[float, float]
 HeadersType = Mapping[str, str]
-ParamsType = Mapping[str, Union[str, int, float, bool]]
+ParamsType = Mapping[str, str | int | float | bool]
 CookiesType = Mapping[str, str]
-AuthType = Union[requests.auth.AuthBase, Tuple[str, str]]
+type AuthType = requests.auth.AuthBase | tuple[str, str]
 
 
 @dataclass(frozen=True)
 class RequestBuilder:
     _method: str = "GET"
-    _url: Optional[str] = None
-    _headers: Dict[str, str] = field(default_factory=dict)
-    _params: Dict[str, Any] = field(default_factory=dict)
-    _data: Optional[Union[bytes, str, MutableMapping[str, Any]]] = None
-    _json: Optional[JSONType] = None
-    _files: Optional[Dict[str, Any]] = None
-    _cookies: Dict[str, str] = field(default_factory=dict)
-    _timeout: Optional[TimeoutType] = (5, 15)
-    _auth: Optional[AuthType] = None
+    _url: str | None = None
+    _headers: dict[str, str] = field(default_factory=dict)
+    _params: dict[str, Any] = field(default_factory=dict)
+    _data: bytes | str | MutableMapping[str, Any] | None = None
+    _json: JSONType | None = None
+    _files: dict[str, Any] | None = None
+    _cookies: dict[str, str] = field(default_factory=dict)
+    _timeout: TimeoutType | None = (5, 15)
+    _auth: AuthType | None = None
 
     def method(self, method: str) -> RequestBuilder:
         return replace(self, _method=method.upper())
@@ -51,7 +52,7 @@ class RequestBuilder:
     def header(self, name: str, value: str) -> RequestBuilder:
         new_headers = dict(self._headers)
         new_headers[name] = value
-        
+
         return replace(self, _headers=new_headers)
 
     def headers(self, headers: HeadersType) -> RequestBuilder:
@@ -95,18 +96,18 @@ class RequestBuilder:
 
         return replace(self, _cookies=new_cookies)
 
-    def data(self, data: Union[bytes, str, MutableMapping[str, Any]]) -> RequestBuilder:
-        return replace(self, _data=data, _json=None) 
+    def data(self, data: bytes | str | MutableMapping[str, Any]) -> RequestBuilder:
+        return replace(self, _data=data, _json=None)
 
     def json(self, obj: JSONType) -> RequestBuilder:
-        return replace(self, _json=obj, _data=None) 
+        return replace(self, _json=obj, _data=None)
 
     def file(
         self,
         field_name: str,
-        file_obj: Union[io.IOBase, bytes],
-        filename: Optional[str] = None,
-        content_type: Optional[str] = None,
+        file_obj: io.IOBase | bytes,
+        filename: str | None = None,
+        content_type: str | None = None,
     ) -> RequestBuilder:
         """
         Adds a single multipart file. Creates/merges into _files dict.
@@ -119,7 +120,6 @@ class RequestBuilder:
         else:
             files = dict(self._files)
 
-    
         if isinstance(file_obj, (bytes, bytearray)):
             file_obj = io.BytesIO(file_obj)
 
@@ -156,13 +156,13 @@ class RequestBuilder:
 
     def send(
         self,
-        session: Optional[requests.Session] = None,
+        session: requests.Session | None = None,
         *,
         raise_for_status: bool = False,
         stream: bool = False,
         allow_redirects: bool = True,
-        proxies: Optional[Dict[str, str]] = None,
-        verify: Union[bool, str, None] = None,
+        proxies: dict[str, str] | None = None,
+        verify: bool | str | None = None,
     ) -> requests.Response:
         """
         Builds and sends the request. If no session is provided, a one-off Session is used.
@@ -186,13 +186,12 @@ class RequestBuilder:
 
         if raise_for_status:
             resp.raise_for_status()
-        
-        return resp
 
+        return resp
 
     def clone(self) -> RequestBuilder:
         """Create a deep-ish copy suitable for branching variants."""
-        
+
         return replace(
             self,
             _headers=dict(self._headers),
