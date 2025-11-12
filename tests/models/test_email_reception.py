@@ -43,7 +43,7 @@ def test_email_reception_composite_primary_key(session: Session):
     rec1 = EmailReception(kind=RecipientKind.TO, email_id=e.id, contact_id=r.id)
     session.add(rec1)
     session.commit()
-    
+
     # Expunge rec1 to avoid identity map conflict warning
     session.expunge(rec1)
 
