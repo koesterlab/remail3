@@ -21,7 +21,7 @@ format-check = { depends-on = ["lint", "format-code-check"] }
 typecheck = "mypy remail --explicit-package-bases"
 
 # 4) Dead code detection
-deadcode = "vulture remail --exclude remail/frontend,remail/llm,remail/email_api,remail/database,remail/controller.py,remail/util"
+deadcode = "vulture remail --exclude remail"
 
 # 5) Security scan
 security = "bandit -r remail -x remail/frontend,remail/llm,remail/email_api,remail/database,remail/controller.py"
@@ -40,6 +40,7 @@ werkzeug = ">=3.1.3"
 transformers = ">=4.46.3"
 sentence-transformers = ">=3.3.1"
 chromadb = ">=0.5.23"
+types-pytz = ">=2025.2.0.20251108,<2026"
 
 [pypi-dependencies]
 sqlmodel = ">=0.0.22"

@@ -1,11 +1,12 @@
 from datetime import datetime
 from email.header import decode_header, make_header
 from email.utils import getaddresses, parsedate_to_datetime
+from typing import cast
 
 from pytz import timezone
 
 from remail.database.models import Attachment, Email
-from remail.interfaces.email.utils.helpers import save_attachment
+from remail.interfaces.email.services.attachment_service import save_attachment
 
 UTC = timezone("UTC")
 
@@ -33,10 +34,12 @@ class EmailParser:
             hdr = em.get("Date")
 
             if hdr:
-                return parsedate_to_datetime(hdr).astimezone(UTC)
+                dt = parsedate_to_datetime(hdr)
+
+                return cast(datetime, dt.astimezone(UTC))
 
         except Exception:
-            pass
+            return None
 
         return None
 

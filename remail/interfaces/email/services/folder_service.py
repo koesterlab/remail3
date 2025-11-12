@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 from datetime import datetime
 
-from imapclient import IMAPClient
+from imapclient import IMAPClient  # type: ignore
 
 
 class FolderService:
@@ -49,7 +49,7 @@ class FolderService:
 
         for flags, _, name in self.imap_client.list_folders():
             if b"\\Trash" in set(flags):
-                return name
+                return str(name)
 
         return None
 
@@ -92,5 +92,6 @@ class FolderService:
 
         try:
             yield
+
         finally:
             self.imap_client.close_folder()

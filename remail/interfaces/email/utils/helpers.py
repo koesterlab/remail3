@@ -1,16 +1,12 @@
 """Utility functions for email operations."""
 
-import os
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from werkzeug.utils import secure_filename
-
 from remail.database.models import Attachment, Email, EmailReception, RecipientKind
-from remail.interfaces.email.services.attachment_service import save_attachment
 
 if TYPE_CHECKING:
-    from remail.controller import EmailController
+    from remail.controller import EmailController  # type: ignore[import-not-found]
 
 
 def create_email(

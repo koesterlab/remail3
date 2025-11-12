@@ -13,8 +13,8 @@ from smtplib import (
 )
 from typing import TYPE_CHECKING
 
-from exchangelib import errors as exch_errors
-from imapclient.exceptions import (
+from exchangelib import errors as exch_errors  # type: ignore
+from imapclient.exceptions import (  # type: ignore
     CapabilityError,
     IMAPClientAbortError,
     IMAPClientError,

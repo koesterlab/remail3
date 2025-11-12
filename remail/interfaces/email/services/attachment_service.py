@@ -44,7 +44,7 @@ def save_attachment(filename: str, content: bytes, message_id: str) -> str:
     with open(filepath, "wb") as f:
         f.write(content)
 
-    # Set permissions: rwxrw-r-- (764)
-    os.chmod(filepath, 0o764)
+    # Set permissions: rw-r--r-- (644)
+    os.chmod(filepath, 0o644)
 
     return filepath

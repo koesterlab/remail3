@@ -4,13 +4,13 @@ import email as py_email
 from collections import OrderedDict
 from datetime import datetime
 
-from imapclient import IMAPClient
-from imapclient.exceptions import LoginError
+from imapclient import IMAPClient  # type: ignore
+from imapclient.exceptions import LoginError  # type: ignore
 from pytz import timezone
 
 from remail.database.models import Email
 from remail.interfaces.email import errors as ee
-from remail.interfaces.email.base import EmailProtocol, error_handler
+from remail.interfaces.email.protocols.base import EmailProtocol, error_handler
 from remail.interfaces.email.services import (
     EmailParser,
     FolderService,
@@ -144,8 +144,9 @@ class ImapProtocol(EmailProtocol):
                             if dt_utc < cutoff:
                                 continue
 
-                        except Exception:
-                            pass
+                        except Exception:  # nosec B112
+                            # Skip emails with invalid or missing date headers
+                            continue
 
                 out.append(self.email_parser.parse_email_message(em))
 

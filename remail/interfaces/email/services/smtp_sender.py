@@ -48,8 +48,13 @@ class SmtpSender:
             envelope_recipients: List of recipient email addresses
 
         Raises:
+            InvalidLoginData: If credentials are not set
             Various SMTP exceptions on failure
         """
+
+        # Ensure credentials are set (should be validated before calling)
+        if self.username is None or self.password is None:
+            raise ee.InvalidLoginData()
 
         with SMTP_SSL(self.host, port=SMTP_SSL_PORT) as smtp:
             smtp.login(self.username, self.password)
