@@ -1,6 +1,7 @@
-from enum import Enum
-import keyring
 import os
+from enum import Enum
+
+import keyring
 
 
 class Protocol(str, Enum):

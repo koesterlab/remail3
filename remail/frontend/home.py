@@ -1,16 +1,17 @@
-import streamlit as st
-import time
-import random
 import mimetypes  # Für die korrekte Erkennung von MIME-Types
-import sys
 import os
+import random
+import sys
+import time
 
 # Add the Remail directory (parent folder) to sys.path
 remail_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(remail_path)
 
+import streamlit as st  # noqa: E402
+
 # Import the RAG_Backend module using the full package path
-from llm import RAG_Backend as rag
+from llm import RAG_Backend as rag  # noqa: E402
 
 llm = rag.LLM()
 
@@ -95,9 +96,7 @@ def add_email_form():
     with col1:
         if st.button("Send Email", key="send_email_button"):
             if recipient and subject and body:
-                emails_data.setdefault(recipient, []).append(
-                    {"type": "sent", "message": body}
-                )
+                emails_data.setdefault(recipient, []).append({"type": "sent", "message": body})
                 st.success("Email sent successfully!")
                 st.session_state["email_sent"] = True
             else:
@@ -107,9 +106,7 @@ def add_email_form():
             st.session_state["cancel_email"] = True
 
 
-if "email_sent" in st.session_state and st.session_state.pop(
-    "email_sent"
-):  # Rerun-Trigger
+if "email_sent" in st.session_state and st.session_state.pop("email_sent"):  # Rerun-Trigger
     st.rerun()
 
 if "cancel_email" in st.session_state and st.session_state.pop("cancel_email"):
@@ -129,7 +126,7 @@ def new_contact_form():
             if contact_name and contact_surname and email_address:
                 st.session_state.contacts[email_address] = contact_name
                 st.success(
-                    f"Created contact {contact_name,contact_surname} with email {email_address}"
+                    f"Created contact {contact_name, contact_surname} with email {email_address}"
                 )
                 st.rerun()
             else:
@@ -169,9 +166,7 @@ with col1:
     st.session_state.filter_option = st.selectbox(
         "Sort by:", options=["None", "Urgency", "Date"], key="filter_option_selectbox"
     )
-    st.session_state.search_query = st.text_input(
-        "Search for Sender:", key="search_query_input"
-    )
+    st.session_state.search_query = st.text_input("Search for Sender:", key="search_query_input")
 
     # Sender sortieren basierend auf Filter
     senders = list(emails_data.keys())
@@ -218,9 +213,7 @@ with col2:
 
         # Simuliere das Eintreffen neuer Nachrichten
         time_diff = time.time() - st.session_state.last_message_time[selected_sender]
-        if time_diff > random.randint(
-            3, 7
-        ):  # Zufälliges Intervall zwischen 3 und 7 Sekunden
+        if time_diff > random.randint(3, 7):  # Zufälliges Intervall zwischen 3 und 7 Sekunden
             new_message = f"Automatische Nachricht um {time.strftime('%H:%M:%S')}"
             chat_history.append({"type": "received", "message": new_message})
             st.session_state.last_message_time[selected_sender] = time.time()
@@ -245,7 +238,7 @@ with col2:
                         <span style="color: white; font-weight: bold;">
                             {sender_display}:
                         </span>
-                        
+
                     </div>
                 """,
                     unsafe_allow_html=True,
@@ -265,13 +258,9 @@ with col2:
             height=100,
             key=f"new_message_input_chat_{selected_sender}",
         )
-        uploaded_file = st.file_uploader(
-            "Datei anhängen", key=f"file_uploader_{selected_sender}"
-        )
+        uploaded_file = st.file_uploader("Datei anhängen", key=f"file_uploader_{selected_sender}")
 
-        if st.button(
-            f"Senden an {selected_sender}", key=f"send_message_{selected_sender}"
-        ):
+        if st.button(f"Senden an {selected_sender}", key=f"send_message_{selected_sender}"):
             # Sicherstellen, dass entweder eine Nachricht oder eine Datei vorhanden ist
             if new_message.strip() or uploaded_file:
                 message_data = {"type": "sent"}
@@ -288,9 +277,7 @@ with col2:
                     st.write(f"Datei '{uploaded_file.name}' wurde angehängt.")
 
                 # Chatverlauf aktualisieren
-                st.session_state.chat_history.setdefault(selected_sender, []).append(
-                    message_data
-                )
+                st.session_state.chat_history.setdefault(selected_sender, []).append(message_data)
                 st.rerun()
             else:
                 st.error("Bitte gib eine Nachricht ein oder hänge eine Datei an.")
@@ -335,12 +322,8 @@ with col3:
             try:
                 response = llm.prompt(prompt)
                 st.write(response)
-                st.session_state.messages.append(
-                    {"role": "assistant", "content": response}
-                )
-            except Exception as e:
+                st.session_state.messages.append({"role": "assistant", "content": response})
+            except Exception:
                 error_message = "I apologize, but I'm having trouble processing your request right now. Please try again later."
                 st.error(error_message)
-                st.session_state.messages.append(
-                    {"role": "assistant", "content": error_message}
-                )
+                st.session_state.messages.append({"role": "assistant", "content": error_message})

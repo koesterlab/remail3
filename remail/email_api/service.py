@@ -1,47 +1,54 @@
+import email
+import mimetypes
+import os
 from abc import ABC, abstractmethod
-from remail.database.models import (
-    Email,
-    EmailReception,
-    Attachment,
-    RecipientKind,
-)
-from imapclient import IMAPClient
+from datetime import datetime
+from email.header import decode_header
+from email.message import EmailMessage
+from email.utils import getaddresses, parsedate_to_datetime
 from smtplib import (
     SMTP_SSL,
     SMTP_SSL_PORT,
     SMTPAuthenticationError,
+    SMTPConnectError,
+    SMTPDataError,
+    SMTPHeloError,
     SMTPRecipientsRefused,
     SMTPServerDisconnected,
-    SMTPDataError,
-    SMTPConnectError,
-    SMTPHeloError,
 )
-import email
+from typing import TYPE_CHECKING
+
+from exchangelib import (
+    UTC,
+    Account,
+    Credentials,
+    FileAttachment,
+    FolderCollection,
+    Message,
+)
+from exchangelib import (
+    errors as exch_errors,
+)
+from imapclient import IMAPClient
 from imapclient.exceptions import (
-    LoginError,
+    CapabilityError,
     IMAPClientAbortError,
     IMAPClientError,
-    CapabilityError,
+    LoginError,
 )
-from email.message import EmailMessage
-from datetime import datetime
-from exchangelib import (
-    Credentials,
-    Account,
-    Message,
-    FileAttachment,
-    errors as exch_errors,
-    FolderCollection,
-    UTC,
-)
-import os
-import mimetypes
-from werkzeug.utils import secure_filename
-import tempfile
-from email.header import decode_header
-from email.utils import parsedate_to_datetime, getaddresses
-import remail.email_api.email_errors as ee
 from pytz import timezone
+from werkzeug.utils import secure_filename
+
+import remail.email_api.email_errors as ee
+from remail.database.models import (
+    Attachment,
+    Email,
+    EmailReception,
+    RecipientKind,
+)
+
+if TYPE_CHECKING:
+    from remail.controller import EmailController
 
 
 def error_handler(func):
@@ -69,17 +76,17 @@ def error_handler(func):
             raise e
         except ValueError as e:
             if "is not an email address" in str(e):
-                raise ee.InvalidLoginData()
+                raise ee.InvalidLoginData() from e
             else:
                 raise ee.UnknownError(f"An unexpected error occurred: {str(e)}") from e
-        except INVALIDLOGINDATA:
-            raise ee.InvalidLoginData()
-        except CONNECTIONFAIL:
-            raise ee.ServerConnectionFail()
-        except SMTPDataError:
-            raise ee.SMTPDataFalse()
-        except RECIPIENTSFAIL:
-            raise ee.RecipientsFail()
+        except INVALIDLOGINDATA as e:
+            raise ee.InvalidLoginData() from e
+        except CONNECTIONFAIL as e:
+            raise ee.ServerConnectionFail() from e
+        except SMTPDataError as e:
+            raise ee.SMTPDataFalse() from e
+        except RECIPIENTSFAIL as e:
+            raise ee.RecipientsFail() from e
         except Exception as e:
             raise ee.UnknownError(f"An unexpected error occurred: {str(e)}") from e
 
@@ -217,9 +224,7 @@ class ImapProtocol(ProtocolTemplate):
                 type = mimetypes.guess_type(file.name)[0].split("/")
                 main_type = type[0]
                 sub_type = type[1]
-            msg.add_attachment(
-                file_data, maintype=main_type, subtype=sub_type, filename=filename
-            )
+            msg.add_attachment(file_data, maintype=main_type, subtype=sub_type, filename=filename)
 
         # connect/authenticate
         smtp_server = SMTP_SSL(self.host, port=SMTP_SSL_PORT)
@@ -294,10 +299,8 @@ class ImapProtocol(ProtocolTemplate):
                             if filename:
                                 file, encoding = decode_header(filename)[0]
                                 if isinstance(file, bytes):
-                                    filename = file.decode(
-                                        encoding or "utf-8", errors="replace"
-                                    )
-                                else: 
+                                    filename = file.decode(encoding or "utf-8", errors="replace")
+                                else:
                                     filename = file
                                 attachments_file_names += [
                                     safe_file(
@@ -374,9 +377,7 @@ class ImapProtocol(ProtocolTemplate):
             self.IMAP.select_folder(mailbox)
             list_messages_ids = self.IMAP.search(["ALL"])
             # gets all message ids from the connection
-            for _, message_data in self.IMAP.fetch(
-                list_messages_ids, ["RFC822"]
-            ).items():
+            for _, message_data in self.IMAP.fetch(list_messages_ids, ["RFC822"]).items():
                 email_message = email.message_from_bytes(message_data[b"RFC822"])
                 listofUIPsIMAP.append(email_message["Message-Id"])
             self.IMAP.close_folder()
@@ -574,14 +575,12 @@ class ExchangeProtocol(ProtocolTemplate):
         attachments = []
         for attachment in item.attachments:
             if isinstance(attachment, FileAttachment):
-                attachments += [
-                    safe_file(attachment.name, attachment.content, item.message_id)
-                ]
+                attachments += [safe_file(attachment.name, attachment.content, item.message_id)]
 
         ews_datetime_str = item.datetime_received.astimezone()
-        parsed_datetime = datetime.fromisoformat(
-            ews_datetime_str.ewsformat()
-        ).astimezone(timezone("UTC"))
+        parsed_datetime = datetime.fromisoformat(ews_datetime_str.ewsformat()).astimezone(
+            timezone("UTC")
+        )
 
         body = item.text_body
         if item.body != body:
@@ -662,9 +661,7 @@ def create_email(
         date=date,
     )
 
-    attachments_class = [
-        Attachment(filename=filename, email=email) for filename in attachments
-    ]
+    attachments_class = [Attachment(filename=filename, email=email) for filename in attachments]
 
     email.attachments = attachments_class
 
@@ -673,9 +670,7 @@ def create_email(
 
 def safe_file(filename: str, content: bytes, message_id: str) -> str:
     ordner_path = os.path.abspath(os.path.join("remail", "database", "attachments"))
-    message_path = os.path.join(
-        ordner_path, secure_filename(message_id).replace(".", "_")
-    )
+    message_path = os.path.join(ordner_path, secure_filename(message_id).replace(".", "_"))
     max_size = 200 * 1024 * 1024  # muss noch von wo anders bestimmt werden 10 MB
     if len(content) > max_size:
         raise BufferError(f"File size exceeds limit of {max_size} bytes")
@@ -693,11 +688,12 @@ def safe_file(filename: str, content: bytes, message_id: str) -> str:
     try:
         with open(filepath, "wb") as f:
             f.write(content)
-        os.chmod(filepath,rwx2dec("rwxrw-r--"))
+        os.chmod(filepath, rwx2dec("rwxrw-r--"))
         return filepath
     except Exception as e:
         raise e
-    
+
+
 def rwx2dec(string):
     if len(string) != 9:
         return False

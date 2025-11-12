@@ -1,0 +1,34 @@
+name: Auto-assign PR to author
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, ready_for_review, converted_to_draft]
+  push:
+    branches: [main]
+
+permissions:
+  pull-requests: write
+  issues: write
+
+jobs:
+  assign:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v8
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const pr = context.payload.pull_request;
+
+            // Skip if the PR author is a bot (e.g., dependabot[bot])
+            if (pr.user.type === 'Bot') {
+              console.log(`Skipping assignment for bot user: ${pr.user.login}`);
+              return;
+            }
+
+            await github.rest.issues.addAssignees({
+              owner, repo,
+              issue_number: pr.number,
+              assignees: [pr.user.login],
+            });

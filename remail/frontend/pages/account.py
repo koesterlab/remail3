@@ -1,5 +1,6 @@
-import streamlit as st
 import re
+
+import streamlit as st
 
 st.title("Account Management")
 
@@ -47,6 +48,4 @@ if st.button("Log Out"):
     st.info("You have been logged out. See you next time!")
 # example button for deleting account
 if st.button("Delete Account"):
-    st.warning(
-        "Are you sure you want to delete your account? This action cannot be undone."
-    )
+    st.warning("Are you sure you want to delete your account? This action cannot be undone.")
