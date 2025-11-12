@@ -29,13 +29,22 @@ jobs:
                   cache: true
                   cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
 
-            - name: Tests
-              run: pixi run test
-
-            - name: Ruff lint
-              if: always()
-              run: pixi run lint
-
-            - name: Format check (code & imports)
-              if: always()
+            - name: "Format check (Ruff: lint + code style)"
               run: pixi run format-check
+              if: always()
+
+            - name: "Type check (mypy)"
+              run: pixi run typecheck
+              if: always()
+
+            - name: "Dead code check (Vulture)"
+              run: pixi run deadcode
+              if: always()
+
+            - name: "Security scan (Bandit)"
+              run: pixi run security
+              if: always()
+
+            - name: "Tests"
+              run: pixi run test
+              if: always()
