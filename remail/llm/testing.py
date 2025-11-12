@@ -9,7 +9,7 @@ import controller  # noqa: E402
 
 # import RAG_Backend
 
-emails = controller.controller.get_emails()
+emails = controller.controller.fetch_emails()
 print(emails)
 
 # llm= RAG_Backend.LLM()

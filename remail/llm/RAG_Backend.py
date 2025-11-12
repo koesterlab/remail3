@@ -193,7 +193,7 @@ class LLM:
     # ---------------------------------------------
     def _db_to_nodes(self):
         """ "Converts all Emails to Documents to embed into Vector DB"""
-        emails = controller.controller.get_emails()
+        emails = controller.controller.fetch_emails()
         docstore = []
 
         for mail in emails:
