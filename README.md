@@ -32,9 +32,11 @@ The project includes several pixi tasks defined in `pixi.toml`:
 
 - **`pixi run test`** - Run the test suite with pytest
 - **`pixi run lint`** - Check code for linting errors with Ruff
-- **`pixi run format`** - Automatically fix linting issues and format code
+- **`pixi run format-lint`** - Apply Ruff auto-fixes (imports, lint rules)
+- **`pixi run format-code`** - Run Ruff formatter only
+- **`pixi run format`** - Run both `format-lint` and `format-code` for a one-command auto-fix
 - **`pixi run format-check`** - Check formatting and linting without making changes (used in CI)
-- **`pixi run typecheck`** - Run mypy (currently scoped to modules not excluded in `mypy.ini`)
+- **`pixi run typecheck`** - Run mypy on the `remail` package with `--explicit-package-bases`
 - **`pixi run deadcode`** - Identify unused code paths with Vulture (legacy-heavy modules are excluded)
 - **`pixi run security`** - Execute Bandit security scans (legacy-heavy modules are excluded)
 
@@ -76,3 +78,8 @@ Automatically approves and merges Dependabot pull requests for patch and minor v
 - **AI/LLM**: LlamaIndex, ChromaDB for RAG, Hugging Face embeddings
 - **Email**: IMAP and Exchange protocol support
 - **Code Quality**: Ruff (linting & formatting), pytest (testing)
+
+### Utils
+
+- `remail/util/request.py` – `RequestBuilder` offers an immutable, fluent API for building `requests` calls, including helpers for headers, auth, payloads, and sending via shared sessions.
+- `tests/utils/test_request.py` – Demonstrates usage patterns and guards edge cases such as cloning builders, attaching files, and propagating cookies.
