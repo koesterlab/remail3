@@ -283,3 +283,114 @@ def test_delete_email_not_found_in_first_folder_checks_next(
 def test_delete_email_requires_login(protocol: ImapProtocol):
     with pytest.raises(ee.NotLoggedIn):
         protocol.delete_email("<id>", hard_delete=True)
+
+
+def test_tag_email_add_tag(protocol: ImapProtocol, imap_mock, folder_service_mock):
+    """Test adding a tag to an email."""
+    protocol._logged_in = True
+    folder_service_mock.get_user_folders.return_value = ["INBOX"]
+    imap_mock.search.return_value = [123]
+
+    with patch("remail.interfaces.email.protocols.imap.TagService") as mock_tag_service_cls:
+        mock_tag_service = MagicMock()
+        mock_tag_service_cls.return_value = mock_tag_service
+
+        protocol.tag_email("<test@example.com>", "important", remove=False)
+
+        imap_mock.search.assert_called_once_with(["HEADER", "Message-ID", "<test@example.com>"])
+        mock_tag_service_cls.assert_called_once_with(imap_mock)
+        mock_tag_service.add_tag.assert_called_once_with(123, "important")
+        mock_tag_service.remove_tag.assert_not_called()
+
+
+def test_tag_email_remove_tag(protocol: ImapProtocol, imap_mock, folder_service_mock):
+    """Test removing a tag from an email."""
+    protocol._logged_in = True
+    folder_service_mock.get_user_folders.return_value = ["INBOX"]
+    imap_mock.search.return_value = [456]
+
+    with patch("remail.interfaces.email.protocols.imap.TagService") as mock_tag_service_cls:
+        mock_tag_service = MagicMock()
+        mock_tag_service_cls.return_value = mock_tag_service
+
+        protocol.tag_email("<test@example.com>", "work", remove=True)
+
+        mock_tag_service.remove_tag.assert_called_once_with(456, "work")
+        mock_tag_service.add_tag.assert_not_called()
+
+
+def test_tag_email_multiple_uids(protocol: ImapProtocol, imap_mock, folder_service_mock):
+    """Test tagging email when multiple UIDs are found."""
+    protocol._logged_in = True
+    folder_service_mock.get_user_folders.return_value = ["INBOX"]
+    imap_mock.search.return_value = [123, 456, 789]
+
+    with patch("remail.interfaces.email.protocols.imap.TagService") as mock_tag_service_cls:
+        mock_tag_service = MagicMock()
+        mock_tag_service_cls.return_value = mock_tag_service
+
+        protocol.tag_email("<test@example.com>", "important", remove=False)
+
+        # Should tag all UIDs
+        assert mock_tag_service.add_tag.call_count == 3
+        mock_tag_service.add_tag.assert_any_call(123, "important")
+        mock_tag_service.add_tag.assert_any_call(456, "important")
+        mock_tag_service.add_tag.assert_any_call(789, "important")
+
+
+def test_tag_email_searches_multiple_folders(
+    protocol: ImapProtocol, imap_mock, folder_service_mock
+):
+    """Test that tag_email searches across multiple folders."""
+    protocol._logged_in = True
+    folder_service_mock.get_user_folders.return_value = ["INBOX", "Work", "Archive"]
+    imap_mock.search.side_effect = [[], [789], []]  # Found in second folder
+
+    with patch("remail.interfaces.email.protocols.imap.TagService") as mock_tag_service_cls:
+        mock_tag_service = MagicMock()
+        mock_tag_service_cls.return_value = mock_tag_service
+
+        protocol.tag_email("<test@example.com>", "important", remove=False)
+
+        # Should search multiple folders until found
+        assert imap_mock.search.call_count == 2
+        mock_tag_service.add_tag.assert_called_once_with(789, "important")
+
+
+def test_tag_email_not_found(protocol: ImapProtocol, imap_mock, folder_service_mock):
+    """Test tagging email when message is not found."""
+    protocol._logged_in = True
+    folder_service_mock.get_user_folders.return_value = ["INBOX", "Work"]
+    imap_mock.search.return_value = []
+
+    with patch("remail.interfaces.email.protocols.imap.TagService") as mock_tag_service_cls:
+        mock_tag_service = MagicMock()
+        mock_tag_service_cls.return_value = mock_tag_service
+
+        protocol.tag_email("<nonexistent@example.com>", "important", remove=False)
+
+        # Should search all folders but not call tag service
+        assert imap_mock.search.call_count == 2
+        mock_tag_service.add_tag.assert_not_called()
+        mock_tag_service.remove_tag.assert_not_called()
+
+
+def test_tag_email_requires_login(protocol: ImapProtocol):
+    """Test that tag_email raises NotLoggedIn when not authenticated."""
+    with pytest.raises(ee.NotLoggedIn):
+        protocol.tag_email("<test@example.com>", "important", remove=False)
+
+
+def test_tag_email_with_standard_flag(protocol: ImapProtocol, imap_mock, folder_service_mock):
+    """Test adding a standard IMAP flag."""
+    protocol._logged_in = True
+    folder_service_mock.get_user_folders.return_value = ["INBOX"]
+    imap_mock.search.return_value = [123]
+
+    with patch("remail.interfaces.email.protocols.imap.TagService") as mock_tag_service_cls:
+        mock_tag_service = MagicMock()
+        mock_tag_service_cls.return_value = mock_tag_service
+
+        protocol.tag_email("<test@example.com>", "\\FLAGGED", remove=False)
+
+        mock_tag_service.add_tag.assert_called_once_with(123, "\\FLAGGED")

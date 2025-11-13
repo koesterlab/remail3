@@ -5,6 +5,7 @@ from .folder_service import FolderService
 from .message_builder import MessageBuilder
 from .recipient_service import RecipientService
 from .smtp_sender import SmtpSender
+from .tag_service import TagService
 
 __all__ = [
     "EmailParser",
@@ -12,4 +13,5 @@ __all__ = [
     "MessageBuilder",
     "RecipientService",
     "SmtpSender",
+    "TagService",
 ]

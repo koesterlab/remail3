@@ -486,3 +486,83 @@ class TestEmailSerialization:
 
         assert result["sender"]["name"] is None
         assert result["sender"]["email"] is None
+
+
+class TestTagEmail:
+    """Tests for tag_email functionality."""
+
+    def test_tag_email_add_success(self, controller, mock_protocol):
+        """Test successfully adding a tag to an email."""
+        mock_protocol.tag_email.return_value = None
+
+        result = controller.tag_email(message_id="<test@example.com>", tag="important")
+
+        assert result["status"] == "success"
+        assert result["message"] == "Tag 'important' added to email"
+        assert result["message_id"] == "<test@example.com>"
+        assert result["tag"] == "important"
+        assert result["action"] == "add"
+
+        mock_protocol.tag_email.assert_called_once_with(
+            message_id="<test@example.com>", tag="important", remove=False
+        )
+
+    def test_tag_email_remove_success(self, controller, mock_protocol):
+        """Test successfully removing a tag from an email."""
+        mock_protocol.tag_email.return_value = None
+
+        result = controller.tag_email(message_id="<test@example.com>", tag="important", remove=True)
+
+        assert result["status"] == "success"
+        assert result["message"] == "Tag 'important' removed from email"
+        assert result["message_id"] == "<test@example.com>"
+        assert result["tag"] == "important"
+        assert result["action"] == "remove"
+
+        mock_protocol.tag_email.assert_called_once_with(
+            message_id="<test@example.com>", tag="important", remove=True
+        )
+
+    def test_tag_email_not_logged_in(self, controller, mock_protocol):
+        """Test tagging email when not logged in."""
+        mock_protocol.tag_email.side_effect = ee.NotLoggedIn()
+
+        result = controller.tag_email(message_id="<test@example.com>", tag="important")
+
+        assert result["status"] == "error"
+        assert result["message"] == "Not logged in"
+
+    def test_tag_email_generic_error(self, controller, mock_protocol):
+        """Test tagging email with generic error."""
+        mock_protocol.tag_email.side_effect = Exception("IMAP error")
+
+        result = controller.tag_email(message_id="<test@example.com>", tag="important")
+
+        assert result["status"] == "error"
+        assert result["message"] == "Failed to tag email: IMAP error"
+
+    def test_tag_email_with_custom_tag(self, controller, mock_protocol):
+        """Test adding a custom tag."""
+        mock_protocol.tag_email.return_value = None
+
+        result = controller.tag_email(message_id="<test@example.com>", tag="work")
+
+        assert result["status"] == "success"
+        assert result["tag"] == "work"
+
+        mock_protocol.tag_email.assert_called_once_with(
+            message_id="<test@example.com>", tag="work", remove=False
+        )
+
+    def test_tag_email_with_standard_flag(self, controller, mock_protocol):
+        """Test adding a standard IMAP flag."""
+        mock_protocol.tag_email.return_value = None
+
+        result = controller.tag_email(message_id="<test@example.com>", tag="\\FLAGGED")
+
+        assert result["status"] == "success"
+        assert result["tag"] == "\\FLAGGED"
+
+        mock_protocol.tag_email.assert_called_once_with(
+            message_id="<test@example.com>", tag="\\FLAGGED", remove=False
+        )

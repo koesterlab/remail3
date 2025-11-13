@@ -126,3 +126,16 @@ class EmailProtocol(ABC):
         """
 
         pass
+
+    @abstractmethod
+    def tag_email(self, message_id: str, tag: str, remove: bool = False) -> None:
+        """
+        Add or remove a tag from an email.
+
+        Args:
+            message_id: The message ID to tag
+            tag: Tag name to add or remove
+            remove: If True, remove the tag; if False, add it
+        """
+
+        pass

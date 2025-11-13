@@ -16,6 +16,7 @@ from remail.interfaces.email.services import (
     MessageBuilder,
     RecipientService,
     SmtpSender,
+    TagService,
 )
 from remail.models import Email
 
@@ -210,5 +211,41 @@ class ImapProtocol(EmailProtocol):
 
                     else:
                         self.IMAP.add_flags(uids, [b"\\Deleted"])
+
+                return
+
+    @error_handler
+    def tag_email(self, message_id: str, tag: str, remove: bool = False) -> None:
+        """
+        Add or remove a tag/keyword from an email.
+
+        Searches across all folders for the email with the given Message-ID
+        and adds/removes the specified tag.
+
+        Args:
+            message_id: The Message-ID header of the email
+            tag: Tag name to add or remove
+            remove: If True, remove the tag; if False, add it
+
+        Raises:
+            NotLoggedIn: If not currently logged in
+        """
+        if not self.logged_in:
+            raise ee.NotLoggedIn()
+
+        for box in self.folder_service.get_user_folders(include_trash=True):
+            with self.folder_service.selected_folder(box):
+                uids = self.IMAP.search(["HEADER", "Message-ID", message_id])
+
+                if not uids:
+                    continue
+
+                tag_service = TagService(self.IMAP)
+
+                for uid in uids:
+                    if remove:
+                        tag_service.remove_tag(uid, tag)
+                    else:
+                        tag_service.add_tag(uid, tag)
 
                 return

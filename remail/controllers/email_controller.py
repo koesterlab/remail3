@@ -219,6 +219,42 @@ class EmailController:
                 "message": f"Failed to delete email: {str(e)}",
             }
 
+    def tag_email(self, message_id: str, tag: str, remove: bool = False) -> dict[str, Any]:
+        """
+        Add or remove a tag from an email.
+
+        Args:
+            message_id: Message ID of the email to tag
+            tag: Tag name to add or remove
+            remove: If True, remove the tag; otherwise add it
+
+        Returns:
+            Dict with status, message, and tag details
+        """
+
+        try:
+            self.protocol.tag_email(message_id=message_id, tag=tag, remove=remove)
+
+            return {
+                "status": "success",
+                "message": f"Tag '{tag}' {'removed from' if remove else 'added to'} email",
+                "message_id": message_id,
+                "tag": tag,
+                "action": "remove" if remove else "add",
+            }
+
+        except ee.NotLoggedIn:
+            return {
+                "status": "error",
+                "message": "Not logged in",
+            }
+
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": f"Failed to tag email: {str(e)}",
+            }
+
     def _create_email_model(
         self,
         subject: str,
