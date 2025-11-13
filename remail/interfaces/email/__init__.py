@@ -15,10 +15,7 @@ from remail.interfaces.email.services.attachment_service import save_attachment
 from remail.interfaces.email.services.email_factory_service import (
     EmailFactory,
 )
-from remail.interfaces.email.services.permission_service import (
-    PermissionService,
-    parse_permission_string,
-)
+from remail.interfaces.email.services.permission_service import PermissionService
 
 __all__ = [
     "EmailProtocol",
@@ -27,7 +24,6 @@ __all__ = [
     "EmailFactory",
     "save_attachment",
     "PermissionService",
-    "parse_permission_string",
     "EmailError",
     "InvalidLoginData",
     "NotLoggedIn",

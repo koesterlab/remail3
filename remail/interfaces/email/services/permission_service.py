@@ -32,22 +32,3 @@ class PermissionService:
                     val += group_multiplier * perm_value
 
         return val
-
-
-# Backward compatibility: maintain the function interface
-def parse_permission_string(perm_str: str) -> int:
-    """
-    Convert a permission string (e.g., 'rwxrw-r--') to octal integer.
-
-    This is a convenience function that delegates to PermissionService.parse_permission_string().
-
-    Args:
-        perm_str: Permission string in rwx format (9 characters)
-
-    Returns:
-        Octal permission value
-
-    Raises:
-        ValueError: If string is not 9 characters
-    """
-    return PermissionService.parse_permission_string(perm_str)
