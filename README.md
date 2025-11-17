@@ -438,7 +438,7 @@ All errors are wrapped in the response dictionary:
 ```python
 {
     "status": "error",
-    "message": "OpenAI completion failed: Connection timeout"
+    "message": "LLM completion failed: Connection timeout"
 }
 ```
 
