@@ -28,6 +28,7 @@ security = "bandit -r remail -x remail/frontend,remail/llm,remail/email_api,rema
 
 # 6) Tests
 test = "pytest --tb=short -v"
+test-cov = "pytest --cov=remail --cov-report=term --cov-report=html --cov-report=json"
 
 # 7) Run all checks
 check = { depends-on = ["format-check", "typecheck", "security", "test"] }
@@ -60,6 +61,7 @@ llama-index-readers-database = ">=0.3.0"
 [feature.dev.dependencies]
 pytest = ">=8.3.3"
 pytest-mock = ">=3.14.0"
+pytest-cov = ">=6.0.0"
 ruff = ">=0.8.4"
 mypy = ">=1.13.0"
 vulture = ">=2.11"

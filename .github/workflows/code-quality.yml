@@ -15,6 +15,7 @@ permissions:
     contents: read
     actions: read
     checks: write
+    pull-requests: write
 
 jobs:
     quality:
@@ -48,3 +49,15 @@ jobs:
             - name: "Tests"
               run: pixi run test
               if: always()
+
+            - name: "Generate coverage report"
+              run: pixi run pytest --cov=remail --cov-report=term --cov-report=html --cov-report=json
+              if: always()
+
+            - name: "Coverage comment"
+              uses: py-cov-action/python-coverage-comment-action@v3
+              if: always()
+              with:
+                  GITHUB_TOKEN: ${{ github.token }}
+                  MINIMUM_GREEN: 80
+                  MINIMUM_ORANGE: 60
