@@ -202,9 +202,11 @@ print(result)
 ### API Methods
 
 #### `login() -> dict`
+
 Authenticate with the IMAP server.
 
 **Returns:**
+
 ```python
 {
     "status": "success" | "error",
@@ -214,9 +216,11 @@ Authenticate with the IMAP server.
 ```
 
 #### `logout() -> dict`
+
 Logout from the IMAP server.
 
 **Returns:**
+
 ```python
 {
     "status": "success" | "error",
@@ -226,14 +230,17 @@ Logout from the IMAP server.
 ```
 
 #### `fetch_emails(folder=None, since=None, flags=None) -> dict`
+
 Fetch emails from the server.
 
 **Parameters:**
+
 - `folder` (str | None): Specific folder to fetch from (None = all folders)
 - `since` (datetime | None): Only fetch emails after this datetime
 - `flags` (list[str] | None): IMAP search flags (e.g., ["UNSEEN"])
 
 **Returns:**
+
 ```python
 {
     "status": "success" | "error",
@@ -254,9 +261,11 @@ Fetch emails from the server.
 ```
 
 #### `send_email(subject, body, to=None, cc=None, bcc=None, attachments=None) -> dict`
+
 Send an email.
 
 **Parameters:**
+
 - `subject` (str): Email subject
 - `body` (str): Email body
 - `to` (list[str] | None): List of TO recipients
@@ -265,6 +274,7 @@ Send an email.
 - `attachments` (list[str] | None): List of attachment filenames
 
 **Returns:**
+
 ```python
 {
     "status": "success" | "error",
@@ -274,13 +284,16 @@ Send an email.
 ```
 
 #### `delete_email(message_id, hard_delete=False) -> dict`
+
 Delete an email.
 
 **Parameters:**
+
 - `message_id` (str): Message ID of the email to delete
 - `hard_delete` (bool): If True, permanently delete; otherwise move to trash
 
 **Returns:**
+
 ```python
 {
     "status": "success" | "error",
@@ -295,15 +308,173 @@ Delete an email.
 All methods return a dictionary with a `status` field that can be either `"success"` or `"error"`. When an error occurs, the `message` field contains details about the error.
 
 Common error scenarios:
+
 - **Not logged in**: Attempting operations without calling `login()` first
 - **Invalid credentials**: Wrong username/password during login
 - **No recipients**: Sending email without any recipients
 - **Network errors**: Connection issues with the server
 
 Example error response:
+
 ```python
 {
     "status": "error",
     "message": "Not logged in"
 }
+```
+
+## LLM Controller
+
+The `LLMController` provides a high-level interface for interacting with Large Language Models (LLMs) through an OpenAI-compatible API.
+
+### Environment Configuration
+
+Before using the LLM interface, you must set the following environment variables. To do so, create a `.env` file:
+
+```env
+LLM_API_KEY=your-api-key
+LLM_BASE_URL=https://chat-ai.academiccloud.de/v1/chat/completions
+```
+
+### Usage Example
+
+```python
+from remail.controllers import LLMController
+
+# Initialize the controller (reads from environment variables)
+controller = LLMController()
+
+# Generate a completion
+result = controller.generate_completion(
+    prompt="What is the capital of France?",
+    max_tokens=100,
+    temperature=0.7
+)
+
+print(result)
+# {
+#     "status": "success",
+#     "message": "Completion generated successfully",
+#     "completion": "The capital of France is Paris.",
+#     "response": LLMCompletionResponse(...)
+# }
+
+# Access detailed response information
+if result["status"] == "success":
+    response = result["response"]
+    print(f"Model: {response.model}")
+    print(f"Tokens used: {response.usage.total_tokens}")
+    print(f"Finish reason: {response.choices[0].finish_reason}")
+```
+
+### API Methods
+
+#### `generate_completion(prompt, max_tokens=None, temperature=None, **kwargs) -> dict`
+
+Generate text completion from a prompt.
+
+**Parameters:**
+
+- `prompt` (str): Input prompt for the LLM
+- `max_tokens` (int | None): Maximum tokens to generate (default: 768)
+- `temperature` (float | None): Sampling temperature 0.0-2.0 (default: 0.7)
+- `**kwargs`: Additional parameters like `top_p`
+
+**Returns:**
+
+```python
+{
+    "status": "success" | "error",
+    "message": str,
+    "completion": str,  # The generated text
+    "response": LLMCompletionResponse  # Structured response object
+}
+```
+
+### Structured Response Objects
+
+The LLM interface uses structured dataclasses for type-safe response handling:
+
+- **`LLMCompletionResponse`**: Top-level response with id, model, choices, usage
+- **`LLMCompletionChoice`**: Individual completion choice with message and finish_reason
+- **`LLMCompletionMessage`**: Message content with role (system/user/assistant)
+- **`LLMCompletionUsage`**: Token usage statistics (prompt/completion/total tokens)
+
+Example accessing structured data:
+
+```python
+result = controller.generate_completion("Tell me a joke")
+if result["status"] == "success":
+    response = result["response"]
+
+    # Access response metadata
+    print(f"Model: {response.model}")
+    print(f"ID: {response.id}")
+
+    # Access the completion
+    print(f"Text: {response.completion_text}")
+
+    # Access token usage
+    if response.usage:
+        print(f"Prompt tokens: {response.usage.prompt_tokens}")
+        print(f"Completion tokens: {response.usage.completion_tokens}")
+        print(f"Total tokens: {response.usage.total_tokens}")
+
+    # Access choice details
+    for choice in response.choices:
+        print(f"Finish reason: {choice.finish_reason}")
+        print(f"Message role: {choice.message.role}")
+```
+
+### Error Handling
+
+The LLM controller will raise errors for:
+
+- **Missing environment variables**: `LLM_API_KEY` or `LLM_BASE_URL` not set
+- **API errors**: Connection failures, invalid responses, rate limits
+
+All errors are wrapped in the response dictionary:
+
+```python
+{
+    "status": "error",
+    "message": "OpenAI completion failed: Connection timeout"
+}
+```
+
+### Available Models
+
+The service defaults to `meta-llama-3.1-8b-instruct`, but supports multiple models through the `LLMModel` enum:
+
+- `META_LLAMA_3_1_8B_INSTRUCT`
+- `META_LLAMA_3_1_70B_INSTRUCT`
+- `MISTRAL_NEMO_INSTRUCT_2407`
+- `GEMMA_2_9B_IT`
+
+### Low-Level Service Usage
+
+For advanced use cases, you can use the `LLMService` directly:
+
+```python
+from remail.interfaces.llm import LLMService, LLMMessage
+from remail.interfaces.llm.enums import LLMMessageRole
+
+# Initialize service
+service = LLMService()
+
+# Create custom messages
+messages = [
+    LLMMessage(role=LLMMessageRole.SYSTEM, content="You are a helpful assistant."),
+    LLMMessage(role=LLMMessageRole.USER, content="Hello!"),
+]
+
+# Generate completion
+response = service.generate_completion(
+    prompt="Hello!",
+    max_tokens=100,
+    temperature=0.5,
+    top_p=0.9
+)
+
+print(response.completion_text)
 ```
