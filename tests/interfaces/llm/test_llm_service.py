@@ -188,7 +188,7 @@ def test_generate_completion_api_error(mock_env):
         "create",
         side_effect=Exception("API connection failed"),
     ):
-        with pytest.raises(RuntimeError, match="OpenAI completion failed: API connection failed"):
+        with pytest.raises(RuntimeError, match="LLM completion failed: API connection failed"):
             service.generate_completion("Test")
 
 
