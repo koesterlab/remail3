@@ -84,8 +84,8 @@ def test_llm_service_init_with_env_vars(mock_env):
     assert service.default_top_p == 1.0
 
 
-def test_llm_service_init_with_default_base_url():
-    """Test LLMService requires LLM_BASE_URL environment variable."""
+def test_llm_service_init_requires_base_url():
+    """Test that LLMService requires LLM_BASE_URL environment variable."""
 
     with patch.dict(os.environ, {"LLM_API_KEY": "test-key"}, clear=True):
         with pytest.raises(ValueError, match="LLM_BASE_URL environment variable is required"):
