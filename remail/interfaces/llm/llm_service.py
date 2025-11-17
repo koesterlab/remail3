@@ -85,4 +85,4 @@ class LLMService(LLMBase):
             return LLMCompletionResponse.from_dict(data)
 
         except Exception as e:
-            raise RuntimeError(f"OpenAI completion failed: {str(e)}") from e
+            raise RuntimeError(f"LLM completion failed: {str(e)}") from e
