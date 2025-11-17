@@ -16,6 +16,9 @@ MemStorage.txt
 .pytest_cache/
 test-results.xml
 *.pyc
+.coverage
+coverage.json
+htmlcov/
 
 # IDE
 .vscode/
