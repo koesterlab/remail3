@@ -1,13 +1,9 @@
 """Service for creating Email objects from raw email data."""
 
 from datetime import datetime
-from typing import TYPE_CHECKING
 
 from remail.enums import RecipientKind
-from remail.models import Attachment, Email, EmailReception
-
-if TYPE_CHECKING:
-    from remail.controller import EmailController  # type: ignore[import-not-found]
+from remail.models import Attachment, Contact, Email, EmailReception
 
 
 class EmailFactory:
@@ -24,7 +20,6 @@ class EmailFactory:
         cc_recipients: list[tuple[str, str]],
         bcc_recipients: list[tuple[str, str]],
         date: datetime,
-        controller: "EmailController",
     ) -> Email:
         """
         Create an Email object from raw email data.
@@ -39,17 +34,16 @@ class EmailFactory:
             cc_recipients: List of (name, email) tuples for CC recipients
             bcc_recipients: List of (name, email) tuples for BCC recipients
             date: Email datetime
-            controller: EmailController instance for contact management
-            html_files: Optional list of HTML content
 
         Returns:
             Populated Email object
         """
 
-        sender_contact = controller.get_contact(sender)
+        sender_contact = Contact(name=sender, email_address=sender)
+
         recipients = [
             EmailReception(
-                contact=controller.get_contact(recipient[1], recipient[0]),
+                contact=Contact(name=recipient[0], email_address=recipient[1]),
                 kind=RecipientKind.TO,
             )
             for recipient in to_recipients
@@ -58,7 +52,7 @@ class EmailFactory:
         if cc_recipients:
             recipients += [
                 EmailReception(
-                    contact=controller.get_contact(recipient[1], recipient[0]),
+                    contact=Contact(name=recipient[0], email_address=recipient[1]),
                     kind=RecipientKind.CC,
                 )
                 for recipient in cc_recipients
@@ -67,7 +61,7 @@ class EmailFactory:
         if bcc_recipients:
             recipients += [
                 EmailReception(
-                    contact=controller.get_contact(recipient[1], recipient[0]),
+                    contact=Contact(name=recipient[0], email_address=recipient[1]),
                     kind=RecipientKind.BCC,
                 )
                 for recipient in bcc_recipients

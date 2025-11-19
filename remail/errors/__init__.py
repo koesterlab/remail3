@@ -1,6 +1,7 @@
 """Custom exceptions for email protocol operations."""
 
 from .email_error import EmailError
+from .handlers import email_error_handler
 from .invalid_login_data import InvalidLoginData
 from .not_logged_in import NotLoggedIn
 from .recipients_fail import RecipientsFail
@@ -16,4 +17,5 @@ __all__ = [
     "ServerConnectionFail",
     "SMTPDataFalse",
     "UnknownError",
+    "email_error_handler",
 ]

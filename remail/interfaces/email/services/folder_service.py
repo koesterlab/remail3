@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 from datetime import datetime
 
-from imapclient import IMAPClient  # type: ignore
+from imapclient import IMAPClient
 
 
 class FolderService:
