@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from imapclient import IMAPClient  # type: ignore
+    from imapclient import IMAPClient
 
 
 class TagService:

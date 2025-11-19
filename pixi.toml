@@ -27,7 +27,7 @@ deadcode = "vulture remail --exclude remail"
 security = "bandit -r remail -x remail/frontend,remail/llm,remail/email_api,remail/database,remail/controller.py"
 
 # 6) Tests
-test = "pytest --tb=short -v"
+test = "pytest --tb=short -q"
 test-cov = "pytest --cov=remail --cov-report=term --cov-report=html --cov-report=json"
 
 # 7) Run all checks
@@ -52,6 +52,7 @@ types-pytz = ">=2025.2.0.20251108,<2026"
 sqlmodel = ">=0.0.22"
 exchangelib = ">=5.5.0"
 llama-index = ">=0.12.1"
+llama-index-llms-openai-like = ">=0.3.0"
 imapclient = ">=3.0.1"
 llama-cpp-python = ">=0.3.2"
 llama-index-vector-stores-chroma = ">=0.4.0"
@@ -70,3 +71,6 @@ types-requests = ">=2.32.0.20241016"
 
 [environments]
 default = ["dev"]
+
+[activation]
+scripts = ["scripts/load_env.sh"]

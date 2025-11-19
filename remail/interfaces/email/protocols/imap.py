@@ -4,12 +4,13 @@ import email as py_email
 from collections import OrderedDict
 from datetime import datetime
 
-from imapclient import IMAPClient  # type: ignore
-from imapclient.exceptions import LoginError  # type: ignore
+from imapclient import IMAPClient
+from imapclient.exceptions import LoginError
 from pytz import timezone
 
 from remail import errors as ee
-from remail.interfaces.email.protocols.base import EmailProtocol, error_handler
+from remail.errors.handlers import email_error_handler
+from remail.interfaces.email.protocols.base import EmailProtocol
 from remail.interfaces.email.services import (
     EmailParser,
     FolderService,
@@ -60,7 +61,7 @@ class ImapProtocol(EmailProtocol):
 
     # ---- public ---------------------------------------------------------------
 
-    @error_handler
+    @email_error_handler
     def login(self) -> None:
         """Log in to IMAP server."""
 
@@ -77,7 +78,7 @@ class ImapProtocol(EmailProtocol):
         except LoginError:
             raise ee.InvalidLoginData() from None
 
-    @error_handler
+    @email_error_handler
     def logout(self) -> None:
         """Log out from IMAP server."""
 
@@ -91,7 +92,7 @@ class ImapProtocol(EmailProtocol):
             self.smtp_sender.password = None
             self._logged_in = False
 
-    @error_handler
+    @email_error_handler
     def fetch_emails(
         self,
         folder: str | None = None,
@@ -181,7 +182,7 @@ class ImapProtocol(EmailProtocol):
 
         self.smtp_sender.send(msg, envelope)
 
-    @error_handler
+    @email_error_handler
     def delete_email(self, message_id: str, hard_delete: bool = False) -> None:
         """
         'Delete' means:
@@ -214,7 +215,7 @@ class ImapProtocol(EmailProtocol):
 
                 return
 
-    @error_handler
+    @email_error_handler
     def tag_email(self, message_id: str, tag: str, remove: bool = False) -> None:
         """
         Add or remove a tag/keyword from an email.
