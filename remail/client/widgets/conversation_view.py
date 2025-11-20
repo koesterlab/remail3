@@ -8,15 +8,25 @@ from .message_bubble import MessageBubble
 
 
 class ConversationView(ft.Column):
-    """Central panel: header + context card + message list."""
+    """Central panel: header + context card + message list + input box."""
 
     def __init__(self, conversation: dict[str, Any]) -> None:
         super().__init__()
         self.conversation: dict[str, Any] = conversation
         self.spacing = 10
         self.expand = True
-        self._rebuild()
 
+        # input box
+        self.input_field = ft.TextField(
+            hint_text="Type a reply...",
+            border_radius=20,
+            filled=True,
+            bgcolor="white",
+            dense=True,
+            expand=True,  # make sure that one line can be fullfilled
+        )
+
+        self._rebuild()
 
     def set_conversation(self, conversation: dict[str, Any]) -> None:
         self.conversation = conversation
@@ -31,6 +41,7 @@ class ConversationView(ft.Column):
         tag = conv.get("tag") or ""
         messages = list(conv.get("messages", []))
 
+        # show the top contact information
         header = ft.Row(
             controls=[
                 ft.CircleAvatar(
@@ -49,6 +60,7 @@ class ConversationView(ft.Column):
             spacing=10,
         )
 
+        # “Discussing email” card
         discussing_card = ft.Container(
             width=500,
             bgcolor="white",
@@ -64,10 +76,25 @@ class ConversationView(ft.Column):
             ),
         )
 
+        # messages list
         messages_column = ft.Column(
             controls=[MessageBubble(m) for m in messages],
             spacing=8,
-            expand=True,
+            expand=True,  # 
+        )
+
+        # input row
+        input_row = ft.Row(
+            controls=[
+                self.input_field,
+                ft.IconButton(
+                    icon=ft.icons.SEND,
+                    disabled=True,  # it doesn't work now
+                    tooltip="Send (coming soon)",
+                ),
+            ],
+            spacing=10,
+            alignment=ft.MainAxisAlignment.END,
         )
 
         self.controls = [
@@ -76,4 +103,6 @@ class ConversationView(ft.Column):
             discussing_card,
             ft.Container(height=20),
             messages_column,
+            ft.Container(height=8),
+            input_row,
         ]
