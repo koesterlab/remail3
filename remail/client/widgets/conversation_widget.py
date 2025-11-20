@@ -7,7 +7,7 @@ import flet as ft
 from .message_bubble import MessageBubble
 
 
-class ConversationView(ft.Column):
+class ConversationWidget(ft.Column):
     """Central panel: header + context card + message list + input box."""
 
     def __init__(self, conversation: dict[str, Any]) -> None:

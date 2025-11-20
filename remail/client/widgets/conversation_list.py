@@ -11,7 +11,7 @@ ConversationDict = dict[str, Any]
 class ConversationList(ft.Column):
     """
     Left-hand conversation list.
-    `on_select` 在点击某一项时触发，参数为该会话的 dict。
+    `on_select` is triggered when an item is clicked, with the conversation dict as the argument.
     """
 
     def __init__(

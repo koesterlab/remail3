@@ -4,12 +4,13 @@ from datetime import datetime
 import flet as ft
 
 from .conversation_list import ConversationList, ConversationDict
-from .conversation_view import ConversationView
-from .sidebar_nav import SidebarNav
+from .conversation_widget import ConversationWidget
 from .top_bar import TopBar
 
 
-class ConversationsWidget:
+class ConversationsView:
+    """Overall conversations page: left list + right conversation widget."""
+
     def __init__(self) -> None:
         self._conversations = self._make_mock_data()
         self._selected = self._conversations[0]
@@ -117,13 +118,14 @@ class ConversationsWidget:
         ]
 
     def build(self) -> ft.Control:
-        conversation_view = ConversationView(self._selected)
+
+        conversation_view = ConversationWidget(self._selected)
 
         def on_select(conv: ConversationDict) -> None:
+
             conversation_view.set_conversation(conv)
 
         conv_list = ConversationList(self._conversations, on_select)
-        sidebar = SidebarNav()
         top_bar = TopBar()
 
         floating_compose = ft.FloatingActionButton(icon=ft.icons.CREATE)
@@ -138,16 +140,6 @@ class ConversationsWidget:
                             expand=True,
                             vertical_alignment=ft.CrossAxisAlignment.START,
                             controls=[
-                                ft.Container(
-                                    width=160,
-                                    #bgcolor="#0f172a",
-                                    padding=ft.padding.only(
-                                        top=20,
-                                        left=10,
-                                        right=10,
-                                    ),
-                                    content=sidebar,
-                                ),
                                 ft.Container(
                                     width=260,
                                     padding=ft.padding.only(
@@ -188,8 +180,8 @@ def main(page: ft.Page) -> None:
     page.bgcolor = "#f3f4f6"
     page.padding = 10
 
-    widget = ConversationsWidget()
-    page.add(widget.build())
+    view = ConversationsView()
+    page.add(view.build())
 
 
 if __name__ == "__main__":
