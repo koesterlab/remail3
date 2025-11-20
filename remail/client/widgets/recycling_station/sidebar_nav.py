@@ -23,7 +23,7 @@ class SidebarNav(ft.Container):
 
         # for the width and color of the widget
         self.width = 140
-        #self.bgcolor = "#0f172a"  # 
+        # self.bgcolor = "#0f172a"  #
         self.padding = ft.padding.only(top=20)
 
         self.content = ft.Column(

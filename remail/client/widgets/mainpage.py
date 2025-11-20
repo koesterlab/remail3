@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from datetime import datetime
+
 import flet as ft
 
-from .conversation_list import ConversationList, ConversationDict
+from .conversation_list import ConversationDict, ConversationList
 from .conversation_widget import ConversationWidget
 from .top_bar import TopBar
 
@@ -118,11 +119,9 @@ class ConversationsView:
         ]
 
     def build(self) -> ft.Control:
-
         conversation_view = ConversationWidget(self._selected)
 
         def on_select(conv: ConversationDict) -> None:
-
             conversation_view.set_conversation(conv)
 
         conv_list = ConversationList(self._conversations, on_select)

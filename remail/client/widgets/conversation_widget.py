@@ -80,7 +80,7 @@ class ConversationWidget(ft.Column):
         messages_column = ft.Column(
             controls=[MessageBubble(m) for m in messages],
             spacing=8,
-            expand=True,  # 
+            expand=True,  #
         )
 
         # input row

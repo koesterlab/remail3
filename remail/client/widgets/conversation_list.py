@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import flet as ft
-
 
 ConversationDict = dict[str, Any]
 
@@ -56,7 +56,6 @@ class ConversationList(ft.Column):
         last_summary = str(conv.get("last_summary", ""))
         tag = conv.get("tag") or ""
 
-
         item = ft.Container(
             on_click=lambda e, c=conv: self.on_select(c),
             padding=10,
@@ -77,7 +76,6 @@ class ConversationList(ft.Column):
                 ],
             ),
         )
-
 
         def on_hover(e: Any) -> None:
             item.bgcolor = "#e5e7eb" if e.data == "true" else "white"

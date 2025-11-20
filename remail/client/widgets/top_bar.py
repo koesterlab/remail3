@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 import flet as ft
 
@@ -25,4 +25,3 @@ class TopBar(ft.Row):
         )
 
         self.controls = [settings_button]
-

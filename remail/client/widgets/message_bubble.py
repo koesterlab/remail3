@@ -16,14 +16,14 @@ class MessageBubble(ft.Container):
         alignment = ft.alignment.center_right if is_me else ft.alignment.center_left
 
         # --- Colors ---
-        bgcolor = "#0069ff" if is_me else "#f3f4f6"   # for the left side, the color is shallower
+        bgcolor = "#0069ff" if is_me else "#f3f4f6"  # for the left side, the color is shallower
         text_color = "white" if is_me else "#111111"  # deep black
 
         # --- Bubble style ---
         bubble = ft.Container(
-            width=380,   # 400 
+            width=380,  # 400
             padding=ft.padding.symmetric(horizontal=14, vertical=10),
-            border_radius=ft.border_radius.all(18),    # it would be rounder
+            border_radius=ft.border_radius.all(18),  # it would be rounder
             bgcolor=bgcolor,
             shadow=ft.BoxShadow(
                 blur_radius=6,
@@ -33,7 +33,7 @@ class MessageBubble(ft.Container):
             content=ft.Text(
                 text,
                 color=text_color,
-                size=15,          
+                size=15,
                 weight="w400",
             ),
         )
@@ -41,7 +41,6 @@ class MessageBubble(ft.Container):
         # --- Outer container to control alignment ---
         super().__init__(
             alignment=alignment,
-            padding=ft.padding.only(left=6, right=6, top=4, bottom=4), 
+            padding=ft.padding.only(left=6, right=6, top=4, bottom=4),
             content=bubble,
         )
-
