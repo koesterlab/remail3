@@ -58,7 +58,7 @@ def create_language_setting():
                     menu_height=200,
                     expand=True,
                 ),
-                ft.Container(ft.ElevatedButton("Apply"), alignment=ft.alignment.center),
+                ft.Container(ft.OutlinedButton("Apply"), alignment=ft.alignment.center),
             ]
         ),
         # bgcolor=ft.Colors.GREY_100,

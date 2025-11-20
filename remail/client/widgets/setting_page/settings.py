@@ -1,6 +1,5 @@
 import flet as ft
 from pages.appearance import create_appearance
-from pages.archived import create_archived
 from pages.email_accounts import create_connected_email_accounts
 from pages.language import create_language_setting
 from pages.notifictatins import create_notifications
@@ -28,16 +27,11 @@ def main(page: ft.Page):
         settings_content.content = create_language_setting()
         settings_content.update()
 
-    def archived_click(e):
-        settings_content.content = create_archived()
-        settings_content.update()
-
     buttons = [
-        ft.ElevatedButton("Email Accounts", icon="mail", on_click=email_click),
-        ft.ElevatedButton("Appearance", icon="palette", on_click=appearance_click),
-        ft.ElevatedButton("Notifications", icon="notifications", on_click=notifications_click),
-        ft.ElevatedButton("Language", icon="language", on_click=language_click),
-        ft.ElevatedButton("Archived", icon="archive", on_click=archived_click),
+        ft.OutlinedButton("Email Accounts", icon="mail", on_click=email_click),
+        ft.OutlinedButton("Appearance", icon="palette", on_click=appearance_click),
+        ft.OutlinedButton("Notifications", icon="notifications", on_click=notifications_click),
+        ft.OutlinedButton("Language", icon="language", on_click=language_click),
     ]
 
     settings = ft.Container(

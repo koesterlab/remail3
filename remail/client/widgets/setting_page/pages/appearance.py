@@ -71,7 +71,7 @@ def create_appearance(page):
                     width=200,
                 ),
                 ft.Container(
-                    ft.ElevatedButton("Apply", on_click=apply_theme), alignment=ft.alignment.center
+                    ft.OutlinedButton("Apply", on_click=apply_theme), alignment=ft.alignment.center
                 ),
             ]
         ),

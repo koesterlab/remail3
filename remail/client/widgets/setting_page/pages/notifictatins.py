@@ -20,7 +20,7 @@ def create_notifications():
                         ft.Switch(value=False),
                     ]
                 ),
-                ft.Container(ft.ElevatedButton("Apply"), alignment=ft.alignment.center),
+                ft.Container(ft.OutlinedButton("Apply"), alignment=ft.alignment.center),
             ]
         ),
         padding=20,

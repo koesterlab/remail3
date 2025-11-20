@@ -13,7 +13,7 @@ def create_connected_email_accounts():
                 ft.Divider(height=2, color=ft.Colors.BLACK),
                 ft.Text("No accounts connected yet"),
                 ft.Container(
-                    ft.ElevatedButton(
+                    ft.OutlinedButton(
                         "Add Email Account",
                         icon="add",
                         on_click=add_account_click,
