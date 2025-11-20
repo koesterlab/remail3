@@ -29,3 +29,17 @@ addopts = ["--strict-markers","--strict-config","-ra"]
 [[tool.mypy.overrides]]
 module = "flet"
 ignore_missing_imports = true
+[tool.coverage.run]
+relative_files = true
+source = ["remail"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+
