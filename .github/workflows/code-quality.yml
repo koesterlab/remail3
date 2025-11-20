@@ -1,50 +1,63 @@
 name: Code Quality
 
 on:
-    pull_request:
-        branches:
-            - main
-        types:
-            - opened
-            - reopened
-            - synchronize
-            - ready_for_review
-            - converted_to_draft
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+      - converted_to_draft
 
 permissions:
-    contents: read
-    actions: read
-    checks: write
+  contents: read
+  actions: read
+  checks: write
+  pull-requests: write
 
 jobs:
-    quality:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v4
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-            - name: Setup pixi
-              uses: prefix-dev/setup-pixi@v0.8.1
-              with:
-                  pixi-version: latest
-                  cache: true
-                  cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+      - name: Setup pixi
+        uses: prefix-dev/setup-pixi@v0.8.1
+        with:
+          pixi-version: latest
+          cache: true
+          cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
 
-            - name: "Format check (Ruff: lint + code style)"
-              run: pixi run format-check
-              if: always()
+      - name: "Format check (Ruff: lint + code style)"
+        run: pixi run format-check
+        if: always()
 
-            - name: "Type check (mypy)"
-              run: pixi run typecheck
-              if: always()
+      - name: "Type check (mypy)"
+        run: pixi run typecheck
+        if: always()
 
-            - name: "Dead code check (Vulture)"
-              run: pixi run deadcode
-              if: always()
+      - name: "Dead code check (Vulture)"
+        run: pixi run deadcode
+        if: always()
 
-            - name: "Security scan (Bandit)"
-              run: pixi run security
-              if: always()
+      - name: "Security scan (Bandit)"
+        run: pixi run security
+        if: always()
 
-            - name: "Tests"
-              run: pixi run test
-              if: always()
+      - name: "Tests"
+        run: pixi run test
+        if: always()
+
+      - name: "Generate coverage report"
+        run: pixi run pytest --cov=remail --cov-report=term --cov-report=html --cov-report=json
+        if: always()
+
+      - name: "Coverage comment"
+        uses: py-cov-action/python-coverage-comment-action@v3
+        if: always()
+        with:
+          GITHUB_TOKEN: ${{ github.token }}
+          MINIMUM_GREEN: 80
+          MINIMUM_ORANGE: 60
