@@ -1,6 +1,8 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
 class AppState:
-    pass
+    theme_mode: str = "system"  # "light", "dark", or "system"
+    font_size: str = "Medium"  # "Small", "Medium", or "Large"
+    font_family: str = "Arial"  # Font family name

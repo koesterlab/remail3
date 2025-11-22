@@ -1,8 +1,3 @@
-"""
-DEPRECATED: This file has been refactored.
-Use remail.client.views.settings.appearance_view instead.
-"""
-
 import flet as ft
 
 from remail.client.partials.appearance import (
@@ -13,18 +8,15 @@ from remail.client.partials.appearance import (
 from remail.client.state.app_state import AppState
 
 
-def create_appearance(page: ft.Page, app_state: AppState = None) -> ft.Container:
-    """
-    DEPRECATED: Use appearance_view from remail.client.views.settings instead.
-
-    This function is kept for backward compatibility.
-    """
-    if app_state is None:
-        app_state = AppState()
+def appearance_view(page: ft.Page, app_state: AppState) -> ft.Container:
+    """Create the appearance settings view with all appearance customization options."""
 
     return ft.Container(
         ft.Column(
             [
+                ft.Text("Appearance", size=18, weight=ft.FontWeight.BOLD),
+                ft.Text("Customize how the app looks and feels"),
+                ft.Divider(height=2, color=ft.Colors.BLACK),
                 create_theme_selector(page, app_state),
                 create_font_size_selector(page, app_state),
                 create_font_family_selector(page, app_state),
@@ -32,5 +24,6 @@ def create_appearance(page: ft.Page, app_state: AppState = None) -> ft.Container
             spacing=15,
         ),
         padding=20,
+        border_radius=10,
+        alignment=ft.alignment.center_left,
     )
-
