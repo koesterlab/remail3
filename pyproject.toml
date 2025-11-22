@@ -74,6 +74,9 @@ check = { depends-on = ["format-check", "typecheck", "security", "test"] }
 # 8) Database initialization
 init-db = "python init_db.py"
 
+# 9) Run the application
+app = "python -m remail.client.index"
+
 [tool.ruff]
 line-length = 100
 target-version = "py312"
