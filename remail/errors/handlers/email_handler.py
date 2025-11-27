@@ -10,7 +10,6 @@ from smtplib import (
     SMTPServerDisconnected,
 )
 
-from exchangelib import errors as exch_errors
 from imapclient.exceptions import (
     CapabilityError,
     IMAPClientAbortError,
@@ -26,11 +25,9 @@ def email_error_handler(func):
 
     @wraps(func)
     def wrapper(self, *args, **kwargs):
-        RECIPIENTSFAIL = (SMTPRecipientsRefused, exch_errors.ErrorInvalidRecipients)
+        RECIPIENTSFAIL = (SMTPRecipientsRefused,)
         CONNECTIONFAIL = (
             SMTPConnectError,
-            exch_errors.ErrorConnectionFailed,
-            exch_errors.TransportError,
             SMTPServerDisconnected,
             SMTPHeloError,
             IMAPClientError,
@@ -38,7 +35,6 @@ def email_error_handler(func):
             CapabilityError,
         )
         INVALIDLOGINDATA = (
-            exch_errors.UnauthorizedError,
             LoginError,
             SMTPAuthenticationError,
         )
