@@ -74,6 +74,9 @@ check = { depends-on = ["format-check", "typecheck", "security", "test"] }
 # 8) Database initialization
 init-db = "python init_db.py"
 
+# 9) Run the application
+app = "python -m remail.client.index"
+
 [tool.ruff]
 line-length = 100
 target-version = "py312"
@@ -92,10 +95,6 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = ["--strict-markers","--strict-config","-ra"]
 
-
-[[tool.mypy.overrides]]
-module = "flet"
-ignore_missing_imports = true
 [tool.coverage.run]
 relative_files = true
 source = ["remail"]
