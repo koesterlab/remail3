@@ -28,7 +28,7 @@ class MessageBubble(ft.Container):
             shadow=ft.BoxShadow(
                 blur_radius=6,
                 spread_radius=1,
-                color=ft.colors.with_opacity(0.12, "black"),
+                color=ft.Colors.with_opacity(0.12, ft.Colors.BLACK),
             ),
             content=ft.Text(
                 text,
