@@ -8,6 +8,13 @@ import pytest
 from remail.client.index import main
 
 
+@pytest.fixture(autouse=True)
+def mock_llm_controller():
+    """Mock LLMController to avoid requiring environment variables."""
+    with patch("remail.client.widgets.chatbot.chatbot.LLMController"):
+        yield
+
+
 class TestMain:
     """Test suite for the main function."""
 
@@ -19,7 +26,8 @@ class TestMain:
 
         main(page)
 
-        assert page.title == "Settings"  # TODO change to "Remail 2.0" when other views are added
+        # The chatbot view changes the title to include " - Chatbot"
+        assert page.title == "Remail 2.0 - Chatbot"
 
     def test_main_sets_vertical_alignment(self):
         """Test that main sets vertical alignment to center."""

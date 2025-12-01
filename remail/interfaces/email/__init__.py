@@ -6,7 +6,6 @@ from remail.errors import (
     NotLoggedIn,
     RecipientsFail,
     ServerConnectionFail,
-    SMTPDataFalse,
     UnknownError,
     email_error_handler,
 )
@@ -29,7 +28,6 @@ __all__ = [
     "InvalidLoginData",
     "NotLoggedIn",
     "ServerConnectionFail",
-    "SMTPDataFalse",
     "RecipientsFail",
     "UnknownError",
 ]
