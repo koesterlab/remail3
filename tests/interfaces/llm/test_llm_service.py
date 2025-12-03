@@ -79,7 +79,7 @@ def test_llm_service_init_with_env_vars(mock_env):
     assert service.api_key == "test-api-key-123"
     assert service.base_url == "https://test.example.com/v1"
     assert service.model == LLMModel.META_LLAMA_3_1_8B_INSTRUCT
-    assert service.default_max_tokens == 768
+    assert service.default_max_tokens == 150
     assert service.default_temperature == 0.7
     assert service.default_top_p == 1.0
 
@@ -154,7 +154,7 @@ def test_generate_completion_creates_correct_messages(mock_env, mock_openai_resp
         assert messages[0]["role"] == "system"
         assert (
             messages[0]["content"]
-            == "You are a helpful assistant. You must always return a JSON response."
+            == "You are a helpful assistant. Your name is Alfred. Provide clear, concise, and helpful responses."
         )
         assert messages[1]["role"] == "user"
         assert messages[1]["content"] == "Hello"
@@ -174,7 +174,7 @@ def test_generate_completion_uses_defaults(mock_env, mock_openai_response):
 
         call_args = mock_create.call_args
 
-        assert call_args.kwargs["max_tokens"] == 768
+        assert call_args.kwargs["max_tokens"] == 150
         assert call_args.kwargs["temperature"] == 0.7
         assert call_args.kwargs["top_p"] == 1.0
 

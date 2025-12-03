@@ -7,3 +7,4 @@ class MainView(str, Enum):
     SETTINGS = "settings"
     EMAIL = "email"
     DASHBOARD = "dashboard"
+    CHATBOT = "chatbot"

@@ -20,6 +20,7 @@ def mock_protocol():
         protocol_instance.user_username = "user@example.com"
         protocol_instance.logged_in = False
         mock.return_value = protocol_instance
+
         yield protocol_instance
 
 
@@ -39,6 +40,7 @@ class TestLogin:
 
     def test_login_success(self, controller, mock_protocol):
         """Test successful login."""
+
         mock_protocol.login.return_value = None
 
         result = controller.login()
@@ -106,8 +108,8 @@ class TestFetchEmails:
 
     def test_fetch_emails_success(self, controller, mock_protocol):
         """Test successful email fetching."""
-        sender = Contact(id=1, name="Sender", email_address="sender@example.com")
 
+        sender = Contact(id=1, name="Sender", email_address="sender@example.com")
         email1 = Email(
             id=1,
             subject="Test 1",
@@ -115,7 +117,6 @@ class TestFetchEmails:
             sent_at=datetime.now(UTC),
             sender=sender,
         )
-
         email2 = Email(
             id=2,
             subject="Test 2",
@@ -186,7 +187,6 @@ class TestFetchEmails:
 
         sender = Contact(id=1, name="John Doe", email_address="john@example.com")
         recipient_contact = Contact(id=2, name="Jane Doe", email_address="jane@example.com")
-
         email = Email(
             id=10,
             subject="Hello",
@@ -194,7 +194,6 @@ class TestFetchEmails:
             sent_at=datetime(2025, 11, 13, 10, 30, 0, tzinfo=UTC),
             sender=sender,
         )
-
         email.recipients = [
             EmailReception(
                 kind=RecipientKind.TO,
@@ -202,7 +201,6 @@ class TestFetchEmails:
                 contact=recipient_contact,
             )
         ]
-
         email.attachments = [Attachment(id=1, filename="file.txt", email=email)]
 
         mock_protocol.fetch_emails.return_value = [email]
@@ -270,6 +268,7 @@ class TestSendEmail:
         assert len(email_arg.recipients) == 3
 
         kinds = {rec.kind for rec in email_arg.recipients}
+
         assert RecipientKind.TO in kinds
         assert RecipientKind.CC in kinds
         assert RecipientKind.BCC in kinds
@@ -493,6 +492,7 @@ class TestTagEmail:
 
     def test_tag_email_add_success(self, controller, mock_protocol):
         """Test successfully adding a tag to an email."""
+
         mock_protocol.tag_email.return_value = None
 
         result = controller.tag_email(message_id="<test@example.com>", tag="important")
@@ -509,6 +509,7 @@ class TestTagEmail:
 
     def test_tag_email_remove_success(self, controller, mock_protocol):
         """Test successfully removing a tag from an email."""
+
         mock_protocol.tag_email.return_value = None
 
         result = controller.tag_email(message_id="<test@example.com>", tag="important", remove=True)
@@ -525,6 +526,7 @@ class TestTagEmail:
 
     def test_tag_email_not_logged_in(self, controller, mock_protocol):
         """Test tagging email when not logged in."""
+
         mock_protocol.tag_email.side_effect = ee.NotLoggedIn()
 
         result = controller.tag_email(message_id="<test@example.com>", tag="important")
@@ -534,6 +536,7 @@ class TestTagEmail:
 
     def test_tag_email_generic_error(self, controller, mock_protocol):
         """Test tagging email with generic error."""
+
         mock_protocol.tag_email.side_effect = Exception("IMAP error")
 
         result = controller.tag_email(message_id="<test@example.com>", tag="important")
@@ -543,6 +546,7 @@ class TestTagEmail:
 
     def test_tag_email_with_custom_tag(self, controller, mock_protocol):
         """Test adding a custom tag."""
+
         mock_protocol.tag_email.return_value = None
 
         result = controller.tag_email(message_id="<test@example.com>", tag="work")
@@ -556,6 +560,7 @@ class TestTagEmail:
 
     def test_tag_email_with_standard_flag(self, controller, mock_protocol):
         """Test adding a standard IMAP flag."""
+
         mock_protocol.tag_email.return_value = None
 
         result = controller.tag_email(message_id="<test@example.com>", tag="\\FLAGGED")

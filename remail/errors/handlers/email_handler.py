@@ -10,7 +10,6 @@ from smtplib import (
     SMTPServerDisconnected,
 )
 
-from exchangelib import errors as exch_errors
 from imapclient.exceptions import (
     CapabilityError,
     IMAPClientAbortError,
@@ -26,40 +25,42 @@ def email_error_handler(func):
 
     @wraps(func)
     def wrapper(self, *args, **kwargs):
-        RECIPIENTSFAIL = (SMTPRecipientsRefused, exch_errors.ErrorInvalidRecipients)
-        CONNECTIONFAIL = (
+        _RECIPIENTS_FAIL = (SMTPRecipientsRefused,)
+        _CONNECTION_FAIL = (
             SMTPConnectError,
-            exch_errors.ErrorConnectionFailed,
-            exch_errors.TransportError,
             SMTPServerDisconnected,
             SMTPHeloError,
             IMAPClientError,
             IMAPClientAbortError,
             CapabilityError,
         )
-        INVALIDLOGINDATA = (
-            exch_errors.UnauthorizedError,
+        _INVALID_LOGIN_DATA = (
             LoginError,
             SMTPAuthenticationError,
+            SMTPDataError,
         )
 
         try:
             return func(self, *args, **kwargs)
+
         except ee.EmailError as e:
             raise e
+
         except ValueError as e:
             if "is not an email address" in str(e):
                 raise ee.InvalidLoginData() from e
-            else:
-                raise ee.UnknownError(f"An unexpected error occurred: {str(e)}") from e
-        except INVALIDLOGINDATA as e:
+
+            raise ee.UnknownError(f"An unexpected error occurred: {str(e)}") from e
+
+        except _INVALID_LOGIN_DATA as e:
             raise ee.InvalidLoginData() from e
-        except CONNECTIONFAIL as e:
+
+        except _CONNECTION_FAIL as e:
             raise ee.ServerConnectionFail() from e
-        except SMTPDataError as e:
-            raise ee.SMTPDataFalse() from e
-        except RECIPIENTSFAIL as e:
+
+        except _RECIPIENTS_FAIL as e:
             raise ee.RecipientsFail() from e
+
         except Exception as e:
             raise ee.UnknownError(f"An unexpected error occurred: {str(e)}") from e
 
