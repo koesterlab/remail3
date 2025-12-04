@@ -2,7 +2,7 @@
 
 import pytest
 
-from remail.controllers.dto import LLMResponseDTO
+from remail.controllers.dtos import LLMResponseDTO
 
 
 class TestLLMResponseDTO:

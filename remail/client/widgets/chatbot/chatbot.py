@@ -2,7 +2,7 @@ import flet as ft
 from flet.core.colors import Colors
 from flet.core.types import FontWeight
 
-from remail.controllers.dto import LLMResponseDTO
+from remail.controllers.dtos import LLMResponseDTO
 from remail.controllers.llm_controller import LLMController
 
 

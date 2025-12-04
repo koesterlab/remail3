@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from remail.controllers.dto import LLMResponseDTO
+from remail.controllers.dtos import LLMResponseDTO
 from remail.controllers.llm_controller import LLMController
 from remail.interfaces.llm.enums.llm_message_role import LLMMessageRole
 from remail.interfaces.llm.response import LLMCompletionResponse

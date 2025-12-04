@@ -6,7 +6,7 @@ import flet as ft
 import pytest
 
 from remail.client.widgets.chatbot.chatbot import create_chatbot
-from remail.controllers.dto import LLMResponseDTO
+from remail.controllers.dtos import LLMResponseDTO
 
 
 @pytest.fixture

@@ -1,3 +1,4 @@
+from .contacts_type import ContactType
 from .font_family import FontFamily
 from .font_size import FontSize
 from .language import Language
@@ -18,4 +19,5 @@ __all__ = [
     "SettingsSubView",
     "ThemeMode",
     "Timezone",
+    "ContactType",
 ]
