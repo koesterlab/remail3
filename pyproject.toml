@@ -20,7 +20,8 @@ dependencies = [
     "imapclient>=3.0.1,<4",
     "llama-cpp-python>=0.3.16,<0.4",
     "llama-index-embeddings-huggingface>=0.6.1,<0.7",
-    "llama-index-readers-database>=0.5.1,<0.6"
+    "llama-index-readers-database>=0.5.1,<0.6",
+    "faker>=30.8.2,<31"
 ]
 
 [tool.pixi.workspace]
@@ -71,7 +72,7 @@ test-cov = "pytest --cov=remail --cov-report=term --cov-report=html --cov-report
 check = { depends-on = ["format-check", "typecheck", "security", "test"] }
 
 # 8) Database initialization
-init-db = "python init_db.py"
+init-db = "python init_db.py --force --fixtures"
 
 # 9) Run the application
 app = "python -m remail.client.index"

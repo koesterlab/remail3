@@ -1,5 +1,6 @@
 """Email service modules for IMAP protocol."""
 
+from .conversation_service import ConversationService
 from .email_parser import EmailParser
 from .folder_service import FolderService
 from .message_builder import MessageBuilder
@@ -8,6 +9,7 @@ from .smtp_sender import SmtpSender
 from .tag_service import TagService
 
 __all__ = [
+    "ConversationService",
     "EmailParser",
     "FolderService",
     "MessageBuilder",
