@@ -1,9 +1,16 @@
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 import sqlalchemy
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
 
 from remail.enums import Protocol
+
+# Import at runtime for SQLAlchemy
+from .user_conversation import UserConversation  # noqa: F401
+
+if TYPE_CHECKING:
+    from .conversation import Conversation
 
 
 class User(SQLModel, table=True):
@@ -19,3 +26,9 @@ class User(SQLModel, table=True):
         sa_column=sqlalchemy.Column(sqlalchemy.Enum(Protocol), nullable=False)
     )
     last_refresh: datetime | None = None
+
+    # Many-to-many relationship with conversations
+    conversations: list["Conversation"] = Relationship(
+        back_populates="users",
+        link_model=UserConversation,
+    )

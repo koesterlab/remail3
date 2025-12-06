@@ -4,17 +4,19 @@
 import os
 from pathlib import Path
 
-from sqlmodel import SQLModel, create_engine
+from sqlmodel import Session, SQLModel, create_engine
 
 import remail.models  # noqa: F401
+from remail.fixtures import load_conversation_fixtures
 
 
-def init_database(db_path: str = "database.db") -> None:
+def init_database(db_path: str = "database.db", load_fixtures: bool = False) -> None:
     """
     Initialize the SQLite database and create all tables.
 
     Args:
         db_path: Path to the database file (default: database.db)
+        load_fixtures: Whether to load sample fixture data (default: False)
     """
 
     db_file = Path(db_path).resolve()
@@ -41,6 +43,21 @@ def init_database(db_path: str = "database.db") -> None:
 
     print(f"\nDatabase location: {db_file}")
 
+    # Load fixtures if requested
+    if load_fixtures:
+        print("\n" + "=" * 80)
+        print("Loading Fixtures")
+        print("=" * 80 + "\n")
+
+        with Session(engine) as session:
+            try:
+                load_conversation_fixtures(session)
+                print("✅ All fixtures loaded successfully!\n")
+            except Exception as e:
+                print(f"❌ Error loading fixtures: {e}\n")
+                session.rollback()
+                raise
+
 
 if __name__ == "__main__":
     import argparse
@@ -58,6 +75,11 @@ if __name__ == "__main__":
         action="store_true",
         help="Delete existing database before creating new one",
     )
+    parser.add_argument(
+        "--fixtures",
+        action="store_true",
+        help="Load sample fixture data into the database",
+    )
 
     args = parser.parse_args()
 
@@ -66,4 +88,4 @@ if __name__ == "__main__":
         os.remove(args.db_path)
 
     # Initialize the database
-    init_database(args.db_path)
+    init_database(args.db_path, load_fixtures=args.fixtures)

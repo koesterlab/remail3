@@ -333,7 +333,7 @@ Before using the LLM interface, you must set the following environment variables
 
 ```env
 LLM_API_KEY=your-api-key
-LLM_BASE_URL=https://chat-ai.academiccloud.de/v1/chat/completions
+LLM_BASE_URL=https://chat-ai.academiccloud.de/v1
 ```
 
 ### Usage Example

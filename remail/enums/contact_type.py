@@ -6,3 +6,6 @@ class ContactType(Enum):
     PRIVATE = "private"
     COMPANY = "company"
     NEWSLETTER = "newsletter"
+
+
+__all__ = ["ContactType"]
