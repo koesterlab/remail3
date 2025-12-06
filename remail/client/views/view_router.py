@@ -1,15 +1,13 @@
 from collections.abc import Callable
 
 import flet as ft
-
-from remail.client.state.app_state import AppState
 from remail.enums import MainView
 
 
 class ViewRouter:
     """Router for managing main application views."""
 
-    def __init__(self, page: ft.Page, app_state: AppState):
+    def __init__(self, page: ft.Page, app_state: "AppState"):
         self.page = page
         self.app_state = app_state
 

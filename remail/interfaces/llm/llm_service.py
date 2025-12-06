@@ -22,10 +22,12 @@ class LLMService(LLMBase):
         """Initialize LLM service."""
 
         self.api_key = os.getenv("LLM_API_KEY")
+        self.api_key = "3fac3a411f572bfc755ea43b7f04d6d5" #todo: REMOVE BEFORE PUSH!!!
         if not self.api_key:
             raise ValueError("LLM_API_KEY environment variable is required")
 
         self.base_url = os.getenv("LLM_BASE_URL")
+        self.base_url = "https://chat-ai.academiccloud.de/v1" #todo: REMOVE BEFORE PUSH!!!
         if not self.base_url:
             raise ValueError("LLM_BASE_URL environment variable is required")
 
