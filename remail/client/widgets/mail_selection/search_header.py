@@ -28,7 +28,6 @@ class SearchHeader(ft.Container):
         )
 
         def on_search_term_changed(s):
-            print("asfasfafasdfasfdsaf")
             if s != self.input.value:
                 self.input.value = s
 

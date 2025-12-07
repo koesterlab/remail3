@@ -9,6 +9,7 @@ from typing import Any
 import flet as ft
 
 from remail.client.widgets.thread.message_bubble import MessageBubble
+from remail.client.widgets.thread.new_message_dialog import create_new_message_dialog
 from tests import fetch_thread
 from remail.controllers.dtos.conversations import ThreadPreviewDTO, ConversationDTO, ContactDTO
 from remail.controllers.dtos.threads import ThreadDTO
@@ -19,9 +20,7 @@ MessageDict = dict[str, Any]
 
 class ThreadList(ft.Column):
     def __init__(self, thread:ThreadPreviewDTO, conversation: ConversationDTO, active_user:ContactDTO) -> None:
-        super().__init__()
-        self.spacing = 10
-        self.expand = True
+        super().__init__(expand=True, spacing=0)
         # input box
         self.input_field = ft.TextField(
             hint_text="Type a reply...",
@@ -30,6 +29,10 @@ class ThreadList(ft.Column):
             bgcolor="white",
             dense=True,
             expand=True,
+            color=ft.Colors.ON_INVERSE_SURFACE,
+            fill_color=ft.Colors.INVERSE_SURFACE,
+            suffix_icon=ft.Icons.SEND,
+            on_focus=lambda _: self.on_input_selected()
         )
 
         self.conversation: ConversationDTO = conversation
@@ -58,10 +61,10 @@ class ThreadList(ft.Column):
             controls=[
                 ft.Column(
                     controls=[
-                        ft.Text(self.thread.title, size=25, weight=ft.FontWeight.BOLD, color=ft.Colors.ON_SURFACE),
+                        ft.Text(self.thread.title, size=22, weight=ft.FontWeight.BOLD, color=ft.Colors.ON_SURFACE),
                         ft.Text(str(len(self.thread.messages)) + " messages", size=15, color=ft.Colors.ON_SURFACE_VARIANT),
                     ],
-                    spacing=2,
+                    spacing=0,
                 ),
             ],
             alignment=ft.MainAxisAlignment.START,
@@ -69,7 +72,7 @@ class ThreadList(ft.Column):
 
         ),
             padding=ft.padding.only(left=10, top=5, bottom=5, right=10),
-            height=50
+            height=60
         )
 
         # ---------- “Discussing email” 卡片 ---------- #
@@ -107,21 +110,22 @@ class ThreadList(ft.Column):
             spacing=8,
             expand=True,
             scroll=ft.ScrollMode.AUTO,
-        ), bgcolor=ft.Colors.TERTIARY)
+        ), bgcolor=ft.Colors.TERTIARY, expand=True)
 
         # ---------- downside message input box ---------- #
-        input_row = ft.Row(
-            controls=[
-                self.input_field,
-                ft.IconButton(
-                    icon=ft.Icons.SEND,
-                    disabled=True,  # stake holder
-                    tooltip="Send (coming soon)",
-                ),
-            ],
-            spacing=10,
-            alignment=ft.MainAxisAlignment.END,
-        )
+        self.dummy_input = ft.Row(
+                controls=[
+                    self.input_field,
+                ],
+                spacing=10,
+                alignment=ft.MainAxisAlignment.END,
+            )
+
+
+        self.input_row = ft.Container(
+            content = self.dummy_input,
+            bgcolor=ft.Colors.TERTIARY,
+            padding=ft.padding.all(10))
 
         # ---------- conbination of the whole layout ---------- #
         self.controls = [
@@ -129,5 +133,16 @@ class ThreadList(ft.Column):
             #discussing_card,
             #ft.Container(height=20),
             messages_column,
-            input_row,
+            self.input_row,
         ]
+
+    def on_input_selected(self):
+        new_message_dialog, focus_callback = create_new_message_dialog(self.on_input_minimized)
+        self.input_row.content = new_message_dialog
+        self.input_row.update()
+        focus_callback()
+        pass
+
+    def on_input_minimized(self):
+        self.input_row.content = self.dummy_input
+        self.input_row.update()

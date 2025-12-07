@@ -7,7 +7,7 @@ from remail.enums import ContactType
 
 def fetch_thread(preview: ThreadPreviewDTO) -> ThreadDTO:
     contact = ContactDTO(
-        id=1,
+        id=2,
         first_name="John",
         last_name="Doe",
         email="john.doe@example.com",
@@ -16,7 +16,7 @@ def fetch_thread(preview: ThreadPreviewDTO) -> ThreadDTO:
     )
 
     me = ContactDTO(
-        id=2,
+        id=1,
         first_name="Me",
         last_name="User",
         email="me@example.com",

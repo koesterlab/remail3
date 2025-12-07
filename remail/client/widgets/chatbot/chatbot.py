@@ -44,6 +44,7 @@ def create_chatbot(app_state: MainAppState):
         max_lines = 6,
         on_focus = lambda _: change_active_state(active_input=True),
         on_blur = lambda _: change_active_state(active_input=False),
+        color = ft.Colors.ON_PRIMARY,
     )
 
     def _get_ai_response(user_message: str) -> LLMResponseDTO | None:
@@ -128,5 +129,5 @@ def create_chatbot(app_state: MainAppState):
     ),
         on_hover=lambda f: change_active_state(active_hover=f.data=="true"),
         padding = ft.padding.all(5),
-        bgcolor=ft.Colors.SURFACE_TINT
+        bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
     )

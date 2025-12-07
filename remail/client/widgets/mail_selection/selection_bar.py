@@ -88,14 +88,12 @@ class SelectionBar(ft.Container):
         if len(content_to_display) == 1 and isinstance(content_to_display[0], ConversationDTO):
             self.__show_topic_selection(content_to_display[0])
             if not self.topic_selection_active: #slide_in_animation
-                print("slide in")
                 self.topic_selection.offset = ft.Offset(0,0)
                 self.main_content.offset = ft.Offset(-1,0)
                 self.topic_selection_active = True
         else:
             self.__show_conversation_selection(content_to_display)
             if self.topic_selection_active: # slide out animation
-                print("slide out")
                 self.topic_selection.offset = ft.Offset(1,0)
                 self.main_content.offset = ft.Offset(0,0)
                 self.topic_selection_active = False

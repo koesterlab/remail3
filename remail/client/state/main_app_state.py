@@ -11,6 +11,7 @@ class MainAppStateProperties(Enum):
     SEARCH_TERM = "search_term"
     DISPLAYED_MAILS = "displayed_mails"
 
+
 class MainAppState(ObservableState[MainAppStateProperties]):
     def __init__(self):
         super().__init__()

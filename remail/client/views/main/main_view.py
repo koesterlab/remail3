@@ -19,7 +19,7 @@ def create_main_view(page: ft.Page, global_state: AppState):
     main_state.set(MainAppStateProperties.SEARCH_TERM, "")
     selection_bar = SelectionBar(main_state)
     dashboard = ft.Container(ft.Text("Dashboard (vertrau ist fast fertig)"), bgcolor=ft.Colors.ORANGE, expand=True)
-    right_view = ft.Container(dashboard, col={"xs": 6, "md": 8, "lg": 9})
+    right_view = ft.Container(dashboard, col={"xs": 6, "md": 8, "lg": 9}, expand=True)
 
     active_user = ContactDTO( #todo
         id=1,
@@ -51,7 +51,6 @@ def create_main_view(page: ft.Page, global_state: AppState):
         right_view.update()
 
     def on_chatbot_state_change(is_active: bool)->None:
-        print(is_active)
         if is_active:
             chatbot.expand=4
         else:
