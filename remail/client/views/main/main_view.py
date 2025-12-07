@@ -4,11 +4,11 @@ from remail.client.state import AppState
 from remail.client.widgets.mail_selection import SelectionBar
 from remail.controllers.dtos.conversations import ContactDTO, ThreadPreviewDTO
 from remail.enums import ContactType
+from tests.client.views.main.test_data_conversations import create_test_data
 
 from ...state.main_app_state import MainAppState, MainAppStateProperties
 from ...widgets.chatbot.chatbot import create_chatbot
 from ...widgets.thread.thread_list import ThreadList
-from .test_data_conversations import create_test_data
 
 
 def create_main_view(page: ft.Page, global_state: AppState):

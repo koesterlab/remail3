@@ -4,6 +4,8 @@ from datetime import datetime, timedelta
 from remail.controllers.dtos.conversations import ContactDTO, ConversationDTO, ThreadPreviewDTO
 from remail.enums import ContactType
 
+# bandit: skip-file
+
 
 def create_test_data():  # chatgpt
     first_names = [
