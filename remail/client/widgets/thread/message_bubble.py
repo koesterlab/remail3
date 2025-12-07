@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import flet as ft
 
-from remail.client.widgets.mail_selection.profile_picture import create_profile_picture, create_contact_picture
+from remail.client.widgets.mail_selection.profile_picture import (
+    create_contact_picture,
+)
 from remail.controllers.dtos.conversations import ContactDTO
 from remail.controllers.dtos.threads import MessageDTO
 
@@ -40,8 +42,5 @@ class MessageBubble(ft.Container):
         super().__init__(
             alignment=alignment,
             padding=ft.padding.only(left=6, right=6, top=4, bottom=4),
-            content=bubble if is_me else ft.Row([
-                create_contact_picture(message.sender),
-                bubble
-            ]),
+            content=bubble if is_me else ft.Row([create_contact_picture(message.sender), bubble]),
         )

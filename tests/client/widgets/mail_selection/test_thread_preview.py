@@ -3,6 +3,7 @@ from datetime import datetime
 
 import flet as ft
 
+from remail.client.state import MainAppState, MainAppStateProperties
 from remail.client.widgets.mail_selection.thread_preview import ThreadPreview
 from remail.controllers.dtos.conversations import ThreadPreviewDTO
 
@@ -18,19 +19,22 @@ class TestThreadPreview(unittest.TestCase):
             last_message_datetime=datetime(2025, 12, 3, 12, 0),
         )
         self.clicked = {"called": False, "topic": None}
+        self.state = MainAppState()
 
     def _on_click(self, topic):
         self.clicked["called"] = True
         self.clicked["topic"] = topic
 
     def test_initialization(self):
-        preview = ThreadPreview(self.topic, self._on_click)
+        self.state.set(MainAppStateProperties.ACTIVE_THREAD, None)
+        preview = ThreadPreview(self.topic, self.state)
         # Prüfen, dass content Row enthält
         self.assertIsInstance(preview.content, ft.Row)
         self.assertEqual(preview.padding, 12)
 
     def test_texts_display(self):
-        preview = ThreadPreview(self.topic, self._on_click)
+        self.state.set(MainAppStateProperties.ACTIVE_THREAD, None)
+        preview = ThreadPreview(self.topic, self.state)
         column = preview.content.controls[0]
         row_title = column.controls[0].controls[0]
         row_last_message = column.controls[1].controls[0]
@@ -40,11 +44,10 @@ class TestThreadPreview(unittest.TestCase):
         self.assertEqual(row_last_message.value, self.topic.last_message)
 
     def test_click_triggers_callback(self):
-        preview = ThreadPreview(self.topic, self._on_click)
+        preview = ThreadPreview(self.topic, self.state)
         # Simuliere Klick
         preview.on_click(None)
-        self.assertTrue(self.clicked["called"])
-        self.assertEqual(self.clicked["topic"], self.topic)
+        self.assertEqual(self.topic, self.state.get(MainAppStateProperties.ACTIVE_THREAD))
 
     def test_no_unread_count(self):
         topic2 = ThreadPreviewDTO(
@@ -55,7 +58,7 @@ class TestThreadPreview(unittest.TestCase):
             last_message="Nothing unread",
             unread_count=0,
         )
-        preview = ThreadPreview(topic2, self._on_click)
+        preview = ThreadPreview(topic2, self.state)
         column = preview.content.controls[0]
         row_title = column.controls[0].controls[0]
         self.assertNotIn("(", row_title.value)

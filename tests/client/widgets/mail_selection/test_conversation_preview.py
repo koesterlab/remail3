@@ -4,7 +4,7 @@ import unittest
 import flet as ft
 
 from remail.client.widgets.mail_selection.conversation_preview import ConversationPreview
-from remail.controllers.dtos.conversations import ContactDTO
+from remail.controllers.dtos.conversations import ContactDTO, ConversationDTO
 from remail.enums import ContactType
 
 
@@ -19,6 +19,9 @@ class TestConversationPreview(unittest.TestCase):
             email="max@example.com",
             is_known=True,
         )
+        self.conversation = ConversationDTO(
+            contacts=[self.contact], threads=[], is_favorite=True, customName=None
+        )
 
     def test_registered_contact_preview(self):
         fav_called = {"called": False}
@@ -30,14 +33,11 @@ class TestConversationPreview(unittest.TestCase):
         def on_click():
             click_called["called"] = True
 
-        image = ft.Text("IMG")
         preview = ConversationPreview(
-            image=image,
+            self.conversation,
             primary_text="Max Mustermann",
             secondary_text="max@example.com",
-            fav=True,
             registered=True,
-            on_toggle_fav=on_toggle_fav,
             on_click=on_click,
         )
 
@@ -45,7 +45,7 @@ class TestConversationPreview(unittest.TestCase):
         row = preview.content
         avatar = row.controls[0]
         self.assertIsInstance(avatar, ft.CircleAvatar)
-        self.assertIs(avatar.content, image)
+        self.assertEqual(avatar.content.value, "MM")
         col = row.controls[1]
         self.assertIsInstance(col, ft.Column)
         primary_row = col.controls[0]
@@ -60,7 +60,7 @@ class TestConversationPreview(unittest.TestCase):
         self.assertTrue(fav_button.visible)
         # Toggle Favorit aufrufen
         fav_button.on_click(None)
-        self.assertTrue(fav_called["called"])
+        self.assertFalse(self.conversation.is_favorite)
 
         # on_click auf Container aufrufen
         preview.on_click(None)
@@ -72,14 +72,11 @@ class TestConversationPreview(unittest.TestCase):
         # self.assertTrue(fav_button.visible)
 
     def test_unregistered_contact_preview(self):
-        image = ft.Text("IMG")
         preview = ConversationPreview(
-            image=image,
+            self.conversation,
             primary_text="Unknown",
             secondary_text="unknown@example.com",
-            fav=False,
             registered=False,
-            on_toggle_fav=lambda: None,
             on_click=lambda: None,
         )
 

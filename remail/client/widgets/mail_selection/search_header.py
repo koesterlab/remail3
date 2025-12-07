@@ -2,7 +2,6 @@ import flet as ft
 from flet.core.control_event import ControlEvent
 
 from remail.client.state.main_app_state import MainAppState, MainAppStateProperties
-from remail.enums.email_folders import EmailFolders
 
 
 class SearchHeader(ft.Container):
@@ -34,9 +33,9 @@ class SearchHeader(ft.Container):
         state.register_observer(MainAppStateProperties.SEARCH_TERM, on_search_term_changed)
 
         def on_home_clicked(_):
-            state.set(MainAppStateProperties.SEARCH_TERM,"")
+            state.set(MainAppStateProperties.SEARCH_TERM, "")
             state.set(MainAppStateProperties.ACTIVE_THREAD, None)
-            #todo: load mails from controller
+            # todo: load mails from controller
 
         # ----- Home Icon -----
         home_icon = ft.IconButton(
@@ -54,7 +53,7 @@ class SearchHeader(ft.Container):
                 style=ft.TextStyle(decoration=ft.TextDecoration.UNDERLINE),
                 color=ft.Colors.TERTIARY,
             ),
-            #todo: load mails from controller into state on_click=lambda _: ,
+            # todo: load mails from controller into state on_click=lambda _: ,
         )
 
         spam_link = ft.Container(
@@ -63,7 +62,7 @@ class SearchHeader(ft.Container):
                 style=ft.TextStyle(decoration=ft.TextDecoration.UNDERLINE),
                 color=ft.Colors.TERTIARY,
             ),
-            #todo: same as above on_click=lambda _: ,
+            # todo: same as above on_click=lambda _: ,
         )
 
         # ----- Layout -----

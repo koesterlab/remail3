@@ -1,10 +1,9 @@
-from datetime import datetime
-
-from remail.controllers.dtos.conversations import ThreadPreviewDTO, ContactDTO
-from remail.controllers.dtos.threads import ThreadDTO, MessageDTO
+from remail.controllers.dtos.conversations import ContactDTO, ThreadPreviewDTO
+from remail.controllers.dtos.threads import MessageDTO, ThreadDTO
 from remail.enums import ContactType
 
 
+# chatgpt
 def fetch_thread(preview: ThreadPreviewDTO) -> ThreadDTO:
     contact = ContactDTO(
         id=2,
@@ -12,7 +11,7 @@ def fetch_thread(preview: ThreadPreviewDTO) -> ThreadDTO:
         last_name="Doe",
         email="john.doe@example.com",
         is_known=True,
-        type=ContactType.PRIVATE
+        type=ContactType.PRIVATE,
     )
 
     me = ContactDTO(
@@ -21,7 +20,7 @@ def fetch_thread(preview: ThreadPreviewDTO) -> ThreadDTO:
         last_name="User",
         email="me@example.com",
         is_known=True,
-        type=ContactType.PRIVATE
+        type=ContactType.PRIVATE,
     )
 
     # Basisnachrichten
@@ -31,14 +30,14 @@ def fetch_thread(preview: ThreadPreviewDTO) -> ThreadDTO:
             sender=contact,
             subject="Meeting Reminder",
             content="Hello, how are you?",
-            sent_at="2024-05-30T10:15:30Z"
+            sent_at="2024-05-30T10:15:30Z",
         ),
         MessageDTO(
             id=102,
             sender=me,
             subject="Re: Meeting Reminder",
             content="I'm good, thanks for asking!",
-            sent_at="2024-05-30T10:17:45Z"
+            sent_at="2024-05-30T10:17:45Z",
         ),
     ]
 
@@ -81,7 +80,7 @@ def fetch_thread(preview: ThreadPreviewDTO) -> ThreadDTO:
     # ThreadPreview + ThreadDTO
     # ---------------------------------------------------------
 
-    return  ThreadDTO(
+    return ThreadDTO(
         thread_id=preview.thread_id,
         title=preview.title,
         total_count=preview.total_count,

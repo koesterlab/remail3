@@ -1,17 +1,22 @@
-from typing import TypeVar, Generic, Callable, Dict, Any
+from __future__ import annotations
+
+from collections.abc import Callable
 from enum import Enum
-from weakref import WeakSet, WeakMethod
+from typing import Any, Generic, TypeVar
+from weakref import WeakMethod, WeakSet
 
 E = TypeVar("E", bound=Enum)
 
-class ObservableState(Generic[E]):
-    def __init__(self):
-        self._values: Dict[E, Any] = {}
-        # Zwei Listen pro Property: schwach und stark
-        self._weak_observers: Dict[E, WeakSet] = {}
-        self._strong_observers: Dict[E, set] = {}
 
-    def register_observer(self, prop: E, callback: Callable[[Any], None], weak: bool = False) -> None:
+class ObservableState(Generic[E]):  # noqa: UP046
+    def __init__(self) -> None:
+        self._values: dict[E, Any] = {}
+        self._weak_observers: dict[E, WeakSet[Callable[[Any], None] | WeakMethod]] = {}
+        self._strong_observers: dict[E, set[Callable[[Any], None]]] = {}
+
+    def register_observer(
+        self, prop: E, callback: Callable[[Any], None], weak: bool = False
+    ) -> None:
         """Registriert einen Observer für eine Property."""
         if weak:
             if prop not in self._weak_observers:

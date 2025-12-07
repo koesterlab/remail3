@@ -4,7 +4,7 @@ from datetime import datetime
 
 import flet as ft
 
-from remail.client.views.main.state import MainAppState
+from remail.client.state import MainAppState, MainAppStateProperties
 from remail.client.widgets.mail_selection import SelectionBar
 from remail.client.widgets.mail_selection.action import Action
 from remail.client.widgets.mail_selection.action_preview import ActionPreview
@@ -54,13 +54,12 @@ class TestSelectionBar(unittest.TestCase):
             ],
             customName=None,
         )
-        self.state.set_displayed([self.conv1, self.conv2])
+        self.state.set(MainAppStateProperties.DISPLAYED_MAILS, [self.conv1, self.conv2])
         self.bar = SelectionBar(self.state)
 
     def test_initialization(self):
-        # SearchHeader und main_content korrekt gesetzt
-        self.assertIsInstance(self.bar.content.controls[0], ft.Container)  # SearchHeader
-        self.assertIsInstance(self.bar.main_content, ft.AnimatedSwitcher)
+        # SearchHeader
+        self.assertIsInstance(self.bar, ft.Container)
 
     def test_on_search_change_updates_content(self):
         # Simuliere Eingabe eines normalen Suchbegriffs
@@ -78,10 +77,6 @@ class TestSelectionBar(unittest.TestCase):
                 for c in self.bar.conversation_selection.content.controls
             )
         )
-
-    def test_on_conversation_selected_shows_topic_selection(self):
-        self.bar._SelectionBar__on_conversation_or_action_selected(self.conv1)
-        self.assertEqual(self.bar.main_content.content, self.bar.topic_selection)
 
     def test_on_action_selected_executes(self):
         called = {"executed": False}

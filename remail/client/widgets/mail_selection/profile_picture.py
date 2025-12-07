@@ -1,9 +1,10 @@
 import flet as ft
-from remail.controllers.dtos.conversations import ConversationDTO, ContactDTO
+
+from remail.controllers.dtos.conversations import ContactDTO, ConversationDTO
 
 
 def create_profile_picture(conversation: ConversationDTO):
-    #todo: custom profile pictures
+    # todo: custom profile pictures
     if len(conversation.contacts) == 1:
         contact = conversation.contacts[0]
         return create_contact_picture(contact)
@@ -13,10 +14,16 @@ def create_profile_picture(conversation: ConversationDTO):
         image.color = ft.Colors.ON_SECONDARY
         return ft.CircleAvatar(content=image, bgcolor=ft.Colors.ON_SURFACE, radius=20)
 
+
 def create_contact_picture(contact: ContactDTO):
     initials = (
-            contact.first_name[:1] + (contact.last_name[:1] if contact.last_name else "")
+        contact.first_name[:1] + (contact.last_name[:1] if contact.last_name else "")
     ).upper()
     image = ft.Text(initials) if contact.is_known else ft.Icon(ft.Icons.PERSON)
     image.color = ft.Colors.ON_SECONDARY
-    return ft.CircleAvatar(content=image, bgcolor=ft.Colors.ON_SURFACE, radius=20, tooltip=contact.first_name + " " + contact.last_name)
+    return ft.CircleAvatar(
+        content=image,
+        bgcolor=ft.Colors.ON_SURFACE,
+        radius=20,
+        tooltip=contact.first_name + " " + contact.last_name,
+    )

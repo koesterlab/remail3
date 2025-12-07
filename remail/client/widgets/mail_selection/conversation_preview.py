@@ -17,8 +17,11 @@ class ConversationPreview(ft.Container):
         registered: bool,
         on_click: Callable[[], None],
     ):
-        def toggle_fav(e:ControlEvent): #todo change in backend
+        def toggle_fav(e: ControlEvent):  # todo change in backend
             conversation.is_favorite = not conversation.is_favorite
+            fav_button.icon = ft.Icons.STAR if conversation.is_favorite else ft.Icons.STAR_OUTLINE
+            if fav_button.page:
+                fav_button.update()
 
         icon_btn = ft.Row([], spacing=2, expand=True, alignment=ft.MainAxisAlignment.END)
 

@@ -1,5 +1,6 @@
+from collections.abc import Callable
 from enum import Enum
-from typing import Callable, Union
+from typing import Union
 
 from remail.client.state.observable_state import ObservableState
 from remail.controllers.dtos.conversations import ConversationDTO, ThreadPreviewDTO

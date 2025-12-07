@@ -39,7 +39,7 @@ class AppState:
     email_notifications: bool = True
     quiet_hours: bool = False
     current_views: dict[MainView, SettingsSubView | None] = field(default_factory=dict)
-    router: ViewRouter|None = None
+    router: ViewRouter | None = None
 
     def set_current_view(
         self, main_view: MainView, sub_view: SettingsSubView | None = None

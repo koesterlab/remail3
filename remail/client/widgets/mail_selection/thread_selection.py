@@ -2,11 +2,11 @@ from collections.abc import Callable
 
 import flet as ft
 
-from remail.controllers.dtos.conversations import ConversationDTO, ThreadPreviewDTO
-from .profile_picture import create_profile_picture
+from remail.controllers.dtos.conversations import ConversationDTO
 
-from .thread_preview import ThreadPreview
 from ...state.main_app_state import MainAppState
+from .profile_picture import create_profile_picture
+from .thread_preview import ThreadPreview
 
 """
 Subwidget of selectionBar to choose between different conversations of a contact
@@ -22,43 +22,48 @@ class ThreadSelection(ft.Container):
         self.__primary_text = ft.Text("", weight=ft.FontWeight.BOLD, color=ft.Colors.ON_SURFACE)
         self.__secondary_text = ft.Text("", size=12, color=ft.Colors.ON_SURFACE_VARIANT)
 
-        super().__init__(ft.Column(
-            controls=[
-                # header
-                ft.Container(
-                    padding=ft.padding.only(left=0, right=5, top=5, bottom=10),
-                    content=ft.Row(
-                        [
-                            ft.IconButton(
-                                icon=ft.Icons.ARROW_BACK,
-                                on_click=lambda _: on_click_back(),
-                                icon_color=ft.Colors.ON_SURFACE_VARIANT,
-                                icon_size=30
-                            ),
-                            self.__image,
-                            ft.Container(ft.Column(
-                                alignment=ft.MainAxisAlignment.CENTER,
-                                controls=[self.__primary_text, self.__secondary_text],
-                                spacing=6,
-                            ), height=50)
-                        ],
-                        spacing=7,
+        super().__init__(
+            ft.Column(
+                controls=[
+                    # header
+                    ft.Container(
+                        padding=ft.padding.only(left=0, right=5, top=5, bottom=10),
+                        content=ft.Row(
+                            [
+                                ft.IconButton(
+                                    icon=ft.Icons.ARROW_BACK,
+                                    on_click=lambda _: on_click_back(),
+                                    icon_color=ft.Colors.ON_SURFACE_VARIANT,
+                                    icon_size=30,
+                                ),
+                                self.__image,
+                                ft.Container(
+                                    ft.Column(
+                                        alignment=ft.MainAxisAlignment.CENTER,
+                                        controls=[self.__primary_text, self.__secondary_text],
+                                        spacing=6,
+                                    ),
+                                    height=50,
+                                ),
+                            ],
+                            spacing=7,
+                        ),
+                        border=ft.border.only(bottom=ft.border.BorderSide(1, ft.Colors.GREY)),
                     ),
-                    border=ft.border.only(bottom=ft.border.BorderSide(1, ft.Colors.GREY)),
-                ),
-                # thread_list
-                ft.Container(
-                    alignment=ft.alignment.top_center,
-                    expand=True,
-                    content=ft.Column(  # outer: align content to top, middle: scroll, inner: enumeration of elements
-                        scroll=ft.ScrollMode.AUTO,
-                        alignment=ft.MainAxisAlignment.START,
-                        spacing=0,
-                        controls=[self.__content],
+                    # thread_list
+                    ft.Container(
+                        alignment=ft.alignment.top_center,
+                        expand=True,
+                        content=ft.Column(  # outer: align content to top, middle: scroll, inner: enumeration of elements
+                            scroll=ft.ScrollMode.AUTO,
+                            alignment=ft.MainAxisAlignment.START,
+                            spacing=0,
+                            controls=[self.__content],
+                        ),
                     ),
-                ),
-            ]
-        ))
+                ]
+            )
+        )
 
     def set_content(self, content: ConversationDTO):
         self.__image.content = create_profile_picture(content)

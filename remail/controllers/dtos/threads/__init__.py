@@ -1,3 +1,3 @@
-from .thread import ThreadDTO, MessageDTO
+from .thread import MessageDTO, ThreadDTO
 
 __all__ = ["ThreadDTO", "MessageDTO"]

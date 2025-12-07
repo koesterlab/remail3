@@ -1,5 +1,3 @@
-from collections.abc import Callable
-
 import flet as ft
 
 from remail.client.state import MainAppState, MainAppStateProperties
@@ -8,8 +6,7 @@ from remail.controllers.dtos.conversations import ThreadPreviewDTO
 
 class ThreadPreview(ft.Container):
     # component representing a single contact entry
-    def __init__(
-        self, thread: ThreadPreviewDTO, state: MainAppState):
+    def __init__(self, thread: ThreadPreviewDTO, state: MainAppState):
         super().__init__(
             content=ft.Row(
                 [

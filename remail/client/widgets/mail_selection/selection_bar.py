@@ -17,20 +17,28 @@ Overall Widget to combine searchbar and selection widgets
 class SelectionBar(ft.Container):
     def __init__(self, state: MainAppState):
         state.register_observer(MainAppStateProperties.SEARCH_TERM, self.__on_search_change)  # type: ignore
-        state.register_observer(MainAppStateProperties.DISPLAYED_MAILS, self.__set_content_to_display)  # type: ignore
+        state.register_observer(
+            MainAppStateProperties.DISPLAYED_MAILS, self.__set_content_to_display
+        )  # type: ignore
 
-
-        #subwidgets
-        self.topic_selection = ThreadSelection(state, lambda: self.__set_content_to_display(state.get(MainAppStateProperties.DISPLAYED_MAILS)))
-        self.conversation_selection = ConversationSelection(self.__on_conversation_or_action_selected, state)
+        # subwidgets
+        self.topic_selection = ThreadSelection(
+            state,
+            lambda: self.__set_content_to_display(
+                state.get(MainAppStateProperties.DISPLAYED_MAILS)
+            ),
+        )
+        self.conversation_selection = ConversationSelection(
+            self.__on_conversation_or_action_selected, state
+        )
         self.main_content = ft.Column(
-                controls=[SearchHeader(state), self.conversation_selection],
-                expand=True,
-                spacing=0,
-                alignment=ft.MainAxisAlignment.START,
-                offset=ft.Offset(0,0),
-            )
-        self.topic_selection.offset = ft.Offset(1,0)
+            controls=[SearchHeader(state), self.conversation_selection],
+            expand=True,
+            spacing=0,
+            alignment=ft.MainAxisAlignment.START,
+            offset=ft.Offset(0, 0),
+        )
+        self.topic_selection.offset = ft.Offset(1, 0)
         self.topic_selection.animate_offset = 140
         self.main_content.animate_offset = 140
         self.__state = state
@@ -38,7 +46,7 @@ class SelectionBar(ft.Container):
 
         super().__init__(
             bgcolor=ft.Colors.SURFACE,
-            content=ft.Stack(controls=[self.main_content, self.topic_selection],expand=True),
+            content=ft.Stack(controls=[self.main_content, self.topic_selection], expand=True),
             expand=False,
             clip_behavior=ft.ClipBehavior.HARD_EDGE,
         )
@@ -46,8 +54,7 @@ class SelectionBar(ft.Container):
         self.__set_content_to_display(state.get(MainAppStateProperties.DISPLAYED_MAILS))  # type: ignore
         self.__on_search_change("")  # initially loading data
 
-
-    def __on_search_change(self, new_search_term: str | None) -> None:
+    def __on_search_change(self, new_search_term: str) -> None:
         mails: list[ConversationDTO | Action] = self.__search_request(new_search_term)  # type: ignore
         if new_search_term != "" and re.match(
             r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]", new_search_term
@@ -87,15 +94,15 @@ class SelectionBar(ft.Container):
     def __set_content_to_display(self, content_to_display: list[ConversationDTO | Action]) -> None:
         if len(content_to_display) == 1 and isinstance(content_to_display[0], ConversationDTO):
             self.__show_topic_selection(content_to_display[0])
-            if not self.topic_selection_active: #slide_in_animation
-                self.topic_selection.offset = ft.Offset(0,0)
-                self.main_content.offset = ft.Offset(-1,0)
+            if not self.topic_selection_active:  # slide_in_animation
+                self.topic_selection.offset = ft.Offset(0, 0)
+                self.main_content.offset = ft.Offset(-1, 0)
                 self.topic_selection_active = True
         else:
             self.__show_conversation_selection(content_to_display)
-            if self.topic_selection_active: # slide out animation
-                self.topic_selection.offset = ft.Offset(1,0)
-                self.main_content.offset = ft.Offset(0,0)
+            if self.topic_selection_active:  # slide out animation
+                self.topic_selection.offset = ft.Offset(1, 0)
+                self.main_content.offset = ft.Offset(0, 0)
                 self.topic_selection_active = False
 
         if self.page:
@@ -111,4 +118,4 @@ class SelectionBar(ft.Container):
         if searchterm:
             return []  # todo request controller
         else:
-            return self.__state.get(MainAppStateProperties.DISPLAYED_MAILS)
+            return self.__state.get(MainAppStateProperties.DISPLAYED_MAILS)  # type: ignore

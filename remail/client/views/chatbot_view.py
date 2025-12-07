@@ -2,6 +2,7 @@
 
 import flet as ft
 
+from remail.client.state import MainAppState
 from remail.client.state.app_state import AppState
 from remail.client.widgets.chatbot.chatbot import create_chatbot
 
@@ -21,7 +22,7 @@ def create_chatbot_view(page: ft.Page, app_state: AppState) -> ft.Container:
     page.padding = 20
 
     # Create the chatbot widget
-    chatbot = create_chatbot()
+    chatbot = create_chatbot(MainAppState())
 
     return ft.Container(
         content=chatbot,
