@@ -2,7 +2,7 @@ import re
 
 import flet as ft
 
-from remail.client.views.main.state import MainAppState
+from remail.client.state.main_app_state import MainAppState, MainAppStateProperties
 from remail.client.widgets.mail_selection.action import Action
 from remail.client.widgets.mail_selection.conversation_selection import ConversationSelection
 from remail.client.widgets.mail_selection.search_header import SearchHeader
@@ -28,11 +28,10 @@ class SelectionBar(ft.Container):
         self.conversation_selection = ConversationSelection(
             self.__on_conversation_or_action_selected, state
         )
-        self.topic_selection = ThreadSelection(state, self.__on_topic_selected)
+        self.topic_selection = ThreadSelection(state, lambda: self.__set_content_to_display(state.get(MainAppStateProperties.DISPLAYED_MAILS)))
 
         super().__init__(
             bgcolor=ft.Colors.SURFACE,
-            width=300,
             content=ft.Column(
                 controls=[SearchHeader(state), self.main_content],
                 expand=True,
@@ -42,14 +41,14 @@ class SelectionBar(ft.Container):
             expand=False,
             clip_behavior=ft.ClipBehavior.HARD_EDGE,
         )
-        state.listen_search_term(self.__on_search_change)
-        state.listen_displayed(self.__set_content_to_display)  # type: ignore
-        self.__set_content_to_display(state.displayed)  # type: ignore
-        self.__on_search_change(state.search_term)  # initially loading data
+        state.register_observer(MainAppStateProperties.SEARCH_TERM, self.__on_search_change) #type: ignore
+        state.register_observer(MainAppStateProperties.DISPLAYED_MAILS, self.__set_content_to_display)  # type: ignore
+        self.__set_content_to_display(state.get(MainAppStateProperties.DISPLAYED_MAILS))  # type: ignore
+        self.__on_search_change("")  # initially loading data
 
     def __on_search_change(self, new_search_term: str | None) -> None:
         mails: list[ConversationDTO | Action] = self.__search_request(new_search_term)  # type: ignore
-        if new_search_term and re.match(
+        if new_search_term != "" and re.match(
             r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]", new_search_term
         ):  # option "mail hinzufügen
             mails.insert(
@@ -82,7 +81,7 @@ class SelectionBar(ft.Container):
             selected.on_executed()
 
     def __on_topic_selected(self, selected: ThreadPreviewDTO) -> None:
-        self.__state.set_active_thread(selected)
+        self.__state.set(MainAppStateProperties.ACTIVE_THREAD, selected)
 
     def __set_content_to_display(self, content_to_display: list[ConversationDTO | Action]) -> None:
         if len(content_to_display) == 1 and isinstance(content_to_display[0], ConversationDTO):
@@ -105,4 +104,4 @@ class SelectionBar(ft.Container):
         if searchterm:
             return []  # todo request controller
         else:
-            return self.__state.displayed
+            return self.__state.get(MainAppStateProperties.DISPLAYED_MAILS)

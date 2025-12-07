@@ -60,7 +60,7 @@ class TestThreadSelection(unittest.TestCase):
         # Prüfe Header
         self.assertIsInstance(selection.controls[0], ft.Container)
         header_row = selection.controls[0].content
-        self.assertEqual(header_row.controls[1].content.value, "MM")  # Initialen
+        self.assertEqual(header_row.controls[1].content.value, "MM")  # Initialien
         self.assertEqual(
             selection.controls[0].content.controls[2].controls[0].value, "Max Mustermann"
         )

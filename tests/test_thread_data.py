@@ -2,6 +2,7 @@ from datetime import datetime
 
 from remail.controllers.dtos.conversations import ThreadPreviewDTO, ContactDTO
 from remail.controllers.dtos.threads import ThreadDTO, MessageDTO
+from remail.enums import ContactType
 
 
 def fetch_thread(preview: ThreadPreviewDTO) -> ThreadDTO:
@@ -10,6 +11,8 @@ def fetch_thread(preview: ThreadPreviewDTO) -> ThreadDTO:
         first_name="John",
         last_name="Doe",
         email="john.doe@example.com",
+        is_known=True,
+        type=ContactType.PRIVATE
     )
 
     me = ContactDTO(
@@ -17,6 +20,8 @@ def fetch_thread(preview: ThreadPreviewDTO) -> ThreadDTO:
         first_name="Me",
         last_name="User",
         email="me@example.com",
+        is_known=True,
+        type=ContactType.PRIVATE
     )
 
     # Basisnachrichten

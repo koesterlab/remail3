@@ -2,34 +2,36 @@ from collections.abc import Callable
 
 import flet as ft
 
-from remail.client.views.main.state import MainAppState
 from remail.controllers.dtos.conversations import ConversationDTO, ThreadPreviewDTO
 
 from .thread_preview import ThreadPreview
+from ...state.main_app_state import MainAppState
 
 """
 Subwidget of selectionBar to choose between different conversations of a contact
 """
 
 
-class ThreadSelection(ft.Column):
-    def __init__(self, state: MainAppState, on_click: Callable[[ThreadPreviewDTO], None]):
+class ThreadSelection(ft.Container):
+    def __init__(self, state: MainAppState, on_click_back: Callable[[], None]):
         self.slided_in = False
         self.__state = state
         self.__content = ft.Column(spacing=0)
-        self.__on_click = on_click
         self.__image = ft.CircleAvatar(content=ft.Text(""), bgcolor=ft.Colors.ON_SURFACE, radius=20)
         self.__primary_text = ft.Text("", weight=ft.FontWeight.BOLD, color=ft.Colors.ON_SURFACE)
         self.__secondary_text = ft.Text("", size=12, color=ft.Colors.ON_SURFACE_VARIANT)
 
-        super().__init__(
+        super().__init__(ft.Column(
             controls=[
                 # header
                 ft.Container(
                     height=100,
                     content=ft.Row(
                         [
-                            ft.IconButton(icon=ft.Icons.ARROW_BACK),
+                            ft.IconButton(
+                                icon=ft.Icons.ARROW_BACK,
+                                on_click=lambda _: on_click_back()
+                            ),
                             self.__image,
                             ft.Column(
                                 alignment=ft.MainAxisAlignment.START,
@@ -52,13 +54,7 @@ class ThreadSelection(ft.Column):
                     ),
                 ),
             ]
-        )
-
-    def __slide_out(self):
-        pass  # todo
-
-    def __slide_in(self):
-        pass  # todo
+        ))
 
     def set_content(self, content: ConversationDTO):
         if len(content.contacts) == 1:
@@ -82,4 +78,4 @@ class ThreadSelection(ft.Column):
             self.__secondary_text.value = str(len(content.contacts)) + " Members"
         # todo: make more efficient on reload
         # todo: sort algorithm
-        self.__content.controls = [ThreadPreview(elem, self.__on_click) for elem in content.threads]  # type: ignore
+        self.__content.controls = [ThreadPreview(elem, self.__state) for elem in content.threads]  # type: ignore

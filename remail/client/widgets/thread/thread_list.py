@@ -57,7 +57,7 @@ class ThreadList(ft.Column):
         header = ft.Row(
             controls=[
                 ft.CircleAvatar(
-                    content=ft.Text((self.conversation.customName or "Group").upper()),
+                    content=ft.Text(self.conversation.customName) if self.conversation.customName else ft.Icon(ft.Icons.GROUP),
                     radius=20,
                 ),
                 ft.Column(
@@ -103,12 +103,12 @@ class ThreadList(ft.Column):
         #     ),
         # )
 
-        messages_column = ft.Column(
+        messages_column = ft.Container(ft.Column(
             controls=[MessageBubble(m, self.active_user) for m in self.thread.messages],
             spacing=8,
             expand=True,
             scroll=ft.ScrollMode.AUTO,
-        )
+        ), bgcolor=ft.Colors.TERTIARY)
 
         # ---------- downside message input box ---------- #
         input_row = ft.Row(

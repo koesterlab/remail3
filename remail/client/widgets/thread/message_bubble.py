@@ -17,7 +17,6 @@ class MessageBubble(ft.Container):
 
         # --- Bubble style ---
         bubble = ft.Container(
-            width=380,  # 400
             padding=ft.padding.symmetric(horizontal=14, vertical=10),
             border_radius=ft.border_radius.all(18),  # it would be rounder
             bgcolor=ft.Colors.PRIMARY if is_me else ft.Colors.SECONDARY,

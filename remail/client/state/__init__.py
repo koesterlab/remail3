@@ -1,3 +1,3 @@
 from .app_state import AppState
-
-__all__ = ["AppState"]
+from .main_app_state import MainAppState, MainAppStateProperties
+__all__ = ["AppState", "MainAppState", "MainAppStateProperties"]

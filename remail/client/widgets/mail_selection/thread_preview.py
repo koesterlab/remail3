@@ -2,14 +2,14 @@ from collections.abc import Callable
 
 import flet as ft
 
+from remail.client.state import MainAppState, MainAppStateProperties
 from remail.controllers.dtos.conversations import ThreadPreviewDTO
 
 
 class ThreadPreview(ft.Container):
     # component representing a single contact entry
     def __init__(
-        self, topic: ThreadPreviewDTO, on_click: Callable[[ThreadPreviewDTO | None], None]
-    ):
+        self, thread: ThreadPreviewDTO, state: MainAppState):
         super().__init__(
             content=ft.Row(
                 [
@@ -19,13 +19,13 @@ class ThreadPreview(ft.Container):
                                 [
                                     ft.Text(
                                         (
-                                            "(" + str(topic.unread_count) + ") "
-                                            if topic.unread_count > 0
+                                            "(" + str(thread.unread_count) + ") "
+                                            if thread.unread_count > 0
                                             else ""
                                         )
-                                        + topic.title,
+                                        + thread.title,
                                         weight=ft.FontWeight.BOLD
-                                        if topic.unread_count > 0
+                                        if thread.unread_count > 0
                                         else ft.FontWeight.NORMAL,
                                         color=ft.Colors.ON_SURFACE,
                                     ),
@@ -35,7 +35,7 @@ class ThreadPreview(ft.Container):
                             ft.Row(
                                 [
                                     ft.Text(
-                                        topic.last_message,
+                                        thread.last_message,
                                         size=12,
                                         color=ft.Colors.ON_SURFACE_VARIANT,
                                     )
@@ -51,6 +51,6 @@ class ThreadPreview(ft.Container):
                 spacing=12,
                 alignment=ft.MainAxisAlignment.START,
             ),
-            on_click=lambda _: on_click(topic),
+            on_click=lambda _: state.set(MainAppStateProperties.ACTIVE_THREAD, thread),
             padding=12,
         )
