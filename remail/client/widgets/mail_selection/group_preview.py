@@ -16,16 +16,10 @@ class GroupPreview(ConversationPreview):
         )
         secondary = str(len(group.contacts)) + " Members"
 
-        # favorite toggle handler
-        def toggle_fav():
-            group.favorite = not group.favorite
-
         super().__init__(
-            ft.Icon(ft.Icons.GROUP, color=ft.Colors.ON_SECONDARY),
+            group,
             primary,
             secondary,
-            group.is_favorite,
             bool(group.customName),
-            toggle_fav,
             on_click,
         )

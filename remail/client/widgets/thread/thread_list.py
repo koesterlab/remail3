@@ -54,23 +54,22 @@ class ThreadList(ft.Column):
 
         # ---------- the information of top contact -------- #
 
-        header = ft.Row(
+        header = ft.Container(ft.Row(
             controls=[
-                ft.CircleAvatar(
-                    content=ft.Text(self.conversation.customName) if self.conversation.customName else ft.Icon(ft.Icons.GROUP),
-                    radius=20,
-                ),
                 ft.Column(
                     controls=[
-                        ft.Text(self.thread.title),
-                        ft.Text(", ".join(contact.first_name[0] + ". " + contact.last_name for contact in self.conversation.contacts),
-                                size=12, color=ft.Colors.ON_SURFACE),
+                        ft.Text(self.thread.title, size=25, weight=ft.FontWeight.BOLD, color=ft.Colors.ON_SURFACE),
+                        ft.Text(str(len(self.thread.messages)) + " messages", size=15, color=ft.Colors.ON_SURFACE_VARIANT),
                     ],
                     spacing=2,
                 ),
             ],
             alignment=ft.MainAxisAlignment.START,
             spacing=10,
+
+        ),
+            padding=ft.padding.only(left=10, top=5, bottom=5, right=10),
+            height=50
         )
 
         # ---------- “Discussing email” 卡片 ---------- #
@@ -127,10 +126,8 @@ class ThreadList(ft.Column):
         # ---------- conbination of the whole layout ---------- #
         self.controls = [
             header,
-            ft.Container(height=10),
             #discussing_card,
             #ft.Container(height=20),
             messages_column,
-            ft.Container(height=8),
             input_row,
         ]

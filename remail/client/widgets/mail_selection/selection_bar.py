@@ -16,35 +16,36 @@ Overall Widget to combine searchbar and selection widgets
 
 class SelectionBar(ft.Container):
     def __init__(self, state: MainAppState):
-        self.main_content = ft.AnimatedSwitcher(
-            ft.Container(),
-            expand=True,
-            transition=ft.AnimatedSwitcherTransition.FADE,
-            duration=130,
-            switch_in_curve=ft.AnimationCurve.LINEAR,
-            switch_out_curve=ft.AnimationCurve.LINEAR,
-        )
-        self.__state = state
-        self.conversation_selection = ConversationSelection(
-            self.__on_conversation_or_action_selected, state
-        )
-        self.topic_selection = ThreadSelection(state, lambda: self.__set_content_to_display(state.get(MainAppStateProperties.DISPLAYED_MAILS)))
+        state.register_observer(MainAppStateProperties.SEARCH_TERM, self.__on_search_change)  # type: ignore
+        state.register_observer(MainAppStateProperties.DISPLAYED_MAILS, self.__set_content_to_display)  # type: ignore
 
-        super().__init__(
-            bgcolor=ft.Colors.SURFACE,
-            content=ft.Column(
-                controls=[SearchHeader(state), self.main_content],
+
+        #subwidgets
+        self.topic_selection = ThreadSelection(state, lambda: self.__set_content_to_display(state.get(MainAppStateProperties.DISPLAYED_MAILS)))
+        self.conversation_selection = ConversationSelection(self.__on_conversation_or_action_selected, state)
+        self.main_content = ft.Column(
+                controls=[SearchHeader(state), self.conversation_selection],
                 expand=True,
                 spacing=0,
                 alignment=ft.MainAxisAlignment.START,
-            ),
+                offset=ft.Offset(0,0),
+            )
+        self.topic_selection.offset = ft.Offset(1,0)
+        self.topic_selection.animate_offset = 140
+        self.main_content.animate_offset = 140
+        self.__state = state
+        self.topic_selection_active = False
+
+        super().__init__(
+            bgcolor=ft.Colors.SURFACE,
+            content=ft.Stack(controls=[self.main_content, self.topic_selection],expand=True),
             expand=False,
             clip_behavior=ft.ClipBehavior.HARD_EDGE,
         )
-        state.register_observer(MainAppStateProperties.SEARCH_TERM, self.__on_search_change) #type: ignore
-        state.register_observer(MainAppStateProperties.DISPLAYED_MAILS, self.__set_content_to_display)  # type: ignore
+
         self.__set_content_to_display(state.get(MainAppStateProperties.DISPLAYED_MAILS))  # type: ignore
         self.__on_search_change("")  # initially loading data
+
 
     def __on_search_change(self, new_search_term: str | None) -> None:
         mails: list[ConversationDTO | Action] = self.__search_request(new_search_term)  # type: ignore
@@ -86,19 +87,27 @@ class SelectionBar(ft.Container):
     def __set_content_to_display(self, content_to_display: list[ConversationDTO | Action]) -> None:
         if len(content_to_display) == 1 and isinstance(content_to_display[0], ConversationDTO):
             self.__show_topic_selection(content_to_display[0])
+            if not self.topic_selection_active: #slide_in_animation
+                print("slide in")
+                self.topic_selection.offset = ft.Offset(0,0)
+                self.main_content.offset = ft.Offset(-1,0)
+                self.topic_selection_active = True
         else:
             self.__show_conversation_selection(content_to_display)
+            if self.topic_selection_active: # slide out animation
+                print("slide out")
+                self.topic_selection.offset = ft.Offset(1,0)
+                self.main_content.offset = ft.Offset(0,0)
+                self.topic_selection_active = False
 
         if self.page:
-            self.main_content.update()
+            self.update()
 
     def __show_conversation_selection(self, content: list[ConversationDTO | Action]) -> None:
         self.conversation_selection.set_content(content)
-        self.main_content.content = self.conversation_selection
 
     def __show_topic_selection(self, conversation: ConversationDTO) -> None:
         self.topic_selection.set_content(conversation)
-        self.main_content.content = self.topic_selection
 
     def __search_request(self, searchterm: str | None = None) -> list[ConversationDTO]:
         if searchterm:

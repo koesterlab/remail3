@@ -3,6 +3,7 @@ from collections.abc import Callable
 import flet as ft
 
 from remail.controllers.dtos.conversations import ConversationDTO, ThreadPreviewDTO
+from .profile_picture import create_profile_picture
 
 from .thread_preview import ThreadPreview
 from ...state.main_app_state import MainAppState
@@ -17,7 +18,7 @@ class ThreadSelection(ft.Container):
         self.slided_in = False
         self.__state = state
         self.__content = ft.Column(spacing=0)
-        self.__image = ft.CircleAvatar(content=ft.Text(""), bgcolor=ft.Colors.ON_SURFACE, radius=20)
+        self.__image = ft.Container(width=40, height=40)
         self.__primary_text = ft.Text("", weight=ft.FontWeight.BOLD, color=ft.Colors.ON_SURFACE)
         self.__secondary_text = ft.Text("", size=12, color=ft.Colors.ON_SURFACE_VARIANT)
 
@@ -25,22 +26,25 @@ class ThreadSelection(ft.Container):
             controls=[
                 # header
                 ft.Container(
-                    height=100,
+                    padding=ft.padding.only(left=0, right=5, top=5, bottom=10),
                     content=ft.Row(
                         [
                             ft.IconButton(
                                 icon=ft.Icons.ARROW_BACK,
-                                on_click=lambda _: on_click_back()
+                                on_click=lambda _: on_click_back(),
+                                icon_color=ft.Colors.ON_SURFACE_VARIANT,
+                                icon_size=30
                             ),
                             self.__image,
-                            ft.Column(
-                                alignment=ft.MainAxisAlignment.START,
+                            ft.Container(ft.Column(
+                                alignment=ft.MainAxisAlignment.CENTER,
                                 controls=[self.__primary_text, self.__secondary_text],
                                 spacing=6,
-                            ),
+                            ), height=50)
                         ],
-                        spacing=3,
+                        spacing=7,
                     ),
+                    border=ft.border.only(bottom=ft.border.BorderSide(1, ft.Colors.GREY)),
                 ),
                 # thread_list
                 ft.Container(
@@ -57,17 +61,12 @@ class ThreadSelection(ft.Container):
         ))
 
     def set_content(self, content: ConversationDTO):
+        self.__image.content = create_profile_picture(content)
         if len(content.contacts) == 1:
             contact = content.contacts[0]
-            self.__image.content = (
-                ft.Text(contact.first_name[0] + contact.last_name[0])
-                if contact.is_known
-                else ft.Icon(ft.Icons.PERSON)
-            )
             self.__primary_text.value = contact.first_name + " " + contact.last_name
             self.__secondary_text.value = contact.email
         else:
-            self.__image.content = ft.Icon(ft.Icons.GROUP)
             self.__primary_text.value = (
                 content.customName
                 if content.customName
