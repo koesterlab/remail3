@@ -2,7 +2,7 @@ import re
 
 import flet as ft
 
-from remail.client.views.main.state import MainAppState
+from remail.client.state.main_app_state import MainAppState, MainAppStateProperties
 from remail.client.widgets.mail_selection.action import Action
 from remail.client.widgets.mail_selection.conversation_selection import ConversationSelection
 from remail.client.widgets.mail_selection.search_header import SearchHeader
@@ -16,40 +16,47 @@ Overall Widget to combine searchbar and selection widgets
 
 class SelectionBar(ft.Container):
     def __init__(self, state: MainAppState):
-        self.main_content = ft.AnimatedSwitcher(
-            ft.Container(),
-            expand=True,
-            transition=ft.AnimatedSwitcherTransition.FADE,
-            duration=130,
-            switch_in_curve=ft.AnimationCurve.LINEAR,
-            switch_out_curve=ft.AnimationCurve.LINEAR,
+        state.register_observer(MainAppStateProperties.SEARCH_TERM, self.__on_search_change)  # type: ignore
+        state.register_observer(
+            MainAppStateProperties.DISPLAYED_MAILS, self.__set_content_to_display
+        )  # type: ignore
+
+        # subwidgets
+        self.topic_selection = ThreadSelection(
+            state,
+            lambda: self.__set_content_to_display(
+                state.get(MainAppStateProperties.DISPLAYED_MAILS)
+            ),
         )
-        self.__state = state
         self.conversation_selection = ConversationSelection(
             self.__on_conversation_or_action_selected, state
         )
-        self.topic_selection = ThreadSelection(state, self.__on_topic_selected)
+        self.main_content = ft.Column(
+            controls=[SearchHeader(state), self.conversation_selection],
+            expand=True,
+            spacing=0,
+            alignment=ft.MainAxisAlignment.START,
+            offset=ft.Offset(0, 0),
+        )
+        self.topic_selection.offset = ft.Offset(1, 0)
+        self.topic_selection.animate_offset = 140
+        self.main_content.animate_offset = 140
+        self.__state = state
+        self.topic_selection_active = False
 
         super().__init__(
             bgcolor=ft.Colors.SURFACE,
-            width=300,
-            content=ft.Column(
-                controls=[SearchHeader(state), self.main_content],
-                expand=True,
-                spacing=0,
-                alignment=ft.MainAxisAlignment.START,
-            ),
+            content=ft.Stack(controls=[self.main_content, self.topic_selection], expand=True),
             expand=False,
             clip_behavior=ft.ClipBehavior.HARD_EDGE,
         )
-        state.listen_search_term(self.__on_search_change)
-        state.listen_displayed(self.__set_content_to_display)  # type: ignore
-        self.__set_content_to_display(state.displayed)  # type: ignore
-        self.__on_search_change(state.search_term)  # initially loading data
 
-    def __on_search_change(self, new_search_term: str | None) -> None:
+        self.__set_content_to_display(state.get(MainAppStateProperties.DISPLAYED_MAILS))  # type: ignore
+        self.__on_search_change("")  # initially loading data
+
+    def __on_search_change(self, new_search_term: str) -> None:
         mails: list[ConversationDTO | Action] = self.__search_request(new_search_term)  # type: ignore
-        if new_search_term and re.match(
+        if new_search_term != "" and re.match(
             r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]", new_search_term
         ):  # option "mail hinzufügen
             mails.insert(
@@ -82,27 +89,33 @@ class SelectionBar(ft.Container):
             selected.on_executed()
 
     def __on_topic_selected(self, selected: ThreadPreviewDTO) -> None:
-        self.__state.set_active_thread(selected)
+        self.__state.set(MainAppStateProperties.ACTIVE_THREAD, selected)
 
     def __set_content_to_display(self, content_to_display: list[ConversationDTO | Action]) -> None:
         if len(content_to_display) == 1 and isinstance(content_to_display[0], ConversationDTO):
             self.__show_topic_selection(content_to_display[0])
+            if not self.topic_selection_active:  # slide_in_animation
+                self.topic_selection.offset = ft.Offset(0, 0)
+                self.main_content.offset = ft.Offset(-1, 0)
+                self.topic_selection_active = True
         else:
             self.__show_conversation_selection(content_to_display)
+            if self.topic_selection_active:  # slide out animation
+                self.topic_selection.offset = ft.Offset(1, 0)
+                self.main_content.offset = ft.Offset(0, 0)
+                self.topic_selection_active = False
 
         if self.page:
-            self.main_content.update()
+            self.update()
 
     def __show_conversation_selection(self, content: list[ConversationDTO | Action]) -> None:
         self.conversation_selection.set_content(content)
-        self.main_content.content = self.conversation_selection
 
     def __show_topic_selection(self, conversation: ConversationDTO) -> None:
         self.topic_selection.set_content(conversation)
-        self.main_content.content = self.topic_selection
 
     def __search_request(self, searchterm: str | None = None) -> list[ConversationDTO]:
         if searchterm:
             return []  # todo request controller
         else:
-            return self.__state.displayed
+            return self.__state.get(MainAppStateProperties.DISPLAYED_MAILS)  # type: ignore

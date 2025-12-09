@@ -5,7 +5,7 @@ from unittest.mock import Mock
 
 import flet as ft
 
-from remail.client.views.main.state import MainAppState
+from remail.client.state import MainAppState
 from remail.client.widgets.mail_selection.action import Action
 from remail.client.widgets.mail_selection.action_preview import ActionPreview
 from remail.client.widgets.mail_selection.contact_preview import ContactPreview

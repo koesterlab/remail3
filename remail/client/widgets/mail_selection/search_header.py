@@ -1,21 +1,20 @@
 import flet as ft
 from flet.core.control_event import ControlEvent
 
-from remail.client.views.main.state import MainAppState
-from remail.enums.email_folders import EmailFolders
+from remail.client.state.main_app_state import MainAppState, MainAppStateProperties
 
 
 class SearchHeader(ft.Container):
     def __init__(self, state: MainAppState):
         self.__state = state
-        self.__term = state.search_term
+        self.__term = state.get(MainAppStateProperties.SEARCH_TERM)
 
         # ----- Search Input -----
         def handle_change(e: ControlEvent):
-            state.set_search_term(e.control.value)
+            state.set(MainAppStateProperties.SEARCH_TERM, e.control.value)
 
         self.input = ft.TextField(
-            value=state.search_term if state.search_term is not None else "",
+            value=self.__term,
             hint_text="Search...",
             on_change=handle_change,
             expand=True,
@@ -28,16 +27,15 @@ class SearchHeader(ft.Container):
         )
 
         def on_search_term_changed(s):
-            print("asfasfafasdfasfdsaf")
             if s != self.input.value:
                 self.input.value = s
 
-        state.listen_search_term(on_search_term_changed)
+        state.register_observer(MainAppStateProperties.SEARCH_TERM, on_search_term_changed)
 
         def on_home_clicked(_):
-            state.set_search_term("")
-            state.set_active_thread(None)
-            state.set_active_folder(EmailFolders.INBOX)
+            state.set(MainAppStateProperties.SEARCH_TERM, "")
+            state.set(MainAppStateProperties.ACTIVE_THREAD, None)
+            # todo: load mails from controller
 
         # ----- Home Icon -----
         home_icon = ft.IconButton(
@@ -55,7 +53,7 @@ class SearchHeader(ft.Container):
                 style=ft.TextStyle(decoration=ft.TextDecoration.UNDERLINE),
                 color=ft.Colors.TERTIARY,
             ),
-            on_click=lambda _: state.set_active_folder(EmailFolders.ARCHIVED),
+            # todo: load mails from controller into state on_click=lambda _: ,
         )
 
         spam_link = ft.Container(
@@ -64,7 +62,7 @@ class SearchHeader(ft.Container):
                 style=ft.TextStyle(decoration=ft.TextDecoration.UNDERLINE),
                 color=ft.Colors.TERTIARY,
             ),
-            on_click=lambda _: state.set_active_folder(EmailFolders.ARCHIVED),
+            # todo: same as above on_click=lambda _: ,
         )
 
         # ----- Layout -----

@@ -1,21 +1,28 @@
 from collections.abc import Callable
 
 import flet as ft
+from flet.core.control_event import ControlEvent
+
+from remail.client.widgets.mail_selection.profile_picture import create_profile_picture
+from remail.controllers.dtos.conversations import ConversationDTO
 
 
 class ConversationPreview(ft.Container):
     # component representing a single contact entry
     def __init__(
         self,
-        image: ft.Control,
+        conversation: ConversationDTO,
         primary_text: str,
         secondary_text: str,
-        fav: bool,
         registered: bool,
-        on_toggle_fav: Callable[[], None],
         on_click: Callable[[], None],
     ):
-        image.color = ft.Colors.ON_SECONDARY
+        def toggle_fav(e: ControlEvent):  # todo change in backend
+            conversation.is_favorite = not conversation.is_favorite
+            fav_button.icon = ft.Icons.STAR if conversation.is_favorite else ft.Icons.STAR_OUTLINE
+            if fav_button.page:
+                fav_button.update()
+
         icon_btn = ft.Row([], spacing=2, expand=True, alignment=ft.MainAxisAlignment.END)
 
         if not registered:
@@ -34,16 +41,16 @@ class ConversationPreview(ft.Container):
                 pass
         else:
             fav_button = ft.IconButton(
-                icon=ft.Icons.STAR if fav else ft.Icons.STAR_OUTLINE,
+                icon=ft.Icons.STAR if conversation.is_favorite else ft.Icons.STAR_OUTLINE,
                 tooltip="Favorit",
-                on_click=lambda e: on_toggle_fav(),
+                on_click=toggle_fav,
                 icon_color=ft.Colors.ON_SURFACE_VARIANT,
-                visible=fav,
+                visible=conversation.is_favorite,
             )
             icon_btn.controls = [fav_button]
 
             def on_hover(e):
-                fav_button.visible = fav or e.data == "true"
+                fav_button.visible = conversation.is_favorite or e.data == "true"
                 fav_button.update()
 
         super().__init__(
@@ -54,7 +61,7 @@ class ConversationPreview(ft.Container):
             border=ft.border.only(bottom=ft.border.BorderSide(1, ft.Colors.GREY)),
             content=ft.Row(
                 [
-                    ft.CircleAvatar(content=image, bgcolor=ft.Colors.ON_SURFACE, radius=20),
+                    create_profile_picture(conversation),
                     ft.Column(
                         [
                             ft.Row(

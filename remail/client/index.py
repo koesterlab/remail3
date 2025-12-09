@@ -23,6 +23,7 @@ def main(page: ft.Page):
 
     # Create router and register views
     router = ViewRouter(page, app_state)
+    app_state.router = router
     router.register_view(MainView.SETTINGS, create_settings_view)
     router.register_view(MainView.DASHBOARD, create_main_view)
 

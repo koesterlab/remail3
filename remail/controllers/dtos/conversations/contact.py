@@ -11,3 +11,6 @@ class ContactDTO:
     email: str
     is_known: bool
     type: ContactType
+
+    def __eq__(self, other):
+        return isinstance(other, ContactDTO) and other.id == self.id

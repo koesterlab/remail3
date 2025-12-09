@@ -77,6 +77,9 @@ init-db = "python init_db.py --force --fixtures"
 # 9) Run the application
 app = "python -m remail.client.index"
 
+[tool.pixi.dependencies]
+pixi-pycharm = ">=0.0.10,<0.0.11"
+
 [tool.ruff]
 line-length = 100
 target-version = "py312"
