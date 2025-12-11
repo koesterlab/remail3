@@ -30,29 +30,27 @@ class TestCreateSettingsNavigation:
 
         assert isinstance(result.content, ft.Column)
 
-    def test_has_settings_title(self):
-        """Test that navigation has 'Settings' title."""
+    def test_first_control_is_button(self):
+        """Test that first control is a navigation button."""
         app_state = AppState()
         on_navigate = Mock()
 
         result = create_settings_navigation(app_state, on_navigate)
-        title = result.content.controls[0]
+        first_control = result.content.controls[0]
 
-        assert isinstance(title, ft.Text)
-        assert title.value == "Settings"
-        assert title.size == 24
-        assert title.weight == ft.FontWeight.BOLD
+        assert isinstance(first_control, ft.TextButton)
+        assert first_control.text == "Appearance"
 
-    def test_has_divider(self):
-        """Test that navigation has a divider."""
+    def test_second_control_is_button(self):
+        """Test that second control is a navigation button."""
         app_state = AppState()
         on_navigate = Mock()
 
         result = create_settings_navigation(app_state, on_navigate)
-        divider = result.content.controls[1]
+        second_control = result.content.controls[1]
 
-        assert isinstance(divider, ft.Divider)
-        assert divider.height == 2
+        assert isinstance(second_control, ft.TextButton)
+        assert second_control.text == "Email Accounts"
 
     def test_has_four_navigation_buttons(self):
         """Test that navigation has 4 menu items."""
@@ -61,8 +59,8 @@ class TestCreateSettingsNavigation:
 
         result = create_settings_navigation(app_state, on_navigate)
 
-        # Title + Divider + 4 buttons = 6 controls
-        assert len(result.content.controls) == 6
+        # 4 buttons without title and divider
+        assert len(result.content.controls) == 4
 
     def test_navigation_button_labels(self):
         """Test that navigation buttons have correct labels."""
@@ -70,7 +68,7 @@ class TestCreateSettingsNavigation:
         on_navigate = Mock()
 
         result = create_settings_navigation(app_state, on_navigate)
-        buttons = result.content.controls[2:]  # Skip title and divider
+        buttons = result.content.controls  # All controls are buttons now
 
         assert buttons[0].text == "Appearance"
         assert buttons[1].text == "Email Accounts"
@@ -83,7 +81,7 @@ class TestCreateSettingsNavigation:
         on_navigate = Mock()
 
         result = create_settings_navigation(app_state, on_navigate)
-        buttons = result.content.controls[2:]
+        buttons = result.content.controls  # All controls are buttons now
 
         assert all(isinstance(btn, ft.TextButton) for btn in buttons)
 
@@ -93,7 +91,7 @@ class TestCreateSettingsNavigation:
         on_navigate = Mock()
 
         result = create_settings_navigation(app_state, on_navigate)
-        buttons = result.content.controls[2:]
+        buttons = result.content.controls  # All controls are buttons now
 
         for button in buttons:
             assert button.on_click is not None
@@ -133,7 +131,7 @@ class TestCreateSettingsNavigation:
         on_navigate = Mock()
 
         result = create_settings_navigation(app_state, on_navigate)
-        appearance_button = result.content.controls[2]
+        appearance_button = result.content.controls[0]  # First button is Appearance
 
         # Active button should have PRIMARY color
         assert appearance_button.style.color == ft.Colors.PRIMARY
@@ -146,7 +144,7 @@ class TestCreateSettingsNavigation:
         on_navigate = Mock()
 
         result = create_settings_navigation(app_state, on_navigate)
-        email_button = result.content.controls[3]
+        email_button = result.content.controls[1]  # Second button is Email Accounts
 
         # Inactive button should have ON_SURFACE color and no bgcolor
         assert email_button.style.color == ft.Colors.ON_SURFACE
@@ -164,8 +162,8 @@ class TestCreateSettingsNavigation:
         nav2 = create_settings_navigation(app_state2, on_navigate)
 
         # Check that different buttons are active in each instance
-        appearance_btn1 = nav1.content.controls[2]
-        language_btn2 = nav2.content.controls[4]
+        appearance_btn1 = nav1.content.controls[0]  # First button is Appearance
+        language_btn2 = nav2.content.controls[2]  # Third button is Language & Region
 
         assert appearance_btn1.style.color == ft.Colors.PRIMARY
         assert language_btn2.style.color == ft.Colors.PRIMARY

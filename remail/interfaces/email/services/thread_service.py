@@ -3,17 +3,17 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlmodel import Session, col, desc, select
 
-from remail.controllers.dtos.threads import (
-    AttachmentDTO,
-    MessageDTO,
-    SenderDTO,
-    ThreadDTO,
-)
-from remail.controllers.dtos.threads.message import MessageContentDTO
 from remail.models import Attachment, Contact, Email, Thread
+
+if TYPE_CHECKING:
+    from remail.controllers.dtos.threads import (
+        MessageDTO,
+        ThreadDTO,
+    )
 
 
 class ThreadService:
@@ -120,6 +120,8 @@ class ThreadService:
         Returns:
             ThreadDTO with thread data and messages
         """
+        from remail.controllers.dtos.threads import ThreadDTO
+
         if thread.id is None:
             raise ValueError("Thread ID cannot be None")
 
@@ -161,6 +163,9 @@ class ThreadService:
         Returns:
             MessageDTO with email data
         """
+        from remail.controllers.dtos.threads import AttachmentDTO, MessageDTO, SenderDTO
+        from remail.controllers.dtos.threads.message import MessageContentDTO
+
         if email.id is None:
             raise ValueError("Email ID cannot be None")
 

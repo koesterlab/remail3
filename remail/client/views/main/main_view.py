@@ -3,7 +3,7 @@ import flet as ft
 from remail.client.state import AppState
 from remail.client.widgets.mail_selection import SelectionBar
 from remail.controllers.dtos.conversations import ContactDTO, ThreadPreviewDTO
-from remail.enums import ContactType
+from remail.enums import ContactType, MainView
 from tests.client.views.main.test_data_conversations import create_test_data
 
 from ...state.main_app_state import MainAppState, MainAppStateProperties
@@ -18,8 +18,36 @@ def create_main_view(page: ft.Page, global_state: AppState):
     main_state.set(MainAppStateProperties.ACTIVE_THREAD, None)
     main_state.set(MainAppStateProperties.SEARCH_TERM, "")
     selection_bar = SelectionBar(main_state)
-    dashboard = ft.Container(
-        ft.Text("Dashboard (vertrau ist fast fertig)"), bgcolor=ft.Colors.ORANGE, expand=True
+
+    # Settings button
+    def navigate_to_settings(e):
+        """Navigate to settings page."""
+        if global_state.router:
+            page.clean()
+            settings_view = global_state.router.load_view(MainView.SETTINGS)
+            page.add(settings_view)
+            page.update()
+
+    settings_button = ft.IconButton(
+        icon=ft.Icons.SETTINGS,
+        tooltip="Settings",
+        on_click=navigate_to_settings,
+    )
+
+    dashboard = ft.Column(
+        [
+            ft.Container(
+                content=ft.Row(
+                    [
+                        ft.Text("Dashboard (vertrau ist fast fertig)", size=20),
+                        settings_button,
+                    ],
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                ),
+                padding=10,
+            ),
+        ],
+        expand=True,
     )
     right_view = ft.Container(dashboard, col={"xs": 6, "md": 8, "lg": 9}, expand=True)
 

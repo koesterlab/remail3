@@ -32,70 +32,76 @@ class TestCreateSettingsView:
 
         assert page.title == "Settings"
 
-    def test_sets_page_theme_mode(self):
-        """Test that view sets page theme mode to SYSTEM."""
-        page = Mock(spec=ft.Page)
-        page.update = Mock()
-        app_state = AppState()
-
-        create_settings_view(page, app_state)
-
-        assert page.theme_mode == ft.ThemeMode.SYSTEM
-
     def test_container_has_row(self):
-        """Test that Container content is a Row."""
+        """Test that Container content is a Column with header and main row."""
         page = Mock(spec=ft.Page)
         page.update = Mock()
         app_state = AppState()
 
         result = create_settings_view(page, app_state)
 
-        assert isinstance(result.content, ft.Row)
-
-    def test_row_has_three_components(self):
-        """Test that Row has navigation, divider, and content area."""
-        page = Mock(spec=ft.Page)
-        page.update = Mock()
-        app_state = AppState()
-
-        result = create_settings_view(page, app_state)
-
-        # Navigation + VerticalDivider + Content Container
+        assert isinstance(result.content, ft.Column)
+        # Column should have: header, divider, main row container
         assert len(result.content.controls) == 3
 
-    def test_has_navigation_component(self):
-        """Test that first component is the navigation."""
+    def test_row_has_three_components(self):
+        """Test that main Row has navigation, divider, and content area."""
         page = Mock(spec=ft.Page)
         page.update = Mock()
         app_state = AppState()
 
         result = create_settings_view(page, app_state)
-        navigation = result.content.controls[0]
+
+        # Get the main row (third element in the column)
+        main_container = result.content.controls[2]
+        main_row = main_container.content
+
+        # Navigation + VerticalDivider + Content Container
+        assert isinstance(main_row, ft.Row)
+        assert len(main_row.controls) == 3
+
+    def test_has_navigation_component(self):
+        """Test that first component in main row is the navigation."""
+        page = Mock(spec=ft.Page)
+        page.update = Mock()
+        app_state = AppState()
+
+        result = create_settings_view(page, app_state)
+        # Get the main row (third element in the column)
+        main_container = result.content.controls[2]
+        main_row = main_container.content
+        navigation = main_row.controls[0]
 
         assert isinstance(navigation, ft.Container)
         # Navigation container should have a Column with settings items
         assert isinstance(navigation.content, ft.Column)
 
     def test_has_vertical_divider(self):
-        """Test that second component is a VerticalDivider."""
+        """Test that second component in main row is a VerticalDivider."""
         page = Mock(spec=ft.Page)
         page.update = Mock()
         app_state = AppState()
 
         result = create_settings_view(page, app_state)
-        divider = result.content.controls[1]
+        # Get the main row (third element in the column)
+        main_container = result.content.controls[2]
+        main_row = main_container.content
+        divider = main_row.controls[1]
 
         assert isinstance(divider, ft.VerticalDivider)
         assert divider.width == 1
 
     def test_has_content_container(self):
-        """Test that third component is the content container."""
+        """Test that third component in main row is the content container."""
         page = Mock(spec=ft.Page)
         page.update = Mock()
         app_state = AppState()
 
         result = create_settings_view(page, app_state)
-        content_wrapper = result.content.controls[2]
+        # Get the main row (third element in the column)
+        main_container = result.content.controls[2]
+        main_row = main_container.content
+        content_wrapper = main_row.controls[2]
 
         assert isinstance(content_wrapper, ft.Container)
         assert content_wrapper.expand is True

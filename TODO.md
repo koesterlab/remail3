@@ -88,16 +88,15 @@
 
 ## Features
 
-- Implement Accounts controller for fetching the email. (In Progress)
-- Implement connecting to real email accounts using the email controller (login / logout) (In Progress)
-- Implement displaying the thread view (In Progress)
-- Implement the settings features and save it locally for the user (In Progress)
+- Implement Accounts controller for fetching the email. (TODO) - Eugene
+- Implement fetching the threads/emails (TODO) - Pola
+- Implement sending an email and creating/updating a thread (TODO) - Pola + Jonathan
+- Implement attaching the emails in the AI chatbot and using it to answer questions on the email + save LLM responses in
+  the database (TODO) - Nader
+- Implement searching/sorting the conversations - (TODO) - Jonathan + Haihua
 
-- Implement fetching the threads/emails
-- Implement sending an email and creating/updating a thread
-- Implement unread messages count
-- Implement uploading attachments, fetching them safely and displaying information about them
-- Implement searching/sorting the conversations
-- Implement attaching the emails in the AI chatbot and using it to answer questions on the email
 - Implement AI actions for the emails (tagging, attaching a priority, ...etc)
+- Implement uploading attachments, fetching them safely and displaying information about them
+- Implement unread messages count
+- Improve the main page layout and design
 - Implement exchange protocol

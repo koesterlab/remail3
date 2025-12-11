@@ -22,7 +22,21 @@ def create_settings_view(page: ft.Page, app_state: AppState) -> ft.Container:
         A Container with the settings view
     """
     page.title = "Settings"
-    page.theme_mode = ft.ThemeMode.SYSTEM
+
+    # Back to dashboard button
+    def navigate_to_dashboard(e):
+        """Navigate back to dashboard."""
+        if app_state.router:
+            page.clean()
+            dashboard_view = app_state.router.load_view(MainView.DASHBOARD)
+            page.add(dashboard_view)
+            page.update()
+
+    back_button = ft.IconButton(
+        icon=ft.Icons.ARROW_BACK,
+        tooltip="Back to Dashboard",
+        on_click=navigate_to_dashboard,
+    )
 
     # Content container that will hold the active sub-view
     content_container = ft.Ref[ft.Container]()
@@ -46,6 +60,17 @@ def create_settings_view(page: ft.Page, app_state: AppState) -> ft.Container:
     # Create navigation
     navigation = create_settings_navigation(app_state, load_view)
 
+    # Create header with back button
+    header = ft.Container(
+        content=ft.Row(
+            [
+                back_button,
+                ft.Text("Settings", size=24, weight=ft.FontWeight.BOLD),
+            ],
+        ),
+        padding=ft.padding.only(left=10, top=10, bottom=10),
+    )
+
     # Create main layout
     main_row = ft.Row(
         controls=[
@@ -63,6 +88,13 @@ def create_settings_view(page: ft.Page, app_state: AppState) -> ft.Container:
     load_view(SettingsSubView.APPEARANCE)
 
     return ft.Container(
-        content=main_row,
+        content=ft.Column(
+            [
+                header,
+                ft.Divider(height=1),
+                ft.Container(content=main_row, expand=True),
+            ],
+            expand=True,
+        ),
         expand=True,
     )
