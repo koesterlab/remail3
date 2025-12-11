@@ -75,7 +75,7 @@ class ThreadList(ft.Column):
             height=60,
         )
 
-        # ---------- “Discussing email” 卡片 ---------- #
+        # ---------- “Discussing email”  ---------- #
         # title = str(thread.get("title", "")) or ""
         #
         # if messages_raw:
