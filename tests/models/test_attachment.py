@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 
 from sqlmodel import Session, select
 
-from remail.models import Attachment, Contact, Email
+from remail.models import Attachment, Contact, Email, Thread
 
 
 def test_attachment_create(session: Session):
@@ -10,7 +10,13 @@ def test_attachment_create(session: Session):
     session.add(c)
     session.commit()
 
-    e = Email(subject="Attach", body="B", sent_at=datetime.now(UTC), sender_id=c.id)
+    thread = Thread()
+    session.add(thread)
+    session.commit()
+
+    e = Email(
+        subject="Attach", body="B", sent_at=datetime.now(UTC), sender_id=c.id, thread_id=thread.id
+    )
     session.add(e)
     session.commit()
     session.refresh(e)
@@ -29,7 +35,13 @@ def test_attachment_auto_increment(session: Session):
     session.add(c)
     session.commit()
 
-    e = Email(subject="Attach2", body="B", sent_at=datetime.now(UTC), sender_id=c.id)
+    thread = Thread()
+    session.add(thread)
+    session.commit()
+
+    e = Email(
+        subject="Attach2", body="B", sent_at=datetime.now(UTC), sender_id=c.id, thread_id=thread.id
+    )
     session.add(e)
     session.commit()
     session.refresh(e)
@@ -51,7 +63,13 @@ def test_attachment_relationship_to_email(session: Session):
     session.add(c)
     session.commit()
 
-    e = Email(subject="Attach3", body="B", sent_at=datetime.now(UTC), sender_id=c.id)
+    thread = Thread()
+    session.add(thread)
+    session.commit()
+
+    e = Email(
+        subject="Attach3", body="B", sent_at=datetime.now(UTC), sender_id=c.id, thread_id=thread.id
+    )
     session.add(e)
     session.commit()
     session.refresh(e)
@@ -70,7 +88,13 @@ def test_attachment_query(session: Session):
     session.add(c)
     session.commit()
 
-    e = Email(subject="AttachQ", body="B", sent_at=datetime.now(UTC), sender_id=c.id)
+    thread = Thread()
+    session.add(thread)
+    session.commit()
+
+    e = Email(
+        subject="AttachQ", body="B", sent_at=datetime.now(UTC), sender_id=c.id, thread_id=thread.id
+    )
     session.add(e)
     session.commit()
     session.refresh(e)

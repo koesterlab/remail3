@@ -77,6 +77,7 @@ class ConversationService:
         contacts_data = [self._build_contact_dict(contact) for contact in contacts]
 
         return {
+            "id": conversation.id,
             "contacts": contacts_data,
             "custom_name": conversation.custom_name,
             "type": conversation.type.value,

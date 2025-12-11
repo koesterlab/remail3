@@ -5,6 +5,7 @@ from sqlmodel import Field, Relationship, SQLModel
 
 # Make target symbol available at runtime so SA can resolve it
 from .contact import Contact  # noqa: F401
+from .thread import Thread
 
 if TYPE_CHECKING:
     from .attachment import Attachment
@@ -19,9 +20,10 @@ class Email(SQLModel, table=True):
     body: str
     sent_at: datetime
     sender_id: int = Field(foreign_key="contacts.id", nullable=False)
+    thread_id: int = Field(foreign_key="threads.id", nullable=False)
 
-    # Use the concrete symbol (not a string / not Optional)
     sender: Contact = Relationship(back_populates="sent_emails")
+    thread: Thread = Relationship(back_populates="messages")
 
     attachments: list["Attachment"] = Relationship(
         back_populates="email",

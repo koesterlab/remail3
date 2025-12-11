@@ -7,6 +7,7 @@ from .message_builder import MessageBuilder
 from .recipient_service import RecipientService
 from .smtp_sender import SmtpSender
 from .tag_service import TagService
+from .thread_service import ThreadService
 
 __all__ = [
     "ConversationService",
@@ -16,4 +17,5 @@ __all__ = [
     "RecipientService",
     "SmtpSender",
     "TagService",
+    "ThreadService",
 ]
