@@ -61,15 +61,16 @@ def create_main_view(page: ft.Page, global_state: AppState):
     )
 
     # Chatbot
-    chatbot = create_chatbot(main_state)
-    chatbot.height = 60
-    chatbot.expand = False
+    #chatbot = create_chatbot(main_state)
+    #chatbot.height = 60
+    #chatbot.expand = False 
+    # line 72 should be [ft.Container(selection_bar, expand=1), chatbot], col={"xs": 6, "md": 4, "lg": 3}
 
     container = ft.ResponsiveRow(
         expand=True,
         controls=[
             ft.Column(
-                [ft.Container(selection_bar, expand=1), chatbot], col={"xs": 6, "md": 4, "lg": 3}
+                [ft.Container(selection_bar, expand=1)], col={"xs": 6, "md": 4, "lg": 3}
             ),
             right_view,
         ],
