@@ -11,7 +11,9 @@ class UserService:
     """Service for managing user accounts in the database."""
 
     @staticmethod
-    def add_user(email: str, password: str, name: str | None = None, protocol: Protocol = Protocol.IMAP) -> User:
+    def add_user(
+        email: str, password: str, name: str | None = None, protocol: Protocol = Protocol.IMAP
+    ) -> User:
         """
         Add a new user to the database.
 

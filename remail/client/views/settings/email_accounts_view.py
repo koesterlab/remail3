@@ -1,8 +1,3 @@
-"""
-Email accounts view с сохранением в базу данных
-Для существующей модели User (с name и protocol)
-"""
-
 import flet as ft
 
 from remail.client.state.app_state import AppState
@@ -38,6 +33,7 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
         start_text.visible = False
 
     def add_account_click(e):
+        # Hier muss man email addieren
         input_panel.content = ft.Column(
             [
                 ft.Text("Add Email Account", size=16, weight=ft.FontWeight.BOLD),
@@ -54,7 +50,7 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
             ],
             spacing=10,
         )
-
+        # Versteckt die "Add Email Account" Button
         add_button.visible = False
         page.update()
 
@@ -74,9 +70,7 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
 
             print(f"Trying to connect: {email_input.value}@{host_input.value}")
             controller = EmailController(
-                username=email_input.value,
-                password=password_input.value,
-                host=host_input.value
+                username=email_input.value, password=password_input.value, host=host_input.value
             )
 
             result = controller.login()
