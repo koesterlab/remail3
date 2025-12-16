@@ -1,7 +1,7 @@
 """Unit test for email_accounts_view."""
 
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import flet as ft
 
@@ -10,7 +10,9 @@ from remail.client.views.settings.email_accounts_view import create_email_accoun
 
 
 class TestEmailAccoutsView(unittest.TestCase):
-    def test_returns_container(self):
+    @patch("remail.client.views.settings.email_accounts_view.UserService")
+    def test_returns_container(self, mock_user_service):
+        mock_user_service.get_all_users.return_value = []
         page = Mock(spec=ft.Page)
         page.update = Mock()
         page.overlay = []
@@ -22,7 +24,9 @@ class TestEmailAccoutsView(unittest.TestCase):
         self.assertEqual(result.border_radius, 10)
         self.assertEqual(result.alignment, ft.alignment.center_left)
 
-    def test_container_has_column(self):
+    @patch("remail.client.views.settings.email_accounts_view.UserService")
+    def test_container_has_column(self, mock_user_service):
+        mock_user_service.get_all_users.return_value = []
         page = Mock(spec=ft.Page)
         page.update = Mock()
         page.overlay = []
@@ -33,7 +37,9 @@ class TestEmailAccoutsView(unittest.TestCase):
         self.assertIsInstance(result.content, ft.Column)
         self.assertEqual(result.content.spacing, 15)
 
-    def test_column_has_6_titles(self):
+    @patch("remail.client.views.settings.email_accounts_view.UserService")
+    def test_column_has_6_titles(self, mock_user_service):
+        mock_user_service.get_all_users.return_value = []
         page = Mock(spec=ft.Page)
         page.update = Mock()
         page.overlay = []
@@ -42,7 +48,9 @@ class TestEmailAccoutsView(unittest.TestCase):
 
         self.assertEqual(len(result.content.controls), 6)
 
-    def test_has_email_accounts_title(self):
+    @patch("remail.client.views.settings.email_accounts_view.UserService")
+    def test_has_email_accounts_title(self, mock_user_service):
+        mock_user_service.get_all_users.return_value = []
         page = Mock(spec=ft.Page)
         page.update = Mock()
         page.overlay = []
@@ -56,7 +64,9 @@ class TestEmailAccoutsView(unittest.TestCase):
         self.assertEqual(title.size, 18)
         self.assertEqual(title.weight, ft.FontWeight.BOLD)
 
-    def test_has_description_text(self):
+    @patch("remail.client.views.settings.email_accounts_view.UserService")
+    def test_has_description_text(self, mock_user_service):
+        mock_user_service.get_all_users.return_value = []
         page = Mock(spec=ft.Page)
         page.update = Mock()
         page.overlay = []
@@ -68,7 +78,9 @@ class TestEmailAccoutsView(unittest.TestCase):
         self.assertIsInstance(description, ft.Text)
         self.assertEqual(description.value, "Manage your email accounts")
 
-    def test_has_divider(self):
+    @patch("remail.client.views.settings.email_accounts_view.UserService")
+    def test_has_divider(self, mock_user_service):
+        mock_user_service.get_all_users.return_value = []
         page = Mock(spec=ft.Page)
         page.update = Mock()
         page.overlay = []
@@ -81,7 +93,9 @@ class TestEmailAccoutsView(unittest.TestCase):
         self.assertEqual(divider.height, 2)
         self.assertEqual(divider.color, ft.Colors.GREY_400)
 
-    def test_has_no_accounts_message(self):
+    @patch("remail.client.views.settings.email_accounts_view.UserService")
+    def test_has_no_accounts_message(self, mock_user_service):
+        mock_user_service.get_all_users.return_value = []
         page = Mock(spec=ft.Page)
         page.update = Mock()
         page.overlay = []
@@ -93,7 +107,9 @@ class TestEmailAccoutsView(unittest.TestCase):
         self.assertIsInstance(start_text, ft.Text)
         self.assertEqual(start_text.value, "No accounts connected yet")
 
-    def test_has_add_button(self):
+    @patch("remail.client.views.settings.email_accounts_view.UserService")
+    def test_has_add_button(self, mock_user_service):
+        mock_user_service.get_all_users.return_value = []
         page = Mock(spec=ft.Page)
         page.update = Mock()
         page.overlay = []
@@ -106,7 +122,9 @@ class TestEmailAccoutsView(unittest.TestCase):
         self.assertIsInstance(add_button.content, ft.OutlinedButton)
         self.assertEqual(add_button.content.text, "Add Email Account")
 
-    def test_has_add_button_icon(self):
+    @patch("remail.client.views.settings.email_accounts_view.UserService")
+    def test_has_add_button_icon(self, mock_user_service):
+        mock_user_service.get_all_users.return_value = []
         page = Mock(spec=ft.Page)
         page.update = Mock()
         page.overlay = []
@@ -117,7 +135,9 @@ class TestEmailAccoutsView(unittest.TestCase):
 
         self.assertEqual(add_button_icon.icon, ft.Icons.ADD)
 
-    def test_has_add_button_handler(self):
+    @patch("remail.client.views.settings.email_accounts_view.UserService")
+    def test_has_add_button_handler(self, mock_user_service):
+        mock_user_service.get_all_users.return_value = []
         page = Mock(spec=ft.Page)
         page.update = Mock()
         page.overlay = []
@@ -129,7 +149,9 @@ class TestEmailAccoutsView(unittest.TestCase):
         self.assertIsNotNone(add_button_click.on_click)
         self.assertTrue(callable(add_button_click.on_click))
 
-    def test_input_panel_is_empty(self):
+    @patch("remail.client.views.settings.email_accounts_view.UserService")
+    def test_input_panel_is_empty(self, mock_user_service):
+        mock_user_service.get_all_users.return_value = []
         page = Mock(spec=ft.Page)
         page.update = Mock()
         page.overlay = []
@@ -141,7 +163,9 @@ class TestEmailAccoutsView(unittest.TestCase):
         self.assertIsInstance(input_panel, ft.Container)
         self.assertIsNone(input_panel.content)
 
-    def test_multiple_instances_independent(self):
+    @patch("remail.client.views.settings.email_accounts_view.UserService")
+    def test_multiple_instances_independent(self, mock_user_service):
+        mock_user_service.get_all_users.return_value = []
         page = Mock(spec=ft.Page)
         page.update = Mock()
         page.overlay = []
