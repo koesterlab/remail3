@@ -7,7 +7,6 @@ from remail.enums import ContactType, MainView
 from tests.client.views.main.test_data_conversations import create_test_data
 
 from ...state.main_app_state import MainAppState, MainAppStateProperties
-from ...widgets.chatbot.chatbot import create_chatbot
 from ...widgets.thread.thread_list import ThreadList
 
 
@@ -63,7 +62,7 @@ def create_main_view(page: ft.Page, global_state: AppState):
     # Chatbot
     #chatbot = create_chatbot(main_state)
     #chatbot.height = 60
-    #chatbot.expand = False 
+    #chatbot.expand = False
     # line 72 should be [ft.Container(selection_bar, expand=1), chatbot], col={"xs": 6, "md": 4, "lg": 3}
 
     container = ft.ResponsiveRow(
