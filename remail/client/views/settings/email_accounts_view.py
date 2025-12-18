@@ -1,7 +1,9 @@
 import flet as ft
 
+from remail.client.scheduler import Scheduler
 from remail.client.state.app_state import AppState
 from remail.controllers.email_controller import EmailController
+from remail.interfaces.email.services.email_sync_service import EmailSyncService
 
 
 def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Container:
@@ -21,6 +23,20 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
     # Liste mit emails um überprüfen
     connected_emails = []
     email_controllers = {}
+
+    def on_sync_complete(result: dict) -> None:
+        """Callback when email sync completes."""
+
+        synced = result.get("synced_count", 0)
+
+        if synced > 0:
+            show_snackbar(f"Synced {synced} new email(s)", ft.Colors.GREEN_400)
+
+    def on_sync_error(error: str) -> None:
+        """Callback when email sync fails."""
+
+        # Don't show snackbar for background sync errors to avoid spam
+        print(f"Sync error: {error}")
 
     def add_account_click(e):
         # Hier muss man email addieren
@@ -57,6 +73,8 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
             show_snackbar("This email account is already connected", ft.Colors.ORANGE_400)
             return
 
+        user_email = email_input.value  # Store before clearing
+
         try:
             show_snackbar("Connecting...", ft.Colors.BLUE_400)
 
@@ -68,11 +86,26 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
             result = controller.login()
             print(f"Result: {result}")
             if result["status"] == "success":
-                email_controllers[email_input.value] = controller
-                connected_emails.append(email_input.value)
+                email_controllers[user_email] = controller
+                connected_emails.append(user_email)
                 start_text.visible = False
 
-                show_snackbar("Connected!", ft.Colors.GREEN_400)
+                # Create and start email sync scheduler
+                sync_service = EmailSyncService(
+                    protocol=controller.protocol,
+                    email_parser=controller.protocol.email_parser,
+                    user_email=user_email,
+                )
+                scheduler = Scheduler(
+                    task=sync_service.sync_emails,
+                    sync_interval=60,  # Sync every 60 seconds
+                    on_complete=on_sync_complete,
+                    on_error=on_sync_error,
+                )
+                app_state.add_email_scheduler(user_email, scheduler)
+                scheduler.start()
+
+                show_snackbar("Connected! Syncing emails...", ft.Colors.GREEN_400)
             else:
                 show_snackbar(f"Failed: {result['message']}", ft.Colors.RED_400)
                 page.update()
@@ -86,12 +119,12 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
             ft.Row(
                 [
                     ft.Icon(ft.Icons.EMAIL, color=ft.Colors.BLUE),
-                    ft.Text(email_input.value, expand=True),
+                    ft.Text(user_email, expand=True),
                     ft.IconButton(
                         icon=ft.Icons.DELETE,
                         icon_color=ft.Colors.RED,
                         tooltip="Remove account",
-                        on_click=remove_account(email_input.value),
+                        on_click=remove_account(user_email),
                     ),
                 ]
             ),
@@ -115,6 +148,9 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
 
     def remove_account(email_to_remove):
         def handler(e):
+            # Stop and remove the scheduler first
+            app_state.remove_email_scheduler(email_to_remove)
+
             # entfernt email aus dem List
             if email_to_remove in email_controllers:
                 email_controllers[email_to_remove].logout()

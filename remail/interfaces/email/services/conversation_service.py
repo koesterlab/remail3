@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from sqlmodel import Session, select
 
+from remail.database import engine
 from remail.models import Contact, Conversation, ConversationContact, UserConversation
 
 
@@ -15,7 +16,7 @@ class ConversationService:
         Initialize conversation service.
         """
 
-        self.session = Session()
+        self.engine = engine
 
     def get_all_conversations(self, user_id: int) -> list[dict]:
         """
@@ -28,37 +29,38 @@ class ConversationService:
             List of conversation dictionaries with contacts and favorite status
         """
 
-        # Get all conversations for this user with favorite status
-        user_conversations = self.session.exec(
-            select(Conversation, UserConversation.is_favorite)
-            .join(
-                UserConversation,
-                Conversation.id == UserConversation.conversation_id,  # type: ignore[arg-type]
-            )
-            .where(UserConversation.user_id == user_id)
-        ).all()
-
-        result = []
-
-        for conversation, is_favorite in user_conversations:
-            contacts = self.session.exec(
-                select(Contact)
+        with Session(self.engine) as session:
+            # Get all conversations for this user with favorite status
+            user_conversations = session.exec(
+                select(Conversation, UserConversation.is_favorite)
                 .join(
-                    ConversationContact,
-                    Contact.id == ConversationContact.contact_id,  # type: ignore[arg-type]
+                    UserConversation,
+                    Conversation.id == UserConversation.conversation_id,  # type: ignore[arg-type]
                 )
-                .where(ConversationContact.conversation_id == conversation.id)
+                .where(UserConversation.user_id == user_id)
             ).all()
 
-            result.append(
-                self._build_conversation_dict(
-                    conversation,
-                    list(contacts),
-                    is_favorite,
-                )
-            )
+            result = []
 
-        return result
+            for conversation, is_favorite in user_conversations:
+                contacts = session.exec(
+                    select(Contact)
+                    .join(
+                        ConversationContact,
+                        Contact.id == ConversationContact.contact_id,  # type: ignore[arg-type]
+                    )
+                    .where(ConversationContact.conversation_id == conversation.id)
+                ).all()
+
+                result.append(
+                    self._build_conversation_dict(
+                        conversation,
+                        list(contacts),
+                        is_favorite,
+                    )
+                )
+
+            return result
 
     def _build_conversation_dict(
         self, conversation: Conversation, contacts: list[Contact], is_favorite: bool

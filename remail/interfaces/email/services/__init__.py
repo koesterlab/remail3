@@ -2,6 +2,7 @@
 
 from .conversation_service import ConversationService
 from .email_parser import EmailParser
+from .email_sync_service import EmailSyncService
 from .folder_service import FolderService
 from .message_builder import MessageBuilder
 from .recipient_service import RecipientService
@@ -12,6 +13,7 @@ from .thread_service import ThreadService
 __all__ = [
     "ConversationService",
     "EmailParser",
+    "EmailSyncService",
     "FolderService",
     "MessageBuilder",
     "RecipientService",
