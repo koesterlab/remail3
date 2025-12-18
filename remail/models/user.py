@@ -1,9 +1,13 @@
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 import sqlalchemy
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
 
 from remail.enums import Protocol
+
+if TYPE_CHECKING:
+    from .chat_session import ChatSession
 
 
 class User(SQLModel, table=True):
@@ -19,3 +23,9 @@ class User(SQLModel, table=True):
         sa_column=sqlalchemy.Column(sqlalchemy.Enum(Protocol), nullable=False)
     )
     last_refresh: datetime | None = None
+
+    # Relationships
+    chat_sessions: list["ChatSession"] = Relationship(
+        back_populates="user",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )

@@ -27,6 +27,7 @@ class AppState:
         email_notifications: Whether email notifications are enabled
         quiet_hours: Whether quiet hours mode is enabled
         current_views: Dictionary mapping main views to their current sub-views
+        active_thread: ID of currently selected thread for chat context
     """
 
     theme_mode: ThemeMode = ThemeMode.SYSTEM
@@ -38,6 +39,7 @@ class AppState:
     email_notifications: bool = True
     quiet_hours: bool = False
     current_views: dict[MainView, SettingsSubView | None] = field(default_factory=dict)
+    active_thread: int | None = None
 
     def set_current_view(
         self, main_view: MainView, sub_view: SettingsSubView | None = None
