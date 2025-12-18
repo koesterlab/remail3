@@ -30,6 +30,12 @@ jobs:
           cache: true
           cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
 
+      - name: "Init database (schema + fixtures)"
+        run: pixi run init-db
+
+      - name: "Init default settings"
+        run: pixi run init-settings
+
       - name: "Format check (Ruff: lint + code style)"
         run: pixi run format-check
         if: always()
@@ -46,12 +52,8 @@ jobs:
         run: pixi run security
         if: always()
 
-      - name: "Tests"
-        run: pixi run test
-        if: always()
-
-      - name: "Generate coverage report"
-        run: pixi run pytest --cov=remail --cov-report=term --cov-report=html --cov-report=json
+      - name: "Tests + coverage"
+        run: pixi run test-cov
         if: always()
 
       - name: "Coverage comment"

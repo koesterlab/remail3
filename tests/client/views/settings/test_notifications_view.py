@@ -1,6 +1,6 @@
 """Unit tests for notifications_view."""
 
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import flet as ft
 
@@ -126,11 +126,18 @@ class TestCreateNotificationsView:
         page.update = Mock()
         app_state = AppState(desktop_notifications=False)
 
-        result = create_notifications_view(page, app_state)
-        row = result.content.controls[3]
-        switch = row.controls[1]
+        with patch(
+            "remail.client.views.settings.notifications_view.SettingsController"
+        ) as mock_controller_class:
+            mock_controller = Mock()
+            mock_controller.get_settings.return_value = None
+            mock_controller_class.return_value = mock_controller
 
-        assert switch.value is False
+            result = create_notifications_view(page, app_state)
+            row = result.content.controls[3]
+            switch = row.controls[1]
+
+            assert switch.value is False
 
     def test_desktop_notifications_switch_has_handler(self):
         """Test that desktop notifications switch has an on_change handler."""
@@ -201,11 +208,18 @@ class TestCreateNotificationsView:
         page.update = Mock()
         app_state = AppState(email_notifications=False)
 
-        result = create_notifications_view(page, app_state)
-        row = result.content.controls[4]
-        switch = row.controls[1]
+        with patch(
+            "remail.client.views.settings.notifications_view.SettingsController"
+        ) as mock_controller_class:
+            mock_controller = Mock()
+            mock_controller.get_settings.return_value = None
+            mock_controller_class.return_value = mock_controller
 
-        assert switch.value is False
+            result = create_notifications_view(page, app_state)
+            row = result.content.controls[4]
+            switch = row.controls[1]
+
+            assert switch.value is False
 
     def test_email_notifications_switch_has_handler(self):
         """Test that email notifications switch has an on_change handler."""
@@ -264,14 +278,27 @@ class TestCreateNotificationsView:
         page.update = Mock()
         app_state = AppState(quiet_hours=False)
 
-        result = create_notifications_view(page, app_state)
-        row = result.content.controls[5]
-        switch = row.controls[1]
+        with patch(
+            "remail.client.views.settings.notifications_view.SettingsController"
+        ) as mock_controller_class:
+            mock_controller = Mock()
+            mock_controller.get_settings.return_value = None
+            mock_controller_class.return_value = mock_controller
 
-        assert switch.value is False
+            result = create_notifications_view(page, app_state)
+            row = result.content.controls[5]
+            switch = row.controls[1]
 
-    def test_quiet_hours_switch_true_value(self):
+            assert switch.value is False
+
+    @patch("remail.client.views.settings.notifications_view.SettingsController")
+    def test_quiet_hours_switch_true_value(self, mock_controller_class):
         """Test that quiet hours switch can be True."""
+        # Mock controller to return None so app_state values are used
+        mock_controller = Mock()
+        mock_controller.get_settings.return_value = None
+        mock_controller_class.return_value = mock_controller
+
         page = Mock(spec=ft.Page)
         page.update = Mock()
         app_state = AppState(quiet_hours=True)
@@ -388,35 +415,42 @@ class TestCreateNotificationsView:
         page = Mock(spec=ft.Page)
         page.update = Mock()
         app_state1 = AppState(
-            desktop_notifications=True, email_notifications=True, quiet_hours=False
+            desktop_notifications=True, email_notifications=True, quiet_hours=True
         )
         app_state2 = AppState(
-            desktop_notifications=False, email_notifications=False, quiet_hours=True
+            desktop_notifications=False, email_notifications=False, quiet_hours=False
         )
 
-        view1 = create_notifications_view(page, app_state1)
-        view2 = create_notifications_view(page, app_state2)
+        with patch(
+            "remail.client.views.settings.notifications_view.SettingsController"
+        ) as mock_controller_class:
+            mock_controller = Mock()
+            mock_controller.get_settings.return_value = None
+            mock_controller_class.return_value = mock_controller
 
-        # Check desktop notifications switches have different values
-        desktop_switch1 = view1.content.controls[3].controls[1]
-        desktop_switch2 = view2.content.controls[3].controls[1]
+            view1 = create_notifications_view(page, app_state1)
+            view2 = create_notifications_view(page, app_state2)
 
-        assert desktop_switch1.value is True
-        assert desktop_switch2.value is False
+            # Check desktop notifications switches have different values
+            desktop_switch1 = view1.content.controls[3].controls[1]
+            desktop_switch2 = view2.content.controls[3].controls[1]
 
-        # Check email notifications switches have different values
-        email_switch1 = view1.content.controls[4].controls[1]
-        email_switch2 = view2.content.controls[4].controls[1]
+            assert desktop_switch1.value is True
+            assert desktop_switch2.value is False
 
-        assert email_switch1.value is True
-        assert email_switch2.value is False
+            # Check email notifications switches have different values
+            email_switch1 = view1.content.controls[4].controls[1]
+            email_switch2 = view2.content.controls[4].controls[1]
 
-        # Check quiet hours switches have different values
-        quiet_switch1 = view1.content.controls[5].controls[1]
-        quiet_switch2 = view2.content.controls[5].controls[1]
+            assert email_switch1.value is True
+            assert email_switch2.value is False
 
-        assert quiet_switch1.value is False
-        assert quiet_switch2.value is True
+            # Check quiet hours switches have different values
+            quiet_switch1 = view1.content.controls[5].controls[1]
+            quiet_switch2 = view2.content.controls[5].controls[1]
+
+            assert quiet_switch1.value is True
+            assert quiet_switch2.value is False
 
     def test_all_notifications_enabled_by_default(self):
         """Test that desktop and email notifications are enabled by default."""
@@ -438,8 +472,15 @@ class TestCreateNotificationsView:
         page.update = Mock()
         app_state = AppState()
 
-        result = create_notifications_view(page, app_state)
+        with patch(
+            "remail.client.views.settings.notifications_view.SettingsController"
+        ) as mock_controller_class:
+            mock_controller = Mock()
+            mock_controller.get_settings.return_value = None
+            mock_controller_class.return_value = mock_controller
 
-        quiet_switch = result.content.controls[5].controls[1]
+            result = create_notifications_view(page, app_state)
 
-        assert quiet_switch.value is False
+            quiet_switch = result.content.controls[5].controls[1]
+
+            assert quiet_switch.value is False

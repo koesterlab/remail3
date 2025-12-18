@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from sqlmodel import Session, select
 
 from remail.enums import RecipientKind
-from remail.models import Contact, Email, EmailReception
+from remail.models import Contact, Email, EmailReception, Thread
 
 
 def test_contact_create(session: Session):
@@ -34,8 +34,16 @@ def test_contact_relationship_sent_emails(session: Session):
     session.commit()
     session.refresh(sender)
 
-    e1 = Email(subject="S1", body="B1", sent_at=datetime.now(UTC), sender_id=sender.id)
-    e2 = Email(subject="S2", body="B2", sent_at=datetime.now(UTC), sender_id=sender.id)
+    thread = Thread()
+    session.add(thread)
+    session.commit()
+
+    e1 = Email(
+        subject="S1", body="B1", sent_at=datetime.now(UTC), sender_id=sender.id, thread_id=thread.id
+    )
+    e2 = Email(
+        subject="S2", body="B2", sent_at=datetime.now(UTC), sender_id=sender.id, thread_id=thread.id
+    )
     session.add(e1)
     session.add(e2)
     session.commit()
@@ -51,7 +59,13 @@ def test_contact_relationship_receptions(session: Session):
     session.add(recipient)
     session.commit()
 
-    email = Email(subject="Hi", body="B", sent_at=datetime.now(UTC), sender_id=sender.id)
+    thread = Thread()
+    session.add(thread)
+    session.commit()
+
+    email = Email(
+        subject="Hi", body="B", sent_at=datetime.now(UTC), sender_id=sender.id, thread_id=thread.id
+    )
     session.add(email)
     session.commit()
     session.refresh(email)

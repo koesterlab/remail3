@@ -1,24 +1,50 @@
 import flet as ft
 
 from remail.client.state.app_state import AppState
+from remail.controllers import SettingsController
 from remail.enums import Language, Timezone
 
 
 def create_language_view(page: ft.Page, app_state: AppState) -> ft.Container:
     """Create the language & region settings view."""
 
+    controller = SettingsController()
+    current_settings = controller.get_settings()
+
+    # Load current language and timezone settings if available
+    if current_settings:
+        try:
+            app_state.language = Language(current_settings.language)
+        except (ValueError, KeyError):
+            pass
+        try:
+            app_state.timezone = Timezone(current_settings.timezone)
+        except (ValueError, KeyError):
+            pass
+
     def language_changed(e):
         app_state.language = Language(e.control.value)
-        # TODO: Apply language changes
         page.update()
 
     def timezone_changed(e):
         app_state.timezone = Timezone(e.control.value)
-        # TODO: Apply timezone changes
         page.update()
 
     def apply_settings(e):
-        # TODO: Apply and persist settings
+        # Save language and timezone settings to database
+        controller.update_settings(
+            language=app_state.language.value,
+            timezone=app_state.timezone.value,
+        )
+
+        # Show success message
+        snack_bar = ft.SnackBar(
+            content=ft.Text("Settings saved successfully"),
+            bgcolor=ft.Colors.GREEN,
+        )
+        page.overlay.append(snack_bar)
+        snack_bar.open = True
+
         page.update()
 
     return ft.Container(

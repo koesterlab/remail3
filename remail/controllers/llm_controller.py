@@ -4,6 +4,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from remail.controllers.dtos import LLMResponseDTO
+from remail.interfaces.llm.dto import LLMMessage
+from remail.interfaces.llm.enums.llm_message_role import LLMMessageRole
+from remail.interfaces.llm.llm_service import LLMService
 from remail.interfaces.llm.services import ChatService
 
 if TYPE_CHECKING:
@@ -20,6 +24,15 @@ class LLMController:
             db_session: Optional database session for chat persistence
         """
 
+        self.service = LLMService()
+        self.conversation_history: list[LLMMessage] = []
+
+        system_msg = LLMMessage(
+            role=LLMMessageRole.SYSTEM,
+            content="You are Alfred, a helpful and concise assistant. Keep your responses brief and to the point, typically 1-3 sentences unless more detail is specifically requested.",
+        )
+
+        self.conversation_history.append(system_msg)
         # Lazy load LLMService to allow environment patches in tests
         self._service = None
         self.db_session = db_session
@@ -39,7 +52,7 @@ class LLMController:
         max_tokens: int | None = None,
         temperature: float | None = None,
         **kwargs: Any,
-    ) -> dict[str, Any]:
+    ) -> LLMResponseDTO:
         """
         Generate text completion from prompt.
 
@@ -50,36 +63,75 @@ class LLMController:
             **kwargs: Additional provider-specific parameters
 
         Returns:
-            Dict with status, message, generated text, and structured payload
+            Structured LLMResponseDTO
+
+        Raises:
+            ValueError: If response cannot be parsed
+            RuntimeError: If LLM service fails
         """
-        try:
-            completion_response = self.service.generate_completion(
-                prompt=prompt,
-                max_tokens=max_tokens,
-                temperature=temperature,
-                **kwargs,
-            )
+        completion_response = self.service.generate_completion(
+            prompt=prompt,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            **kwargs,
+        )
 
-            return {
-                "status": "success",
-                "message": "Completion generated successfully",
-                "completion": completion_response.completion_text,
-                "response": completion_response,
-            }
+        completion_text = completion_response.completion_text
 
-        except RuntimeError as e:
-            return {
-                "status": "error",
-                "message": str(e),
-                "completion": "",
-            }
+        return LLMResponseDTO.from_completion_text(completion_text)
 
-        except Exception as e:
-            return {
-                "status": "error",
-                "message": f"Completion generation failed: {str(e)}",
-                "completion": "",
-            }
+    def chat(
+        self,
+        prompt: str,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
+    ) -> LLMResponseDTO:
+        """
+        Generate chat response with conversation history.
+
+        Args:
+            prompt: User's message
+            max_tokens: Maximum tokens to generate
+            temperature: Sampling temperature (0.0 to 2.0)
+
+        Returns:
+            Structured LLMResponseDTO with AI response
+
+        Raises:
+            RuntimeError: If LLM service fails
+        """
+
+        # Generate response using conversation history
+        completion_response = self.service.generate_completion_with_history(
+            prompt=prompt,
+            conversation_history=self.conversation_history,
+            max_tokens=max_tokens or self.service.default_max_tokens,
+            temperature=temperature or self.service.default_temperature,
+        )
+
+        # Extract response text
+        response_text = completion_response.completion_text
+
+        # Add user and assistant messages to history
+        user_msg = LLMMessage(role=LLMMessageRole.USER, content=prompt)
+        self.conversation_history.append(user_msg)
+
+        assistant_msg = LLMMessage(role=LLMMessageRole.ASSISTANT, content=response_text)
+        self.conversation_history.append(assistant_msg)
+
+        return LLMResponseDTO.from_completion_text(response_text)
+
+    def reset_chat_memory(self) -> None:
+        """Reset the chat memory to start a fresh conversation."""
+
+        self.conversation_history = []
+
+        system_msg = LLMMessage(
+            role=LLMMessageRole.SYSTEM,
+            content="You are Alfred, a helpful and concise assistant. Keep your responses brief and to the point, typically 1-3 sentences unless more detail is specifically requested.",
+        )
+
+        self.conversation_history.append(system_msg)
 
     def chat_with_thread_context(
         self,

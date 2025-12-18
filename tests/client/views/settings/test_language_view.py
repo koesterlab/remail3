@@ -1,6 +1,6 @@
 """Unit tests for language_view."""
 
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import flet as ft
 
@@ -118,10 +118,17 @@ class TestCreateLanguageView:
         page.update = Mock()
         app_state = AppState(language=Language.GERMAN)
 
-        result = create_language_view(page, app_state)
-        dropdown = result.content.controls[4]
+        with patch(
+            "remail.client.views.settings.language_view.SettingsController"
+        ) as mock_controller_class:
+            mock_controller = Mock()
+            mock_controller.get_settings.return_value = None
+            mock_controller_class.return_value = mock_controller
 
-        assert dropdown.value == Language.GERMAN.value
+            result = create_language_view(page, app_state)
+            dropdown = result.content.controls[4]
+
+            assert dropdown.value == Language.GERMAN.value
 
     def test_language_dropdown_has_on_change_handler(self):
         """Test that language dropdown has an on_change handler."""
@@ -182,10 +189,17 @@ class TestCreateLanguageView:
         page.update = Mock()
         app_state = AppState(timezone=Timezone.ASIA_TOKYO)
 
-        result = create_language_view(page, app_state)
-        dropdown = result.content.controls[6]
+        with patch(
+            "remail.client.views.settings.language_view.SettingsController"
+        ) as mock_controller_class:
+            mock_controller = Mock()
+            mock_controller.get_settings.return_value = None
+            mock_controller_class.return_value = mock_controller
 
-        assert dropdown.value == Timezone.ASIA_TOKYO.value
+            result = create_language_view(page, app_state)
+            dropdown = result.content.controls[6]
+
+            assert dropdown.value == Timezone.ASIA_TOKYO.value
 
     def test_timezone_dropdown_has_on_change_handler(self):
         """Test that timezone dropdown has an on_change handler."""
@@ -295,22 +309,29 @@ class TestCreateLanguageView:
         app_state1 = AppState(language=Language.ENGLISH, timezone=Timezone.AMERICA_NEW_YORK)
         app_state2 = AppState(language=Language.FRENCH, timezone=Timezone.EUROPE_LONDON)
 
-        view1 = create_language_view(page, app_state1)
-        view2 = create_language_view(page, app_state2)
+        with patch(
+            "remail.client.views.settings.language_view.SettingsController"
+        ) as mock_controller_class:
+            mock_controller = Mock()
+            mock_controller.get_settings.return_value = None
+            mock_controller_class.return_value = mock_controller
 
-        # Check that language dropdowns have different values
-        lang_dropdown1 = view1.content.controls[4]
-        lang_dropdown2 = view2.content.controls[4]
+            view1 = create_language_view(page, app_state1)
+            view2 = create_language_view(page, app_state2)
 
-        assert lang_dropdown1.value == Language.ENGLISH.value
-        assert lang_dropdown2.value == Language.FRENCH.value
+            # Check that language dropdowns have different values
+            lang_dropdown1 = view1.content.controls[4]
+            lang_dropdown2 = view2.content.controls[4]
 
-        # Check that timezone dropdowns have different values
-        tz_dropdown1 = view1.content.controls[6]
-        tz_dropdown2 = view2.content.controls[6]
+            assert lang_dropdown1.value == Language.ENGLISH.value
+            assert lang_dropdown2.value == Language.FRENCH.value
 
-        assert tz_dropdown1.value == Timezone.AMERICA_NEW_YORK.value
-        assert tz_dropdown2.value == Timezone.EUROPE_LONDON.value
+            # Check that timezone dropdowns have different values
+            tz_dropdown1 = view1.content.controls[6]
+            tz_dropdown2 = view2.content.controls[6]
+
+            assert tz_dropdown1.value == Timezone.AMERICA_NEW_YORK.value
+            assert tz_dropdown2.value == Timezone.EUROPE_LONDON.value
 
     def test_english_selected_by_default(self):
         """Test that ENGLISH language is selected when app_state has default."""
@@ -318,10 +339,17 @@ class TestCreateLanguageView:
         page.update = Mock()
         app_state = AppState()
 
-        result = create_language_view(page, app_state)
-        lang_dropdown = result.content.controls[4]
+        with patch(
+            "remail.client.views.settings.language_view.SettingsController"
+        ) as mock_controller_class:
+            mock_controller = Mock()
+            mock_controller.get_settings.return_value = None
+            mock_controller_class.return_value = mock_controller
 
-        assert lang_dropdown.value == Language.ENGLISH.value
+            result = create_language_view(page, app_state)
+            lang_dropdown = result.content.controls[4]
+
+            assert lang_dropdown.value == Language.ENGLISH.value
 
     def test_europe_berlin_timezone_selected_by_default(self):
         """Test that EUROPE_BERLIN timezone is selected when app_state has default."""
@@ -329,7 +357,14 @@ class TestCreateLanguageView:
         page.update = Mock()
         app_state = AppState()
 
-        result = create_language_view(page, app_state)
-        tz_dropdown = result.content.controls[6]
+        with patch(
+            "remail.client.views.settings.language_view.SettingsController"
+        ) as mock_controller_class:
+            mock_controller = Mock()
+            mock_controller.get_settings.return_value = None
+            mock_controller_class.return_value = mock_controller
 
-        assert tz_dropdown.value == Timezone.EUROPE_LONDON.value
+            result = create_language_view(page, app_state)
+            tz_dropdown = result.content.controls[6]
+
+            assert tz_dropdown.value == Timezone.EUROPE_LONDON.value

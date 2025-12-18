@@ -9,6 +9,12 @@ from remail.enums import Protocol
 if TYPE_CHECKING:
     from .chat_session import ChatSession
 
+# Import at runtime for SQLAlchemy
+from .user_conversation import UserConversation  # noqa: F401
+
+if TYPE_CHECKING:
+    from .conversation import Conversation
+
 
 class User(SQLModel, table=True):
     __tablename__ = "users"
@@ -23,6 +29,12 @@ class User(SQLModel, table=True):
         sa_column=sqlalchemy.Column(sqlalchemy.Enum(Protocol), nullable=False)
     )
     last_refresh: datetime | None = None
+
+    # Many-to-many relationship with conversations
+    conversations: list["Conversation"] = Relationship(
+        back_populates="users",
+        link_model=UserConversation,
+    )
 
     # Relationships
     chat_sessions: list["ChatSession"] = Relationship(

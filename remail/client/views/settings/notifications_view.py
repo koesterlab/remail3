@@ -1,10 +1,20 @@
 import flet as ft
 
 from remail.client.state.app_state import AppState
+from remail.controllers import SettingsController
 
 
 def create_notifications_view(page: ft.Page, app_state: AppState) -> ft.Container:
     """Create the notifications settings view."""
+
+    controller = SettingsController()
+    current_settings = controller.get_settings()
+
+    # Load current notification settings if available
+    if current_settings:
+        app_state.desktop_notifications = current_settings.desktop_notifications
+        app_state.email_notifications = current_settings.email_notifications
+        app_state.quiet_hours = current_settings.quiet_hours
 
     def desktop_notifications_changed(e):
         app_state.desktop_notifications = e.control.value
@@ -19,7 +29,21 @@ def create_notifications_view(page: ft.Page, app_state: AppState) -> ft.Containe
         page.update()
 
     def apply_settings(e):
-        # TODO: Apply and persist notification settings
+        # Save all notification settings to database
+        controller.update_settings(
+            desktop_notifications=app_state.desktop_notifications,
+            email_notifications=app_state.email_notifications,
+            quiet_hours=app_state.quiet_hours,
+        )
+
+        # Show success message
+        snack_bar = ft.SnackBar(
+            content=ft.Text("Settings saved successfully"),
+            bgcolor=ft.Colors.GREEN,
+        )
+        page.overlay.append(snack_bar)
+        snack_bar.open = True
+
         page.update()
 
     return ft.Container(

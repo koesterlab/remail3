@@ -110,43 +110,6 @@ print(result)
 #     "logged_in": True
 # }
 
-# 2. Fetch all emails
-result = controller.fetch_emails()
-print(result)
-# {
-#     "status": "success",
-#     "message": "Fetched 5 email(s)",
-#     "count": 5,
-#     "emails": [
-#         {
-#             "id": 1,
-#             "subject": "Hello",
-#             "body": "Email body",
-#             "sent_at": "2025-11-13T10:30:00+00:00",
-#             "sender": {
-#                 "name": "John Doe",
-#                 "email": "john@example.com"
-#             },
-#             "recipients": [
-#                 {
-#                     "kind": "to",
-#                     "name": "recipient@example.com",
-#                     "email": "recipient@example.com"
-#                 }
-#             ],
-#             "attachments": ["file.pdf"]
-#         },
-#         ...
-#     ]
-# }
-
-# Fetch emails with filters
-result = controller.fetch_emails(
-    folder="INBOX",
-    since=datetime(2025, 11, 1, tzinfo=UTC),
-    flags=["UNSEEN"]  # Only unread emails
-)
-
 # 3. Send an email
 result = controller.send_email(
     subject="Test Email",
@@ -333,7 +296,7 @@ Before using the LLM interface, you must set the following environment variables
 
 ```env
 LLM_API_KEY=your-api-key
-LLM_BASE_URL=https://chat-ai.academiccloud.de/v1/chat/completions
+LLM_BASE_URL=https://chat-ai.academiccloud.de/v1
 ```
 
 ### Usage Example
