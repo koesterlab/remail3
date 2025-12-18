@@ -2,8 +2,9 @@
 
 from sqlmodel import Session, select
 
+from remail.controllers.dtos.user_dto import UserDTO
 from remail.database.db import engine
-from remail.enums import Protocol
+from remail.enums import Protocol, UserAccountCategory
 from remail.models.user import User
 
 
@@ -84,6 +85,13 @@ class UserService:
         with Session(engine) as session:
             statement = select(User).where(User.id == user_id)
             return session.exec(statement).first()
+
+    @staticmethod
+    def get_all_users_dto() -> list[UserDTO]:
+        """
+        Should be replaced aft get_all_users refactoring
+        """
+        return [UserDTO(id=u.id, name=u.name, email=u.email, category=UserAccountCategory.NOT_SPECIFIED, protocol=u.protocol, unread_conversations=0) for u in UserService.get_all_users()]
 
     @staticmethod
     def get_all_users() -> list[User]:

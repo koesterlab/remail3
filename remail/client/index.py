@@ -30,10 +30,7 @@ def main(page: ft.Page):
     router.register_view(MainView.DASHBOARD, create_main_view)
 
     # Load initial view (Settings)
-    initial_view = router.load_view(MainView.DASHBOARD)
-
-    page.add(initial_view)
-
+    router.load_view(MainView.DASHBOARD)
 
 if __name__ == "__main__":
     ft.app(main)

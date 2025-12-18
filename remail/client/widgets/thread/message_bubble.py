@@ -7,13 +7,14 @@ from remail.client.widgets.mail_selection.profile_picture import (
 )
 from remail.controllers.dtos.conversations import ContactDTO
 from remail.controllers.dtos.threads import MessageDTO
+from remail.controllers.dtos.user_dto import UserDTO
 
 
 class MessageBubble(ft.Container):
     """Single chat bubble (left for others, right for me)."""
 
-    def __init__(self, message: MessageDTO, current_user: ContactDTO) -> None:
-        is_me = message.sender.id == current_user.id
+    def __init__(self, message: MessageDTO, current_user: UserDTO) -> None:
+        is_me = message.sender.email == current_user.email
 
         # --- Layout style ---
         alignment = ft.alignment.center_right if is_me else ft.alignment.center_left

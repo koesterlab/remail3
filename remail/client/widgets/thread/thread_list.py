@@ -8,10 +8,12 @@ from typing import Any
 
 import flet as ft
 
+from remail.client.state import MainAppState, MainAppStateProperties
 from remail.client.widgets.thread.message_bubble import MessageBubble
 from remail.client.widgets.thread.new_message_dialog import create_new_message_dialog
 from remail.controllers.dtos.conversations import ContactDTO, ConversationDTO, ThreadPreviewDTO
 from remail.controllers.dtos.threads import ThreadDTO
+from remail.controllers.dtos.user_dto import UserDTO
 from tests import fetch_thread
 
 ThreadDict = dict[str, Any]
@@ -20,7 +22,7 @@ MessageDict = dict[str, Any]
 
 class ThreadList(ft.Column):
     def __init__(
-        self, thread: ThreadPreviewDTO, conversation: ConversationDTO, active_user: ContactDTO
+        self, state: MainAppState, conversation: ConversationDTO
     ) -> None:
         super().__init__(expand=True, spacing=0)
         # input box
@@ -38,8 +40,8 @@ class ThreadList(ft.Column):
         )
 
         self.conversation: ConversationDTO = conversation
-        self.thread: ThreadDTO = fetch_thread(thread)
-        self.active_user = active_user
+        self.thread: ThreadDTO = fetch_thread(state.get(MainAppStateProperties.ACTIVE_THREAD))
+        self.active_user: UserDTO= state.get(MainAppStateProperties.ACTIVE_USER)
         self._rebuild()
 
     # ------------------------------------------------------------------ #

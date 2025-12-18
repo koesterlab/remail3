@@ -31,8 +31,10 @@ class ViewRouter:
             raise ValueError(f"View {view} is not registered")
 
         view_creator = self._view_registry[view]
-
-        return view_creator(self.page, self.app_state)
+        view = view_creator(self.page, self.app_state)
+        self.page.clean()
+        self.page.add(view)
+        self.page.update()
 
     def register_view(self, view: MainView, view_creator: Callable) -> None:
         """Register a new view creator.
