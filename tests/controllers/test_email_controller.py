@@ -8,7 +8,7 @@ import pytest
 from remail import errors as ee
 from remail.controllers.email_controller import EmailController
 from remail.enums import RecipientKind
-from remail.models import Attachment, Contact, Email, EmailReception
+from remail.models import Contact, Email
 
 
 @pytest.fixture
@@ -101,128 +101,6 @@ class TestLogout:
         assert result["status"] == "error"
         assert "Logout failed" in result["message"]
         assert result["logged_in"] is False
-
-
-class TestFetchEmails:
-    """Tests for fetch emails functionality."""
-
-    def test_fetch_emails_success(self, controller, mock_protocol):
-        """Test successful email fetching."""
-
-        sender = Contact(id=1, name="Sender", email_address="sender@example.com")
-        email1 = Email(
-            id=1,
-            subject="Test 1",
-            body="Body 1",
-            sent_at=datetime.now(UTC),
-            sender=sender,
-        )
-        email2 = Email(
-            id=2,
-            subject="Test 2",
-            body="Body 2",
-            sent_at=datetime.now(UTC),
-            sender=sender,
-        )
-
-        mock_protocol.fetch_emails.return_value = [email1, email2]
-
-        result = controller.fetch_emails()
-
-        assert result["status"] == "success"
-        assert result["count"] == 2
-        assert len(result["emails"]) == 2
-        assert result["emails"][0]["subject"] == "Test 1"
-        assert result["emails"][1]["subject"] == "Test 2"
-
-        mock_protocol.fetch_emails.assert_called_once_with(folder=None, since=None, flags=None)
-
-    def test_fetch_emails_with_parameters(self, controller, mock_protocol):
-        """Test fetching emails with folder and since parameters."""
-
-        mock_protocol.fetch_emails.return_value = []
-        since_date = datetime(2025, 1, 1, tzinfo=UTC)
-
-        result = controller.fetch_emails(
-            folder="INBOX",
-            since=since_date,
-            flags=["UNSEEN"],
-        )
-
-        assert result["status"] == "success"
-        assert result["count"] == 0
-
-        mock_protocol.fetch_emails.assert_called_once_with(
-            folder="INBOX",
-            since=since_date,
-            flags=["UNSEEN"],
-        )
-
-    def test_fetch_emails_not_logged_in(self, controller, mock_protocol):
-        """Test fetching emails when not logged in."""
-
-        mock_protocol.fetch_emails.side_effect = ee.NotLoggedIn()
-        result = controller.fetch_emails()
-
-        assert result["status"] == "error"
-        assert result["message"] == "Not logged in"
-        assert result["count"] == 0
-        assert result["emails"] == []
-
-    def test_fetch_emails_generic_error(self, controller, mock_protocol):
-        """Test fetching emails with generic error."""
-
-        mock_protocol.fetch_emails.side_effect = Exception("Network error")
-
-        result = controller.fetch_emails()
-
-        assert result["status"] == "error"
-        assert "Failed to fetch emails" in result["message"]
-        assert "Network error" in result["message"]
-        assert result["count"] == 0
-        assert result["emails"] == []
-
-    def test_fetch_emails_serialization(self, controller, mock_protocol):
-        """Test email serialization includes all fields."""
-
-        sender = Contact(id=1, name="John Doe", email_address="john@example.com")
-        recipient_contact = Contact(id=2, name="Jane Doe", email_address="jane@example.com")
-        email = Email(
-            id=10,
-            subject="Hello",
-            body="World",
-            sent_at=datetime(2025, 11, 13, 10, 30, 0, tzinfo=UTC),
-            sender=sender,
-        )
-        email.recipients = [
-            EmailReception(
-                kind=RecipientKind.TO,
-                email=email,
-                contact=recipient_contact,
-            )
-        ]
-        email.attachments = [Attachment(id=1, filename="file.txt", email=email)]
-
-        mock_protocol.fetch_emails.return_value = [email]
-
-        result = controller.fetch_emails()
-
-        assert result["status"] == "success"
-        assert result["count"] == 1
-
-        serialized = result["emails"][0]
-
-        assert serialized["id"] == 10
-        assert serialized["subject"] == "Hello"
-        assert serialized["body"] == "World"
-        assert serialized["sent_at"] == "2025-11-13T10:30:00+00:00"
-        assert serialized["sender"]["name"] == "John Doe"
-        assert serialized["sender"]["email"] == "john@example.com"
-        assert len(serialized["recipients"]) == 1
-        assert serialized["recipients"][0]["kind"] == "to"
-        assert serialized["recipients"][0]["email"] == "jane@example.com"
-        assert len(serialized["attachments"]) == 1
-        assert serialized["attachments"][0] == "file.txt"
 
 
 class TestSendEmail:

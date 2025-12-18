@@ -1,16 +1,13 @@
 import flet as ft
 
+from remail.client.scheduler import Scheduler
 from remail.client.state.app_state import AppState
 from remail.controllers.email_controller import EmailController
-from remail.interfaces.email.services.user_service import UserService
+from remail.interfaces.email.services.email_sync_service import EmailSyncService
 
 
 def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Container:
     """Create the email accounts settings view."""
-
-    # Bestehende Konten aus der Datenbank laden
-    saved_users = UserService.get_all_users()
-    print(f" Loaded {len(saved_users)} saved accounts from database")
 
     start_text = ft.Text("No accounts connected yet")
     input_panel = ft.Container()
@@ -23,14 +20,23 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
         width=300,
     )
     host_input = ft.TextField(label="Host", hint_text="Enter your host name", width=300)
-
-    # Listen mit gespeicherten Daten initialisieren
-    app_state.connected_emails = [user.email for user in saved_users]
+    # Liste mit emails um überprüfen
+    connected_emails = []
     email_controllers = {}
 
-    # "No accounts" ausblenden, falls gespeicherte Konten vorhanden sind
-    if saved_users:
-        start_text.visible = False
+    def on_sync_complete(result: dict) -> None:
+        """Callback when email sync completes."""
+
+        synced = result.get("synced_count", 0)
+
+        if synced > 0:
+            show_snackbar(f"Synced {synced} new email(s)", ft.Colors.GREEN_400)
+
+    def on_sync_error(error: str) -> None:
+        """Callback when email sync fails."""
+
+        # Don't show snackbar for background sync errors to avoid spam
+        print(f"Sync error: {error}")
 
     def add_account_click(e):
         # Hier muss man email addieren
@@ -50,20 +56,24 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
             ],
             spacing=10,
         )
+
         # Versteckt die "Add Email Account" Button
         add_button.visible = False
+
         page.update()
 
     def connect_account(e):
-        # Überprüfen, ob alle Felder ausgefüllt sind
+        # ob name und passport getippt sind
         if not email_input.value or not password_input.value or not host_input.value:
             show_snackbar("Please fill in all fields", ft.Colors.RED_400)
             return
 
-        # Überprüfen, ob Email bereits hinzugefügt wurde
-        if email_input.value in app_state.connected_emails:
+        # ob email schon angemedet ist
+        if email_input.value in connected_emails:
             show_snackbar("This email account is already connected", ft.Colors.ORANGE_400)
             return
+
+        user_email = email_input.value  # Store before clearing
 
         try:
             show_snackbar("Connecting...", ft.Colors.BLUE_400)
@@ -75,55 +85,46 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
 
             result = controller.login()
             print(f"Result: {result}")
-
             if result["status"] == "success":
-                # In der Datenbank speichern
-                try:
-                    new_user = UserService.add_user(
-                        email=email_input.value,
-                        password=password_input.value,
-                        # Name wird automatisch aus der Email generiert
-                        # Protokoll ist standardmäßig IMAP
-                    )
-
-                    print(f" User saved to database: {new_user.email} (ID: {new_user.id})")
-                    show_snackbar("Connected and saved!", ft.Colors.GREEN_400)
-
-                except ValueError as ve:
-                    # Email existiert bereits in der Datenbank
-                    print(f" Database warning: {ve}")
-                    show_snackbar("Connected! (already in database)", ft.Colors.GREEN_400)
-
-                except Exception as db_error:
-                    print(f" Database error: {db_error}")
-                    show_snackbar(f"Connected but save failed: {db_error}", ft.Colors.ORANGE_400)
-
-                # Controller speichern und zur Liste hinzufügen
-                email_controllers[email_input.value] = controller
-                app_state.connected_emails.append(email_input.value)
+                email_controllers[user_email] = controller
+                connected_emails.append(user_email)
                 start_text.visible = False
 
+                # Create and start email sync scheduler
+                sync_service = EmailSyncService(
+                    protocol=controller.protocol,
+                    email_parser=controller.protocol.email_parser,
+                    user_email=user_email,
+                )
+                scheduler = Scheduler(
+                    task=sync_service.sync_emails,
+                    sync_interval=60,  # Sync every 60 seconds
+                    on_complete=on_sync_complete,
+                    on_error=on_sync_error,
+                )
+                app_state.add_email_scheduler(user_email, scheduler)
+                scheduler.start()
+
+                show_snackbar("Connected! Syncing emails...", ft.Colors.GREEN_400)
             else:
                 show_snackbar(f"Failed: {result['message']}", ft.Colors.RED_400)
                 page.update()
                 return
-
         except Exception as ex:
             show_snackbar(f"Error: {str(ex)}", ft.Colors.RED_400)
             page.update()
             return
 
-        # UI-Element für neues Konto erstellen
         new_account = ft.Container(
             ft.Row(
                 [
                     ft.Icon(ft.Icons.EMAIL, color=ft.Colors.BLUE),
-                    ft.Text(email_input.value, expand=True),
+                    ft.Text(user_email, expand=True),
                     ft.IconButton(
                         icon=ft.Icons.DELETE,
                         icon_color=ft.Colors.RED,
                         tooltip="Remove account",
-                        on_click=remove_account(email_input.value),
+                        on_click=remove_account(user_email),
                     ),
                 ]
             ),
@@ -132,43 +133,37 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
             padding=10,
         )
 
-        # Zum UI hinzufügen
+        # Fügt den neuen Account vor dem input_panel ein
         create_connected_email_accounts.content.controls.insert(-2, new_account)
 
-        # Eingabefelder leeren
+        # Leert die Eingabefelder
         email_input.value = ""
         password_input.value = ""
         host_input.value = ""
 
         input_panel.content = None
+
         add_button.visible = True
         page.update()
 
     def remove_account(email_to_remove):
         def handler(e):
-            # Aus der Datenbank löschen
-            try:
-                deleted = UserService.delete_user(email_to_remove)
-                if deleted:
-                    print(f" User deleted from database: {email_to_remove}")
-                else:
-                    print(f" User not found in database: {email_to_remove}")
-            except Exception as db_error:
-                print(f" Database delete error: {db_error}")
+            # Stop and remove the scheduler first
+            app_state.remove_email_scheduler(email_to_remove)
 
-            # Logout und aus dem Speicher entfernen
+            # entfernt email aus dem List
             if email_to_remove in email_controllers:
                 email_controllers[email_to_remove].logout()
                 del email_controllers[email_to_remove]
-
-            app_state.connected_emails.remove(email_to_remove)
+            connected_emails.remove(email_to_remove)
+            # entfernt der container mit account
             create_connected_email_accounts.content.controls.remove(e.control.parent.parent)
 
-            # "No accounts" anzeigen, falls die Liste leer ist
-            if len(app_state.connected_emails) == 0:
+            # Zeigt "No accounts connected yet", falls keine Accounts da
+            if len(connected_emails) == 0:
                 start_text.visible = True
 
-            page.update()
+                page.update()
 
         return handler
 
@@ -213,27 +208,5 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
         border_radius=10,
         alignment=ft.alignment.center_left,
     )
-
-    # Geladene Konten aus der Datenbank anzeigen
-    for user in saved_users:
-        account_container = ft.Container(
-            ft.Row(
-                [
-                    ft.Icon(ft.Icons.EMAIL, color=ft.Colors.BLUE),
-                    ft.Text(user.email, expand=True),
-                    ft.IconButton(
-                        icon=ft.Icons.DELETE,
-                        icon_color=ft.Colors.RED,
-                        tooltip="Remove account",
-                        on_click=remove_account(user.email),
-                    ),
-                ]
-            ),
-            border=ft.border.all(1, ft.Colors.GREY_400),
-            border_radius=5,
-            padding=10,
-        )
-        # Vor add_button und input_panel einfügen
-        create_connected_email_accounts.content.controls.insert(-2, account_container)
 
     return create_connected_email_accounts

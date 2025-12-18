@@ -23,7 +23,7 @@ class TestAppState:
         assert isinstance(app_state, AppState)
 
     def test_app_state_is_empty(self):
-        """Test that AppState has 9 fields."""
+        """Test that AppState has the expected number of fields."""
 
         app_state = AppState()
         field_names = [f.name for f in fields(app_state)]

@@ -16,6 +16,7 @@ class Email(SQLModel, table=True):
     __tablename__ = "emails"
 
     id: int | None = Field(default=None, primary_key=True)
+    message_id: str | None = Field(default=None, unique=True, index=True)
     subject: str
     body: str
     sent_at: datetime

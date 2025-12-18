@@ -81,50 +81,6 @@ class EmailController:
                 "logged_in": False,
             }
 
-    def fetch_emails(
-        self,
-        folder: str | None = None,
-        since: datetime | None = None,
-        flags: list[str] | None = None,
-    ) -> dict[str, Any]:
-        """
-        Fetch all emails from server.
-
-        Args:
-            folder: Specific folder to fetch from (None = all folders)
-            since: Only fetch emails after this datetime
-            flags: IMAP search flags (e.g., ["UNSEEN"])
-
-        Returns:
-            Dict with status, message, and emails list
-        """
-
-        try:
-            emails = self.protocol.fetch_emails(folder=folder, since=since, flags=flags)
-
-            return {
-                "status": "success",
-                "message": f"Fetched {len(emails)} email(s)",
-                "count": len(emails),
-                "emails": [self._serialize_email(email) for email in emails],
-            }
-
-        except ee.NotLoggedIn:
-            return {
-                "status": "error",
-                "message": "Not logged in",
-                "count": 0,
-                "emails": [],
-            }
-
-        except Exception as e:
-            return {
-                "status": "error",
-                "message": f"Failed to fetch emails: {str(e)}",
-                "count": 0,
-                "emails": [],
-            }
-
     def send_email(
         self,
         subject: str,
