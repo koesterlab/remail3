@@ -9,6 +9,7 @@ from .recipient_kind import RecipientKind
 from .settings_sub_view import SettingsSubView
 from .theme_mode import ThemeMode
 from .timezone import Timezone
+from .user_account_categories import UserAccountCategory
 
 __all__ = [
     "ContactType",
@@ -22,4 +23,6 @@ __all__ = [
     "SettingsSubView",
     "ThemeMode",
     "Timezone",
+    "UserAccountCategory"
 ]
+
