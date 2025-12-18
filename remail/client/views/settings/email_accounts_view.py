@@ -25,7 +25,7 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
     host_input = ft.TextField(label="Host", hint_text="Enter your host name", width=300)
 
     # Listen mit gespeicherten Daten initialisieren
-    connected_emails = [user.email for user in saved_users]
+    app_state.connected_emails = [user.email for user in saved_users]
     email_controllers = {}
 
     # "No accounts" ausblenden, falls gespeicherte Konten vorhanden sind
@@ -61,7 +61,7 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
             return
 
         # Überprüfen, ob Email bereits hinzugefügt wurde
-        if email_input.value in connected_emails:
+        if email_input.value in app_state.connected_emails:
             show_snackbar("This email account is already connected", ft.Colors.ORANGE_400)
             return
 
@@ -100,7 +100,7 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
 
                 # Controller speichern und zur Liste hinzufügen
                 email_controllers[email_input.value] = controller
-                connected_emails.append(email_input.value)
+                app_state.connected_emails.append(email_input.value)
                 start_text.visible = False
 
             else:
@@ -161,11 +161,11 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
                 email_controllers[email_to_remove].logout()
                 del email_controllers[email_to_remove]
 
-            connected_emails.remove(email_to_remove)
+            app_state.connected_emails.remove(email_to_remove)
             create_connected_email_accounts.content.controls.remove(e.control.parent.parent)
 
             # "No accounts" anzeigen, falls die Liste leer ist
-            if len(connected_emails) == 0:
+            if len(app_state.connected_emails) == 0:
                 start_text.visible = True
 
             page.update()

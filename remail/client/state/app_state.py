@@ -28,6 +28,7 @@ class AppState:
         email_notifications: Whether email notifications are enabled
         quiet_hours: Whether quiet hours mode is enabled
         current_views: Dictionary mapping main views to their current sub-views
+        connected_emails: List of connected email addresses
     """
 
     theme_mode: ThemeMode = ThemeMode.SYSTEM
@@ -40,6 +41,7 @@ class AppState:
     quiet_hours: bool = False
     current_views: dict[MainView, SettingsSubView | None] = field(default_factory=dict)
     router: ViewRouter | None = None
+    connected_emails: list[str] = field(default_factory=list)
 
     def set_current_view(
         self, main_view: MainView, sub_view: SettingsSubView | None = None
