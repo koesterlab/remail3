@@ -14,10 +14,10 @@ from tests import fetch_thread
 from tests.client.state.test_main_app_state import ThreadPreviewDTO
 
 
-class LLMController:
+class ChatPromptManager:
     """Controller for LLM operations."""
 
-    def __init__(self, state: "MainAppState") -> None:
+    def __init__(self, state: MainAppState) -> None:
         """Initialize LLM controller."""
 
         self.service = LLMService()

@@ -8,4 +8,6 @@ class LLMMessageRole(enum.Enum):
     USER = "user"
     ASSISTANT = "assistant"
     FUNCTION = "function"
+    DATA = "data"
+    COMMAND = "command"
     TOOL = "tool"

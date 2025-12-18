@@ -2,12 +2,13 @@ import flet as ft
 from flet.core.colors import Colors
 
 from remail.client.state.main_app_state import MainAppState, MainAppStateProperties
+from remail.client.widgets.chatbot.ChatbotPromptManager import ChatPromptManager
 from remail.controllers.dtos import LLMResponseDTO
 from remail.controllers.llm_controller import LLMController
 
 
 def create_chatbot(app_state: MainAppState):
-    llm_controller = LLMController()
+    prompt_manager = ChatPromptManager(app_state)
 
     # if score is above zero, the widget is "active" and expands
     _active_input = False
@@ -59,7 +60,7 @@ def create_chatbot(app_state: MainAppState):
         """
 
         try:
-            response_dto: LLMResponseDTO = llm_controller.chat(
+            response_dto: LLMResponseDTO = prompt_manager.chat(
                 prompt=user_message,
                 max_tokens=100,
                 temperature=0.7,

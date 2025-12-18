@@ -54,6 +54,7 @@ class LLMService(LLMBase):
             api_base=self.base_url,
             max_tokens=self.default_max_tokens,
             temperature=self.default_temperature,
+
         )
 
     def generate_completion(
@@ -109,10 +110,6 @@ class LLMService(LLMBase):
         """
 
         messages = [
-            LLMMessage(
-                role=LLMMessageRole.SYSTEM,
-                content="You are a helpful assistant. Your name is Alfred. Provide clear, concise, and helpful responses.",
-            ),
             *conversation_history,
             LLMMessage(role=LLMMessageRole.USER, content=prompt),
         ]
