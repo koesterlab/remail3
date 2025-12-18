@@ -8,6 +8,7 @@ from typing import Any
 
 import flet as ft
 
+from remail.client.state import MainAppState, MainAppStateProperties
 from remail.client.widgets.thread.message_bubble import MessageBubble
 from remail.client.widgets.thread.new_message_dialog import create_new_message_dialog
 from remail.controllers.dtos.conversations import ContactDTO, ConversationDTO, ThreadPreviewDTO
@@ -20,32 +21,33 @@ MessageDict = dict[str, Any]
 
 class ThreadList(ft.Column):
     def __init__(
-        self, thread: ThreadPreviewDTO, conversation: ConversationDTO, active_user: ContactDTO
+        self, state:MainAppState
     ) -> None:
         super().__init__(expand=True, spacing=0)
-        # input box
-        self.input_field = ft.TextField(
-            hint_text="Type a reply...",
-            border_radius=20,
-            filled=True,
-            bgcolor="white",
-            dense=True,
-            expand=True,
-            color=ft.Colors.ON_INVERSE_SURFACE,
-            fill_color=ft.Colors.INVERSE_SURFACE,
-            suffix_icon=ft.Icons.SEND,
-            on_focus=lambda _: self.on_input_selected(),
-        )
-
-        self.conversation: ConversationDTO = conversation
-        self.thread: ThreadDTO = fetch_thread(thread)
-        self.active_user = active_user
+        self.state = state
+        self.thread: ThreadDTO|None = None
+        state.register_observer(MainAppStateProperties.ACTIVE_THREAD, lambda _: self._rebuild()) #if thread changes in state, widget changes
         self._rebuild()
 
     # ------------------------------------------------------------------ #
     # rebuild the UI
     # ------------------------------------------------------------------ #
     def _rebuild(self) -> None:
+        new_thread: ThreadPreviewDTO = self.state.get(MainAppStateProperties.ACTIVE_THREAD)
+        if not new_thread: #dashboard -> just do nothing
+            self.thread = None
+            return
+        if not self.thread: #or new_thread.thread_id != self.thread.id: #new thread #todo: threads ids geben
+            self.thread = fetch_thread(new_thread)
+
+        self.conversation = next( #could be better
+                filter(
+                    lambda conv: new_thread in conv.threads,
+                    self.state.get(MainAppStateProperties.DISPLAYED_MAILS),
+                )
+            )
+        self.active_user = self.state.get(MainAppStateProperties.ACTIVE_USER)
+
         # ---------- the information of top contact -------- #
 
         header = ft.Container(
@@ -117,17 +119,6 @@ class ThreadList(ft.Column):
         )
 
         # ---------- downside message input box ---------- #
-        self.dummy_input = ft.Row(
-            controls=[
-                self.input_field,
-            ],
-            spacing=10,
-            alignment=ft.MainAxisAlignment.END,
-        )
-
-        self.input_row = ft.Container(
-            content=self.dummy_input, bgcolor=ft.Colors.TERTIARY, padding=ft.padding.all(10)
-        )
 
         # ---------- conbination of the whole layout ---------- #
         self.controls = [
@@ -135,16 +126,5 @@ class ThreadList(ft.Column):
             # discussing_card,
             # ft.Container(height=20),
             messages_column,
-            self.input_row,
+            create_new_message_dialog(self.state),
         ]
-
-    def on_input_selected(self):
-        new_message_dialog, focus_callback = create_new_message_dialog(self.on_input_minimized)
-        self.input_row.content = new_message_dialog
-        self.input_row.update()
-        focus_callback()
-        pass
-
-    def on_input_minimized(self):
-        self.input_row.content = self.dummy_input
-        self.input_row.update()

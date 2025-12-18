@@ -75,7 +75,7 @@ check = { depends-on = ["format-check", "typecheck", "security", "test"] }
 init-db = "python init_db.py --force --fixtures"
 
 # 9) Run the application
-app = "python -m remail.client.index"
+app = "flet run -m remail.client.index -d -r"
 
 [tool.pixi.dependencies]
 pixi-pycharm = ">=0.0.10,<0.0.11"

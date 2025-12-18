@@ -11,6 +11,8 @@ class MainAppStateProperties(Enum):
     ACTIVE_CHATBOT = "active_chatbot"
     SEARCH_TERM = "search_term"
     DISPLAYED_MAILS = "displayed_mails"
+    DRAFT = "draft"
+    ACTIVE_USER = "active_user"
 
 
 class MainAppState(ObservableState[MainAppStateProperties]):

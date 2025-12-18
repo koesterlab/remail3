@@ -32,6 +32,8 @@ def create_main_view(page: ft.Page, global_state: AppState):
         type=ContactType.PRIVATE,
     )
 
+    main_state.set(MainAppStateProperties.ACTIVE_USER, active_user)
+
     # Chatbot
     chatbot = create_chatbot(main_state)
     chatbot.height = 60
@@ -47,15 +49,11 @@ def create_main_view(page: ft.Page, global_state: AppState):
         ],
     )
 
+    thread_list = ThreadList(main_state)
+
     def on_thread_change(new: ThreadPreviewDTO | None) -> None:
         if new:
-            current_conversation = next(
-                filter(
-                    lambda conv: new in conv.threads,
-                    main_state.get(MainAppStateProperties.DISPLAYED_MAILS),
-                )
-            )
-            right_view.content = ThreadList(new, current_conversation, active_user)
+            right_view.content = thread_list
         else:
             right_view.content = dashboard
         right_view.update()
