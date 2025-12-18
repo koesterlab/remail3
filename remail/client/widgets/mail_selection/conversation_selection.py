@@ -19,6 +19,7 @@ class ConversationSelection(ft.Container):
         self.callback = callback
         self.content = ft.Column(spacing=0)
         super().__init__(
+            clip_behavior=ft.ClipBehavior.HARD_EDGE,
             alignment=ft.alignment.top_center,
             expand=True,
             content=ft.Column(  # outer: align content to top, middle: scroll, inner: enumeration of elements

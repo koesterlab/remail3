@@ -94,5 +94,4 @@ def create_main_view(page: ft.Page, global_state: AppState):
 
     main_state.register_observer(MainAppStateProperties.ACTIVE_CHATBOT, on_chatbot_state_change)
     main_state.register_observer(MainAppStateProperties.ACTIVE_THREAD, on_thread_change)
-
     return container

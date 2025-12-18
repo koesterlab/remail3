@@ -8,6 +8,7 @@ class ThreadPreview(ft.Container):
     # component representing a single contact entry
     def __init__(self, thread: ThreadPreviewDTO, state: MainAppState):
         super().__init__(
+            bgcolor=ft.Colors.RED,
             content=ft.Row(
                 [
                     ft.Column(
@@ -15,12 +16,12 @@ class ThreadPreview(ft.Container):
                             ft.Row(
                                 [
                                     ft.Text(
-                                        (
+                                        ((
                                             "(" + str(thread.unread_count) + ") "
                                             if thread.unread_count > 0
                                             else ""
                                         )
-                                        + thread.title,
+                                        + thread.title) * 2 ,
                                         weight=ft.FontWeight.BOLD
                                         if thread.unread_count > 0
                                         else ft.FontWeight.NORMAL,

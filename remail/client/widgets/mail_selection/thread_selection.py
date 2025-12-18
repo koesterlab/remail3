@@ -62,7 +62,8 @@ class ThreadSelection(ft.Container):
                         ),
                     ),
                 ]
-            )
+            ),
+            #bgcolor=ft.Colors.GREEN
         )
 
     def set_content(self, content: ConversationDTO):

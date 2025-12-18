@@ -58,7 +58,7 @@ class SelectionBar(ft.Container):
         )
 
         self.__set_content_to_display(state.get(MainAppStateProperties.DISPLAYED_MAILS))  # type: ignore
-        self.__on_search_change("")  # initially loading data
+        state.trigger(MainAppStateProperties.ACTIVE_USER)
 
     def __on_user_change(self, new: UserDTO):
         self.__state.set(MainAppStateProperties.DISPLAYED_MAILS, self.conversations_controller.get_conversations(new.id))
