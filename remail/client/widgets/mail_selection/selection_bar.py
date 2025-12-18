@@ -7,7 +7,9 @@ from remail.client.widgets.mail_selection.action import Action
 from remail.client.widgets.mail_selection.conversation_selection import ConversationSelection
 from remail.client.widgets.mail_selection.search_header import SearchHeader
 from remail.client.widgets.mail_selection.thread_selection import ThreadSelection
+from remail.controllers import ConversationsController
 from remail.controllers.dtos.conversations import ConversationDTO, ThreadPreviewDTO
+from remail.controllers.dtos.user_dto import UserDTO
 
 """
 Overall Widget to combine searchbar and selection widgets
@@ -20,6 +22,10 @@ class SelectionBar(ft.Container):
         state.register_observer(
             MainAppStateProperties.DISPLAYED_MAILS, self.__set_content_to_display
         )  # type: ignore
+        state.register_observer(MainAppStateProperties.ACTIVE_USER, self.__on_user_change)
+
+        #controller
+        self.conversations_controller = ConversationsController()
 
         # subwidgets
         self.topic_selection = ThreadSelection(
@@ -53,6 +59,9 @@ class SelectionBar(ft.Container):
 
         self.__set_content_to_display(state.get(MainAppStateProperties.DISPLAYED_MAILS))  # type: ignore
         self.__on_search_change("")  # initially loading data
+
+    def __on_user_change(self, new: UserDTO):
+        self.__state.set(MainAppStateProperties.DISPLAYED_MAILS, self.conversations_controller.get_conversations(new.id))
 
     def __on_search_change(self, new_search_term: str) -> None:
         mails: list[ConversationDTO | Action] = self.__search_request(new_search_term)  # type: ignore

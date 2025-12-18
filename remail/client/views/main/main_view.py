@@ -7,6 +7,8 @@ from remail.enums import ContactType, MainView
 from tests.client.views.main.test_data_conversations import create_test_data
 
 from ...state.main_app_state import MainAppState, MainAppStateProperties
+from ...widgets.chatbot.chatbot import create_chatbot
+from ...widgets.dashbord.select_user import create_user_selection
 from ...widgets.thread.thread_list import ThreadList
 
 
@@ -16,6 +18,14 @@ def create_main_view(page: ft.Page, global_state: AppState):
     main_state.set(MainAppStateProperties.ACTIVE_CHATBOT, False)
     main_state.set(MainAppStateProperties.ACTIVE_THREAD, None)
     main_state.set(MainAppStateProperties.SEARCH_TERM, "")
+    main_state.set(MainAppStateProperties.ALL_USERS, global_state.connected_emails)
+
+    # selecting the current user or passing to settings if there is none
+    if len(global_state.connected_emails) == 0:
+        #todo
+        pass
+    else:
+        main_state.set(MainAppStateProperties.ACTIVE_USER, global_state.connected_emails[0])
     selection_bar = SelectionBar(main_state)
 
     # Settings button
@@ -40,6 +50,7 @@ def create_main_view(page: ft.Page, global_state: AppState):
                     [
                         ft.Text("Dashboard (vertrau ist fast fertig)", size=20),
                         settings_button,
+                        create_user_selection(main_state)
                     ],
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 ),
@@ -59,11 +70,10 @@ def create_main_view(page: ft.Page, global_state: AppState):
         type=ContactType.PRIVATE,
     )
 
-    # Chatbot
-    # chatbot = create_chatbot(main_state)
-    # chatbot.height = 60
-    # chatbot.expand = False
-    # line 72 should be [ft.Container(selection_bar, expand=1), chatbot], col={"xs": 6, "md": 4, "lg": 3}
+    #Chatbot
+    chatbot = create_chatbot(main_state)
+    chatbot.height = 60
+    chatbot.expand = False
 
     container = ft.ResponsiveRow(
         expand=True,
@@ -86,15 +96,15 @@ def create_main_view(page: ft.Page, global_state: AppState):
             right_view.content = dashboard
         right_view.update()
 
-    # def on_chatbot_state_change(is_active: bool) -> None:
-    #    if is_active:
-    #        chatbot.expand = 4
-    #    else:
-    #        chatbot.expand = False
-    #        chatbot.height = 60
-    #    container.update()
+    def on_chatbot_state_change(is_active: bool) -> None:
+       if is_active:
+           chatbot.expand = 4
+       else:
+           chatbot.expand = False
+           chatbot.height = 60
+       container.update()
 
-    # main_state.register_observer(MainAppStateProperties.ACTIVE_CHATBOT, on_chatbot_state_change)
+    main_state.register_observer(MainAppStateProperties.ACTIVE_CHATBOT, on_chatbot_state_change)
     main_state.register_observer(MainAppStateProperties.ACTIVE_THREAD, on_thread_change)
 
     return container
