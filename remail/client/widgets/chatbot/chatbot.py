@@ -46,7 +46,7 @@ def create_chatbot(app_state: MainAppState):
         max_lines=6,
         on_focus=lambda _: change_active_state(active_input=True),
         on_blur=lambda _: change_active_state(active_input=False),
-        color=ft.Colors.ON_PRIMARY,
+        color=ft.Colors.ON_SURFACE,
     )
 
     def _get_ai_response(user_message: str) -> LLMResponseDTO | None:

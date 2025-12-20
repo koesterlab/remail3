@@ -4,24 +4,20 @@ from __future__ import annotations
 
 from typing import Any
 
-from remail.client.state import MainAppState, MainAppStateProperties
 from remail.controllers.dtos import LLMResponseDTO
-from remail.controllers.dtos.threads import ThreadDTO
 from remail.interfaces.llm.dto import LLMMessage
 from remail.interfaces.llm.enums.llm_message_role import LLMMessageRole
 from remail.interfaces.llm.llm_service import LLMService
-from tests import fetch_thread
-from tests.client.state.test_main_app_state import ThreadPreviewDTO
+
 
 
 class LLMController:
     """Controller for LLM operations."""
 
-    def __init__(self, state: "MainAppState") -> None:
+    def __init__(self, ) -> None:
         """Initialize LLM controller."""
 
         self.service = LLMService()
-        self.frontend_state = state
         self.conversation_history: list[LLMMessage] = []
 
         system_msg = LLMMessage(
@@ -103,48 +99,6 @@ You have a number of possibilities to serve the user, output the command to get 
         text_outputs = [] #output that is displayed in chat
         local_history: list[LLMMessage] = [] #context for the currrent command
         saved_history: list[LLMMessage] = [] #context saved for future commands
-
-        # loop through responses until ai agent is finished
-        while next_input != "":
-            # Generate response using conversation history
-            completion_response = self.service.generate_completion_with_history(
-                prompt=next_input,
-                conversation_history=self.conversation_history + local_history,
-                max_tokens=max_tokens or self.service.default_max_tokens,
-                temperature=temperature or self.service.default_temperature,
-            )
-            # reset input
-            next_input = ""
-            # Extract response commands
-            errors = 0
-            for command in completion_response.completion_text.splitlines():
-                if not command.startswith("/"):
-                    errors += 1
-                    continue
-                words = command.split()
-                params = words[1:]
-                match words[0][1:]:
-                    case "say":
-                        message = LLMMessage(role=LLMMessageRole.SYSTEM, content=" ".join(params))
-                        text_outputs.append(message.content)
-                        local_history.append(message)
-                        saved_history.append(message)
-                    case "getDraft":
-                        content = "Current Draft: " + self.frontend_state.get(MainAppStateProperties.DRAFT) + "\n"
-                        next_input += content
-                        local_history.append(LLMMessage(role=LLMMessageRole.DATA, content=content))
-                    case "getCurrentThread":
-                        thread:ThreadPreviewDTO = self.frontend_state.get(MainAppStateProperties.ACTIVE_THREAD)
-                        full_thread: ThreadDTO = fetch_thread(thread)  # todo
-                        content = ("Subject:" + thread.subject + "\n" + "\n".join(
-                                           msg.sender.first_name + " " + msg.sender.last_name + ": " + msg.content.body for
-                                           msg in full_thread.messages) + "\n\n")
-                        next_input += content
-                        local_history.append(LLMMessage(role=LLMMessageRole.DATA, content=content))
-                    case "setDraft":
-                        message = " ".join(params)
-                        self.frontend_state.set(MainAppStateProperties.DRAFT, message)
-                        local_history.append(LLMMessage(role=LLMMessageRole.COMMAND, content="New Draft: " + message))
 
         self.conversation_history += saved_history
 

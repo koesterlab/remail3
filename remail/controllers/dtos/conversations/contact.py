@@ -1,14 +1,11 @@
 from dataclasses import dataclass
 
+from remail.controllers.dtos.threads import SenderDTO
 from remail.enums import ContactType
 
 
 @dataclass
-class ContactDTO:
-    id: int
-    first_name: str
-    last_name: str
-    email: str
+class ContactDTO(SenderDTO):
     is_known: bool
     type: ContactType
 
