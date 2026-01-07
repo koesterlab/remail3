@@ -28,7 +28,7 @@ class TestAppState:
         app_state = AppState()
         field_names = [f.name for f in fields(app_state)]
 
-        assert len(field_names) == 11
+        assert len(field_names) == 12
 
     def test_app_state_repr(self):
         """Test that AppState has a proper string representation."""
@@ -78,4 +78,4 @@ class TestAppStateFutureProof:
 
         annotations = getattr(AppState, "__annotations__", {})
 
-        assert len(annotations) == 11
+        assert len(annotations) == 12

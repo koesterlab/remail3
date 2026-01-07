@@ -1,1 +1,1 @@
-"""Tests for email service modules."""
+"""Tests for email services."""
