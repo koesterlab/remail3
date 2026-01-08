@@ -29,7 +29,7 @@ class LLMService(LLMBase):
         if not self.base_url:
             raise ValueError("LLM_BASE_URL environment variable is required")
 
-        self.model = LLMModel.META_LLAMA_3_1_8B_INSTRUCT
+        self.model = LLMModel.QWEN_3_235B_A22B
         self.default_max_tokens = 150
         self.default_temperature = 0.7
         self.default_top_p = 1.0

@@ -21,6 +21,8 @@ dependencies = [
     "llama-cpp-python>=0.3.16,<0.4",
     "llama-index-embeddings-huggingface>=0.6.1,<0.7",
     "llama-index-readers-database>=0.5.1,<0.6",
+    "llama-index[agents]>=0.14.8,<0.15",
+
     "faker>=30.8.2,<31"
 ]
 

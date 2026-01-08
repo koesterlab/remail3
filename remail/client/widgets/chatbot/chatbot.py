@@ -1,14 +1,18 @@
+import asyncio
+from typing import Annotated
+
 import flet as ft
 from flet.core.colors import Colors
 
 from remail.client.state.main_app_state import MainAppState, MainAppStateProperties
 from remail.client.widgets.chatbot.ChatbotPromptManager import ChatPromptManager
 from remail.controllers.dtos import LLMResponseDTO
-from remail.controllers.llm_controller import LLMController
+from remail.controllers.stateful_llm_controller import StatefulLlmController
+from remail.interfaces.llm.enums.llm_model import LLMModel
 
 
 def create_chatbot(app_state: MainAppState):
-    prompt_manager = ChatPromptManager(app_state)
+    llm = StatefulLlmController(LLMModel.GPT_4_0314, temperature=0.2, max_tokens=1024)
 
     # if score is above zero, the widget is "active" and expands
     _active_input = False
@@ -59,19 +63,8 @@ def create_chatbot(app_state: MainAppState):
             LLMResponseDTO or None if an error occurred
         """
 
-        try:
-            response_dto: LLMResponseDTO = prompt_manager.chat(
-                prompt=user_message,
-                max_tokens=100,
-                temperature=0.7,
-            )
 
-            return response_dto
-
-        except Exception:
-            return None
-
-    def send_message(e) -> None:
+    async def send_message(e) -> None:
         user_message = message_input.value.strip()
 
         if not user_message:
@@ -90,20 +83,24 @@ def create_chatbot(app_state: MainAppState):
 
         chat_display.controls.append(loading_container)
         chat_display.update()
+        response = (llm.query(user_message))
+        async for event in response.stream_events():
+            print("Event: ", event)
 
-        response_dto = _get_ai_response(user_message)
+        print("Ergebnis: ", await response)
+
         chat_display.controls.remove(loading_container)
 
-        if response_dto is None:
-            chat_display.controls.append(
-                ft.Text(
-                    f"AI: (LLM Server Unavailable) I received your message: '{user_message}'. Please make sure the LLM server is running at the configured base URL.",
-                    color=Colors.RED,
-                )
-            )
-
-        else:
-            chat_display.controls.append(ft.Text(f"AI: {response_dto.content}", color=Colors.GREEN))
+        # if response_dto is None:
+        #     chat_display.controls.append(
+        #         ft.Text(
+        #             f"AI: (LLM Server Unavailable) I received your message: '{user_message}'. Please make sure the LLM server is running at the configured base URL.",
+        #             color=Colors.RED,
+        #         )
+        #     )
+        #
+        # else:
+        #     chat_display.controls.append(ft.Text(f"AI: {response_dto.content}", color=Colors.GREEN))
 
         chat_display.update()
 
@@ -114,6 +111,18 @@ def create_chatbot(app_state: MainAppState):
         spacing=10,
         height=50,
     )
+
+    #AI-Functions
+    def getCurrentDraft() -> str:
+        print("Called: getCurrentDraft")
+        return app_state.get(MainAppStateProperties.DRAFT)
+    llm.add_tool("getCurrentDraft", "Returns the text in the current write-email dialog. \"\" if no email is written", getCurrentDraft)
+
+    def setCurrentDraft(content: str) -> None:
+        print("Called: setCurrentDraft")
+        app_state.set(MainAppStateProperties.DRAFT, content)
+    llm.add_tool("setCurrentDraft", "Sets the text in current write-email dialog. Use to suggest email drafts to the user.", setCurrentDraft)
+    llm.build_agent("You are AIfred, an Email-Program Assistent. Your task is to rephrase emails")
 
     return ft.Container(
         ft.Column(
