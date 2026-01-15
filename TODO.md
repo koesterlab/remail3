@@ -86,14 +86,23 @@
 }
 ```
 
+### Send email Response
+
+```json
+{
+  "status": "success",
+  "message_id": 103,
+  "thread_id": 1
+}
+```
+
+
 ## Features
 
-- Implement Accounts controller for fetching the email. (TODO) - Eugene
-- Implement fetching the threads/emails (TODO) - Pola
 - Implement sending an email and creating/updating a thread (TODO) - Pola + Jonathan
-- Implement attaching the emails in the AI chatbot and using it to answer questions on the email + save LLM responses in
-  the database (TODO) - Nader
 - Implement searching/sorting the conversations - (TODO) - Jonathan + Haihua
+- Implement attaching the emails in the AI chatbot and using it to answer questions on the email + save LLM responses in
+  the database (TODO) - Nader + Jonathan
 
 - Implement AI actions for the emails (tagging, attaching a priority, ...etc)
 - Implement uploading attachments, fetching them safely and displaying information about them

@@ -46,6 +46,26 @@ class ThreadService:
 
             return self._build_thread_dto(session, thread, list(messages))
 
+    def create_thread(self, title: str, conversation_id: int) -> Thread:
+        """
+        Create a new thread.
+
+        Args:
+            title: Title of the thread
+            conversation_id: Conversation ID to associate the thread with
+
+        Returns:
+            Created Thread object
+        """
+        new_thread = Thread(title=title, conversation_id=conversation_id)
+
+        with Session(self.engine) as session:
+            session.add(new_thread)
+            session.commit()
+            session.refresh(new_thread)
+
+        return new_thread
+
     def get_thread_for_conversation(self, conversation_id: int) -> dict | None:
         """
         Fetch the thread for a conversation with preview data.
