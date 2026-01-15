@@ -1,14 +1,13 @@
-# remail/client/widgets/dashboard/dashboard_page.py
-
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 import flet as ft
 
 from remail.client.widgets.dashboard.account_card import AccountCard
-from remail.client.widgets.dashboard.todo_list import TodoList
 from remail.client.widgets.dashboard.appointments_list import AppointmentsList
+from remail.client.widgets.dashboard.todo_list import TodoList
 
 
 AccountDict = dict[str, Any]
@@ -16,8 +15,49 @@ TodoDict = dict[str, Any]
 AppointmentDict = dict[str, Any]
 
 
-class DashboardPage(ft.Column):
+def _time_greeting(now: datetime | None = None) -> str:
+    """Return 'Good morning/afternoon/evening' based on local time."""
+    now = now or datetime.now()
+    hour = now.hour
+    if hour < 12:
+        return "Good morning"
+    if hour < 18:
+        return "Good afternoon"
+    return "Good evening"
 
+
+def _display_name_from_account(account: AccountDict | None) -> str:
+    """
+    Try to get a nice display name from the first account.
+    Priority:
+      1) explicit account['name'] (if present)
+      2) infer from email local-part
+      3) fallback to 'there'
+    """
+    if not account:
+        return "there"
+
+    # 1) Prefer an explicit name if your account dict contains one
+    name = str(account.get("name", "")).strip()
+    if name:
+        return name
+
+    # 2) Fallback: infer from email
+    email = str(account.get("email", "")).strip()
+    if not email:
+        return "there"
+
+    local = email.split("@", 1)[0]
+    # Turn separators into spaces
+    local = local.replace(".", " ").replace("_", " ").replace("-", " ").strip()
+    if not local:
+        return "there"
+
+    # Title-case words (e.g. "julia mueller" -> "Julia Mueller")
+    return " ".join(w.capitalize() for w in local.split())
+
+
+class DashboardPage(ft.Column):
     def __init__(
         self,
         accounts: list[AccountDict],
@@ -31,8 +71,12 @@ class DashboardPage(ft.Column):
         self._rebuild()
 
     def _rebuild(self) -> None:
+        # Compute greeting + name dynamically
+        greeting = _time_greeting()
+        first_name = _display_name_from_account(self.accounts[0] if self.accounts else None)
+
         header = ft.Text(
-            "Good evening, Leader one!",
+            f"{greeting}, {first_name}!",
             size=26,
             weight=ft.FontWeight.BOLD,
             color=ft.Colors.ON_SURFACE,
@@ -43,7 +87,6 @@ class DashboardPage(ft.Column):
             size=16,
             color=ft.Colors.ON_SURFACE_VARIANT,
         )
-
 
         accounts_card = ft.Container(
             bgcolor=ft.Colors.WHITE,
@@ -77,7 +120,6 @@ class DashboardPage(ft.Column):
             ),
         )
 
-
         inner_column = ft.Column(
             spacing=20,
             controls=[
@@ -92,7 +134,7 @@ class DashboardPage(ft.Column):
             ft.Container(
                 expand=True,
                 alignment=ft.alignment.top_center,
-                bgcolor=ft.Colors.SURFACE, 
+                bgcolor=ft.Colors.SURFACE,
                 padding=ft.padding.symmetric(vertical=20, horizontal=0),
                 content=ft.Container(
                     width=1000,
