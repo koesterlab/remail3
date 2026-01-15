@@ -7,6 +7,20 @@ import flet as ft
 
 from remail.client.state.app_state import AppState
 from remail.client.views.settings.email_accounts_view import create_email_accounts_view
+from remail.controllers.dtos.user_dto import UserDTO
+from remail.enums import Protocol, UserAccountCategory
+
+
+def create_mock_user_dto(email: str) -> Mock:
+    """Helper to create mock UserDTO."""
+    mock_dto = Mock(spec=UserDTO)
+    mock_dto.email = email
+    mock_dto.id = 1
+    mock_dto.name = email.split("@")[0]
+    mock_dto.category = UserAccountCategory.PRIVATE
+    mock_dto.protocol = Protocol.IMAP
+    mock_dto.unread_conversations = 0
+    return mock_dto
 
 
 class TestEmailAccoutsView(unittest.TestCase):
@@ -189,6 +203,7 @@ class TestEmailAccoutsView(unittest.TestCase):
         page.update = Mock()
         page.overlay = []
         app_state = AppState()
+        app_state.connected_emails = [mock_user]
 
         result = create_email_accounts_view(page, app_state)
 
@@ -198,7 +213,8 @@ class TestEmailAccoutsView(unittest.TestCase):
         start_text = result.content.controls[3]
         self.assertFalse(start_text.visible)
         # Connected emails should be set
-        self.assertEqual(app_state.connected_emails, ["test@example.com"])
+        self.assertEqual(len(app_state.connected_emails), 1)
+        self.assertEqual(app_state.connected_emails[0].email, "test@example.com")
 
     @patch("remail.client.views.settings.email_accounts_view.UserService")
     def test_add_account_click_shows_form(self, mock_user_service):
@@ -323,7 +339,8 @@ class TestEmailAccoutsView(unittest.TestCase):
         # Set connected emails before creating view - this gets set in create_email_accounts_view
         result = create_email_accounts_view(page, app_state)
         # Now set it after view creation
-        app_state.connected_emails = ["existing@example.com"]
+        mock_existing_user = create_mock_user_dto("existing@example.com")
+        app_state.connected_emails = [mock_existing_user]
 
         add_button = result.content.controls[4]
         input_panel = result.content.controls[5]
@@ -377,7 +394,8 @@ class TestEmailAccoutsView(unittest.TestCase):
         self, mock_user_service, mock_email_controller, mock_sync_service, mock_scheduler
     ):
         """Test successful account connection."""
-        mock_user_service.get_all_users.return_value = []
+        mock_new_user = create_mock_user_dto("new@example.com")
+        mock_user_service.get_all_users.return_value = [mock_new_user]
         mock_user_service.add_user.return_value = Mock()
 
         # Mock controller
@@ -439,7 +457,8 @@ class TestEmailAccoutsView(unittest.TestCase):
         mock_scheduler_instance.start.assert_called_once()
 
         # Verify email was added to connected_emails
-        self.assertIn("new@example.com", app_state.connected_emails)
+        user_emails = [user.email for user in app_state.connected_emails]
+        self.assertIn("new@example.com", user_emails)
         # Verify scheduler was added to app_state
         self.assertIn("new@example.com", app_state.email_schedulers)
 
@@ -451,7 +470,8 @@ class TestEmailAccoutsView(unittest.TestCase):
         self, mock_user_service, mock_email_controller, mock_sync_service, mock_scheduler
     ):
         """Test connect_account when user already exists (ValueError)."""
-        mock_user_service.get_all_users.return_value = []
+        mock_duplicate_user = create_mock_user_dto("duplicate@example.com")
+        mock_user_service.get_all_users.return_value = [mock_duplicate_user]
         mock_user_service.add_user.side_effect = ValueError("User already exists")
 
         # Mock controller
@@ -492,7 +512,8 @@ class TestEmailAccoutsView(unittest.TestCase):
         snackbars = [s for s in page.overlay if isinstance(s, ft.SnackBar) and s.open]
         self.assertGreater(len(snackbars), 0)
         # Should still add to connected_emails
-        self.assertIn("duplicate@example.com", app_state.connected_emails)
+        user_emails = [user.email for user in app_state.connected_emails]
+        self.assertIn("duplicate@example.com", user_emails)
 
     @patch("remail.client.views.settings.email_accounts_view.Scheduler")
     @patch("remail.client.views.settings.email_accounts_view.EmailSyncService")
@@ -651,7 +672,9 @@ class TestEmailAccoutsView(unittest.TestCase):
         page.overlay = []
 
         app_state = AppState()
-        app_state.connected_emails = ["remove@example.com"]
+
+        mock_user_dto = create_mock_user_dto("remove@example.com")
+        app_state.connected_emails = [mock_user_dto]
         app_state.add_email_scheduler = Mock()
         app_state.remove_email_scheduler = Mock()
 
@@ -694,7 +717,8 @@ class TestEmailAccoutsView(unittest.TestCase):
         # Verify user was deleted
         mock_user_service.delete_user.assert_called_once_with("remove@example.com")
         app_state.remove_email_scheduler.assert_called_once_with("remove@example.com")
-        self.assertNotIn("remove@example.com", app_state.connected_emails)
+        user_emails = [user.email for user in app_state.connected_emails]
+        self.assertNotIn("remove@example.com", user_emails)
 
     @patch("remail.client.views.settings.email_accounts_view.UserService")
     def test_remove_account_exception(self, mock_user_service):
@@ -709,7 +733,9 @@ class TestEmailAccoutsView(unittest.TestCase):
         page.overlay = []
 
         app_state = AppState()
-        app_state.connected_emails = ["error@example.com"]
+
+        mock_user_dto = create_mock_user_dto("error@example.com")
+        app_state.connected_emails = [mock_user_dto]
         app_state.remove_email_scheduler = Mock()
 
         result = create_email_accounts_view(page, app_state)
@@ -761,7 +787,8 @@ class TestEmailAccoutsView(unittest.TestCase):
         page.overlay = []
 
         app_state = AppState()
-        app_state.connected_emails = ["last@example.com"]
+        mock_user_dto = create_mock_user_dto("last@example.com")
+        app_state.connected_emails = [mock_user_dto]
         app_state.remove_email_scheduler = Mock()
 
         result = create_email_accounts_view(page, app_state)

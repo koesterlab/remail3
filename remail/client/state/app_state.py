@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from remail.client.views.view_router import ViewRouter
+from remail.controllers.dtos.user_dto import UserDTO
 from remail.enums import (
     FontFamily,
     FontSize,
@@ -32,7 +33,7 @@ class AppState:
         email_notifications: Whether email notifications are enabled
         quiet_hours: Whether quiet hours mode is enabled
         current_views: Dictionary mapping main views to their current sub-views
-        connected_emails: List of connected email addresses
+        connected_emails: List of connected user DTOs
         email_schedulers: Dictionary mapping email addresses to their schedulers
     """
 
@@ -46,7 +47,7 @@ class AppState:
     quiet_hours: bool = False
     current_views: dict[MainView, SettingsSubView | None] = field(default_factory=dict)
     router: ViewRouter | None = None
-    connected_emails: list[str] = field(default_factory=list)
+    connected_emails: list[UserDTO] = field(default_factory=list)
     email_schedulers: dict[str, Any] = field(default_factory=dict)
 
     def add_email_scheduler(self, email: str, scheduler: "Scheduler") -> None:

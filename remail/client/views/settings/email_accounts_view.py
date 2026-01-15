@@ -10,8 +10,6 @@ from remail.interfaces.email.services.user_service import UserService
 def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Container:
     """Create the email accounts settings view."""
 
-    saved_users = UserService.get_all_users()
-
     start_text = ft.Text("No accounts connected yet")
     input_panel = ft.Container()
     email_input = ft.TextField(label="Email Address", hint_text="Enter your email", width=300)
@@ -24,9 +22,7 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
     )
     host_input = ft.TextField(label="Host", hint_text="Enter your host name", width=300)
 
-    app_state.connected_emails = [user.email for user in saved_users]
-
-    if saved_users:
+    if app_state.connected_emails:
         start_text.visible = False
 
     def on_sync_complete(result: dict) -> None:
@@ -70,7 +66,7 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
 
             return
 
-        if email_input.value in app_state.connected_emails:
+        if email_input.value in [user.email for user in app_state.connected_emails]:
             show_snackbar("This email account is already connected", ft.Colors.ORANGE_400)
 
             return
@@ -100,7 +96,8 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
                 except Exception as db_error:
                     show_snackbar(f"Connected but save failed: {db_error}", ft.Colors.ORANGE_400)
 
-                app_state.connected_emails.append(email_input.value)
+                saved_users = UserService.get_all_users()
+                app_state.connected_emails = saved_users
 
                 start_text.visible = False
 
@@ -168,7 +165,9 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
                 show_snackbar(f"Failed to remove user: {e}", ft.Colors.ORANGE_400)
 
             app_state.remove_email_scheduler(email_to_remove)
-            app_state.connected_emails.remove(email_to_remove)
+            app_state.connected_emails = [
+                user for user in app_state.connected_emails if user.email != email_to_remove
+            ]
             create_connected_email_accounts.content.controls.remove(e.control.parent.parent)
 
             if len(app_state.connected_emails) == 0:
@@ -222,7 +221,7 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
         alignment=ft.alignment.center_left,
     )
 
-    for user in saved_users:
+    for user in app_state.connected_emails:
         account_container = ft.Container(
             ft.Row(
                 [
