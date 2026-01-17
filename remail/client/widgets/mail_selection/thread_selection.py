@@ -1,10 +1,12 @@
+import datetime
 from collections.abc import Callable
+from typing import Any
 
 import flet as ft
 
-from remail.controllers.dtos.conversations import ConversationDTO
+from remail.controllers.dtos.conversations import ConversationDTO, ThreadPreviewDTO
 
-from ...state.main_app_state import MainAppState
+from ...state.main_app_state import MainAppState, MainAppStateProperties
 from .profile_picture import create_profile_picture
 from .thread_preview import ThreadPreview
 
@@ -15,8 +17,9 @@ Subwidget of selectionBar to choose between different conversations of a contact
 
 class ThreadSelection(ft.Container):
     def __init__(self, state: MainAppState, on_click_back: Callable[[], None]):
-        self.slided_in = False
-        self.__state = state
+        self.conversation: ConversationDTO | None = None
+        self.slided_in: bool = False
+        self.__state: MainAppState = state
         self.__content = ft.Column(spacing=0)
         self.__image = ft.Container(width=40, height=40)
         self.__primary_text = ft.Text("", weight=ft.FontWeight.BOLD, color=ft.Colors.ON_SURFACE)
@@ -65,8 +68,47 @@ class ThreadSelection(ft.Container):
             )
         )
 
+        ### Add Thread dialog ###
+        thread_created = False
+
+        def on_blur_new_thread(e: Any):
+            if not thread_created:
+                self.add_thread_field.value = ""
+                self.add_thread_field.update()
+
+        def on_submit_new_thread(e: Any):
+            nonlocal thread_created
+            thread_created = True
+            thread = ThreadPreviewDTO(
+                -1, self.add_thread_field.value, 0, 0, "", datetime.datetime.now()
+            )
+            if not self.conversation:
+                return  # just for mypy
+            self.conversation.threads.append(thread)  # only in the frontend, until message is sent
+            self.__state.set(MainAppStateProperties.ACTIVE_CONVERSATION, self.conversation)
+            self.__state.set(MainAppStateProperties.ACTIVE_THREAD, thread)
+
+        self.add_thread_field = ft.TextField(
+            on_submit=on_submit_new_thread,
+            on_blur=on_blur_new_thread,
+            color=ft.Colors.ON_SURFACE_VARIANT,
+            focused_color=ft.Colors.ON_SURFACE,
+            focused_border_color=ft.Colors.TRANSPARENT,
+            border_color=ft.Colors.TRANSPARENT,
+            bgcolor=ft.Colors.TRANSPARENT,
+            dense=True,
+            expand=True,
+            text_style=ft.TextStyle(weight=ft.FontWeight.BOLD),
+            border_radius=ft.border_radius.all(20),
+            prefix_icon=ft.Icons.ADD,
+            hint_text="add Topic",
+        )
+
+        self.add_thread_btn = ft.Container(self.add_thread_field, padding=ft.padding.only(top=5))
+
     def set_content(self, content: ConversationDTO):
         self.__image.content = create_profile_picture(content)
+        self.conversation = content
         if len(content.contacts) == 1:
             contact = content.contacts[0]
             self.__primary_text.value = contact.first_name + " " + contact.last_name
@@ -82,4 +124,6 @@ class ThreadSelection(ft.Container):
             self.__secondary_text.value = str(len(content.contacts)) + " Members"
         # todo: make more efficient on reload
         # todo: sort algorithm
-        self.__content.controls = [ThreadPreview(elem, self.__state) for elem in content.threads]  # type: ignore
+        self.__content.controls = [
+            ThreadPreview(self.__state, elem, self.conversation) for elem in content.threads
+        ] + [self.add_thread_btn]  # type: ignore

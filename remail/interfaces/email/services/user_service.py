@@ -42,6 +42,7 @@ class UserService:
             id=user.id,
             name=user.name,
             email=user.email,
+            password=user.password,
             category=UserAccountCategory.PRIVATE,  # User model doesn't have category
             protocol=user.protocol,
             unread_conversations=UserService.count_unread(user),

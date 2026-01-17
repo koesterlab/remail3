@@ -2,6 +2,7 @@
 import unittest
 from datetime import datetime
 
+from remail.client.state import MainAppState
 from remail.client.widgets.mail_selection.group_preview import GroupPreview
 from remail.controllers.dtos.conversations import ContactDTO, ConversationDTO, ThreadPreviewDTO
 from remail.enums import ContactType
@@ -47,7 +48,7 @@ class TestGroupPreview(unittest.TestCase):
         def on_click():
             clicked["called"] = True
 
-        preview = GroupPreview(conv, on_click)
+        preview = GroupPreview(MainAppState(), conv, on_click)
         row = preview.content
         col = row.controls[1]
 
@@ -81,7 +82,7 @@ class TestGroupPreview(unittest.TestCase):
                 )
             ],
         )
-        preview = GroupPreview(conv)
+        preview = GroupPreview(MainAppState(), conv)
         col = preview.content.controls[1]
         self.assertEqual(col.controls[0].controls[0].value, "My Group")
         self.assertEqual(col.controls[1].controls[0].value, "2 Members")

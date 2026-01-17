@@ -57,5 +57,5 @@ class ObservableState(Generic[E]):  # noqa: UP046
                 self._weak_observers[prop].discard(d)
         # starke Observer
         if prop in self._strong_observers:
-            for obs in self._strong_observers[prop]:
+            for obs in list(self._strong_observers[prop]):
                 obs(value)

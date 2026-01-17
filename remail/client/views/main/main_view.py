@@ -3,9 +3,9 @@ import flet as ft
 from remail.client.state import AppState
 from remail.client.widgets.chatbot.chatbot import create_chatbot
 from remail.client.widgets.mail_selection import SelectionBar
-from remail.controllers.dtos.conversations import ContactDTO, ThreadPreviewDTO
-from remail.enums import ContactType, MainView
-from tests.client.views.main.test_data_conversations import create_test_data
+from remail.controllers.dtos.conversations import ThreadPreviewDTO
+from remail.enums import MainView
+from remail.interfaces.email.services.user_service import UserService
 
 from ...state.main_app_state import MainAppState, MainAppStateProperties
 from ...widgets.thread.thread_list import ThreadList
@@ -13,9 +13,19 @@ from ...widgets.thread.thread_list import ThreadList
 
 def create_main_view(page: ft.Page, global_state: AppState):
     main_state = MainAppState()
-    main_state.set(MainAppStateProperties.DISPLAYED_MAILS, create_test_data())  # todo
+    users = UserService.get_all_users()
+    if len(users) < 1:
+        if global_state.router is not None:
+            global_state.router.load_view(MainView.SETTINGS)
+        return ft.Container()
+    main_state.set(MainAppStateProperties.ACTIVE_USER, users[0])
+    main_state.set(
+        MainAppStateProperties.DISPLAYED_MAILS,
+        list(main_state.conversations_controller.get_conversations(users[0].id)),
+    )  # todo
     main_state.set(MainAppStateProperties.ACTIVE_CHATBOT, False)
     main_state.set(MainAppStateProperties.ACTIVE_THREAD, None)
+    main_state.set(MainAppStateProperties.ACTIVE_CONVERSATION, None)
     main_state.set(MainAppStateProperties.SEARCH_TERM, "")
     selection_bar = SelectionBar(main_state)
 
@@ -51,15 +61,6 @@ def create_main_view(page: ft.Page, global_state: AppState):
     )
     right_view = ft.Container(dashboard, col={"xs": 6, "md": 8, "lg": 9}, expand=True)
 
-    active_user = ContactDTO(  # todo
-        id=1,
-        first_name="John",
-        last_name="Doe",
-        email="john.doe@example.com",
-        is_known=True,
-        type=ContactType.PRIVATE,
-    )
-
     # Chatbot
     chatbot = create_chatbot(main_state)
     chatbot.height = 60
@@ -77,13 +78,7 @@ def create_main_view(page: ft.Page, global_state: AppState):
 
     def on_thread_change(new: ThreadPreviewDTO | None) -> None:
         if new:
-            current_conversation = next(
-                filter(
-                    lambda conv: new in conv.threads,
-                    main_state.get(MainAppStateProperties.DISPLAYED_MAILS),
-                )
-            )
-            right_view.content = ThreadList(new, current_conversation, active_user)
+            right_view.content = ThreadList(main_state)
         else:
             right_view.content = dashboard
         right_view.update()

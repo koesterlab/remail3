@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
-from remail.controllers.dtos.conversations import ContactDTO
+if TYPE_CHECKING:
+    from ..conversations import ContactDTO
 
 from .message import MessageDTO
 
@@ -10,4 +12,4 @@ class ThreadDTO:
     id: int
     title: str
     messages: list[MessageDTO]
-    contacts: list[ContactDTO] = field(default_factory=list)
+    contacts: list["ContactDTO"] = field(default_factory=list)

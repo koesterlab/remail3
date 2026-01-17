@@ -1,8 +1,10 @@
 from collections.abc import Callable
 
 import flet as ft
+from flet.core.circle_avatar import CircleAvatar
 from flet.core.control_event import ControlEvent
 
+from remail.client.state import MainAppState, MainAppStateProperties
 from remail.client.widgets.mail_selection.profile_picture import create_profile_picture
 from remail.controllers.dtos.conversations import ConversationDTO
 
@@ -11,6 +13,7 @@ class ConversationPreview(ft.Container):
     # component representing a single contact entry
     def __init__(
         self,
+        state: MainAppState,
         conversation: ConversationDTO,
         primary_text: str,
         secondary_text: str,
@@ -20,6 +23,7 @@ class ConversationPreview(ft.Container):
         def toggle_fav(e: ControlEvent):  # todo change in backend
             conversation.is_favorite = not conversation.is_favorite
             fav_button.icon = ft.Icons.STAR if conversation.is_favorite else ft.Icons.STAR_OUTLINE
+            state.trigger(MainAppStateProperties.DISPLAYED_MAILS)  # reload to reorder
             if fav_button.page:
                 fav_button.update()
 
@@ -53,6 +57,22 @@ class ConversationPreview(ft.Container):
                 fav_button.visible = conversation.is_favorite or e.data == "true"
                 fav_button.update()
 
+        profile_picture = ft.Container()
+        profile_picture.on_click = lambda e: state.toggle_selection(conversation)
+
+        def on_toggle_selection(is_selected: bool):
+            if is_selected:
+                profile_picture.content = CircleAvatar(
+                    ft.Icon(ft.Icons.CHECK, color=ft.Colors.BLUE_900), bgcolor=ft.Colors.BLUE_200
+                )
+            else:
+                profile_picture.content = create_profile_picture(conversation)
+            if profile_picture.page:
+                profile_picture.update()
+
+        state.listen_selection(conversation, on_toggle_selection)
+        on_toggle_selection(conversation in state.get_selected())
+
         super().__init__(
             on_hover=on_hover,
             on_click=lambda e: on_click(),
@@ -61,7 +81,7 @@ class ConversationPreview(ft.Container):
             border=ft.border.only(bottom=ft.border.BorderSide(1, ft.Colors.GREY)),
             content=ft.Row(
                 [
-                    create_profile_picture(conversation),
+                    profile_picture,
                     ft.Column(
                         [
                             ft.Row(

@@ -8,59 +8,66 @@ from typing import Any
 
 import flet as ft
 
+from remail.client.state import MainAppState, MainAppStateProperties
 from remail.client.widgets.thread.message_bubble import MessageBubble
 from remail.client.widgets.thread.new_message_dialog import create_new_message_dialog
-from remail.controllers.dtos.conversations import ContactDTO, ConversationDTO, ThreadPreviewDTO
+from remail.controllers.dtos.conversations import ConversationDTO, ThreadPreviewDTO
 from remail.controllers.dtos.threads import ThreadDTO
-from tests import fetch_thread
+from remail.controllers.thread_controller import ThreadController
 
 ThreadDict = dict[str, Any]
 MessageDict = dict[str, Any]
 
 
-class ThreadList(ft.Column):
-    def __init__(
-        self, thread: ThreadPreviewDTO, conversation: ConversationDTO, active_user: ContactDTO
-    ) -> None:
-        super().__init__(expand=True, spacing=0)
-        # input box
-        self.input_field = ft.TextField(
-            hint_text="Type a reply...",
-            border_radius=20,
-            filled=True,
-            bgcolor="white",
-            dense=True,
-            expand=True,
-            color=ft.Colors.ON_INVERSE_SURFACE,
-            fill_color=ft.Colors.INVERSE_SURFACE,
-            suffix_icon=ft.Icons.SEND,
-            on_focus=lambda _: self.on_input_selected(),
-        )
-
-        self.conversation: ConversationDTO = conversation
-        self.thread: ThreadDTO = fetch_thread(thread)
-        self.active_user = active_user
+class ThreadList(ft.Container):
+    def __init__(self, state: MainAppState) -> None:
+        super().__init__(expand=True, bgcolor=ft.Colors.TERTIARY)
+        self.state = state
+        self.thread: ThreadDTO | None = None
+        state.register_observer(
+            MainAppStateProperties.ACTIVE_THREAD, lambda _: self._rebuild()
+        )  # if thread changes in state, widget changes
         self._rebuild()
 
     # ------------------------------------------------------------------ #
     # rebuild the UI
     # ------------------------------------------------------------------ #
     def _rebuild(self) -> None:
+        new_thread: ThreadPreviewDTO = self.state.get(MainAppStateProperties.ACTIVE_THREAD)
+        self.conversation: ConversationDTO = self.state.get(
+            MainAppStateProperties.ACTIVE_CONVERSATION
+        )
+        if not new_thread:  # dashboard -> just do nothing
+            self.thread = None
+            return
+        if not self.thread and new_thread.thread_id > 0:
+            self.thread = ThreadController().get_thread(new_thread.thread_id)
+        elif new_thread.thread_id < 0:  # new, unsaved thread
+            self.thread = ThreadDTO(-1, new_thread.title, [], self.conversation.contacts)
+        self.active_user = self.state.get(MainAppStateProperties.ACTIVE_USER)
+        if self.thread is None:
+            return  # just for mypy
         # ---------- the information of top contact -------- #
-
         header = ft.Container(
             ft.Row(
                 controls=[
                     ft.Column(
                         controls=[
-                            ft.Text(
-                                self.thread.title,
-                                size=22,
-                                weight=ft.FontWeight.BOLD,
-                                color=ft.Colors.ON_SURFACE,
+                            ft.TextField(
+                                value=self.thread.title,
+                                hint_text="Enter a thread name",
+                                content_padding=ft.padding.all(0),
+                                collapsed=True,
+                                text_style=ft.TextStyle(
+                                    size=22, weight=ft.FontWeight.BOLD, color=ft.Colors.ON_SURFACE
+                                ),
+                                focused_border_color=ft.Colors.TRANSPARENT,
+                                border_color=ft.Colors.TRANSPARENT,
                             ),
                             ft.Text(
-                                str(len(self.thread.messages)) + " messages",
+                                str(len(self.thread.messages)) + " messages"
+                                if len(self.conversation.contacts) == 1
+                                else self.conversation.get_member_string(),
                                 size=15,
                                 color=ft.Colors.ON_SURFACE_VARIANT,
                             ),
@@ -73,6 +80,7 @@ class ThreadList(ft.Column):
             ),
             padding=ft.padding.only(left=10, top=5, bottom=5, right=10),
             height=60,
+            bgcolor=ft.Colors.SURFACE,
         )
 
         # ---------- “Discussing email” 卡片 ---------- #
@@ -112,39 +120,20 @@ class ThreadList(ft.Column):
                 expand=True,
                 scroll=ft.ScrollMode.AUTO,
             ),
-            bgcolor=ft.Colors.TERTIARY,
             expand=True,
         )
 
         # ---------- downside message input box ---------- #
-        self.dummy_input = ft.Row(
-            controls=[
-                self.input_field,
-            ],
-            spacing=10,
-            alignment=ft.MainAxisAlignment.END,
-        )
-
-        self.input_row = ft.Container(
-            content=self.dummy_input, bgcolor=ft.Colors.TERTIARY, padding=ft.padding.all(10)
-        )
 
         # ---------- conbination of the whole layout ---------- #
-        self.controls = [
-            header,
-            # discussing_card,
-            # ft.Container(height=20),
-            messages_column,
-            self.input_row,
-        ]
-
-    def on_input_selected(self):
-        new_message_dialog, focus_callback = create_new_message_dialog(self.on_input_minimized)
-        self.input_row.content = new_message_dialog
-        self.input_row.update()
-        focus_callback()
-        pass
-
-    def on_input_minimized(self):
-        self.input_row.content = self.dummy_input
-        self.input_row.update()
+        self.content = ft.Column(
+            [
+                header,
+                # discussing_card,
+                # ft.Container(height=20),
+                messages_column,
+                create_new_message_dialog(self.state),
+            ],
+            spacing=0,
+            expand=True,
+        )

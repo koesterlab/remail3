@@ -1,12 +1,18 @@
 import flet as ft
 
 from remail.client.state import MainAppState, MainAppStateProperties
-from remail.controllers.dtos.conversations import ThreadPreviewDTO
+from remail.controllers.dtos.conversations import ConversationDTO, ThreadPreviewDTO
 
 
 class ThreadPreview(ft.Container):
     # component representing a single contact entry
-    def __init__(self, thread: ThreadPreviewDTO, state: MainAppState):
+    def __init__(
+        self, state: MainAppState, thread: ThreadPreviewDTO, conversation: ConversationDTO
+    ):
+        def on_click():
+            state.set(MainAppStateProperties.ACTIVE_CONVERSATION, conversation)
+            state.set(MainAppStateProperties.ACTIVE_THREAD, thread)
+
         super().__init__(
             content=ft.Row(
                 [
@@ -48,6 +54,6 @@ class ThreadPreview(ft.Container):
                 spacing=12,
                 alignment=ft.MainAxisAlignment.START,
             ),
-            on_click=lambda _: state.set(MainAppStateProperties.ACTIVE_THREAD, thread),
+            on_click=lambda _: on_click(),
             padding=12,
         )

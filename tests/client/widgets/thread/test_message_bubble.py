@@ -29,7 +29,7 @@ class TestMessageBubble(unittest.TestCase):
     def test_bubble_alignment_me(self) -> None:
         """Message from current user aligns right and uses primary color."""
         message = MessageDTO(
-            sender=self.user_sender,
+            sender=self.user_contact,
             content=MessageContentDTO(body="Hello me", attachments=[]),
             sent_at=datetime(2024, 1, 1),
             id=0,
