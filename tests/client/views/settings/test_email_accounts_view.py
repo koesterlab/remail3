@@ -15,6 +15,7 @@ def create_mock_user_dto(email: str) -> Mock:
     """Helper to create mock UserDTO."""
     mock_dto = Mock(spec=UserDTO)
     mock_dto.email = email
+    mock_dto.host = "imap.example.com"
     mock_dto.id = 1
     mock_dto.name = email.split("@")[0]
     mock_dto.category = UserAccountCategory.PRIVATE
@@ -448,7 +449,9 @@ class TestEmailAccoutsView(unittest.TestCase):
 
         # Verify user was added
         mock_user_service.add_user.assert_called_once_with(
-            email="new@example.com", password="password123"
+            email="new@example.com",
+            password="password123",
+            host="imap.example.com",
         )
 
         # Verify sync service and scheduler were created

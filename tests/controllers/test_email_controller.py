@@ -63,6 +63,30 @@ class TestLogin:
         assert result["message"] == "Invalid login credentials"
         assert result["logged_in"] is False
 
+
+class TestFromId:
+    """Tests for loading an EmailController from a saved user."""
+
+    def test_from_id_uses_persisted_host(self):
+        """Test that from_id uses the stored host value."""
+        mock_user = MagicMock()
+        mock_user.id = 7
+        mock_user.email = "user@example.com"
+        mock_user.password = "secret"
+        mock_user.host = "imap.example.com"
+
+        with patch("remail.controllers.email_controller.UserService") as mock_user_service:
+            with patch("remail.controllers.email_controller.ImapProtocol") as mock_protocol:
+                mock_user_service.get_all_users.return_value = [mock_user]
+
+                EmailController.from_id(7)
+
+                mock_protocol.assert_called_once_with(
+                    username="user@example.com",
+                    password="secret",
+                    host="imap.example.com",
+                )
+
     def test_login_generic_error(self, controller, mock_protocol):
         """Test login with generic error."""
 

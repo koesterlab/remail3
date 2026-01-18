@@ -42,6 +42,7 @@ class UserService:
             id=user.id,
             name=user.name,
             email=user.email,
+            host=user.host,
             password=user.password,
             category=UserAccountCategory.PRIVATE,  # User model doesn't have category
             protocol=user.protocol,
@@ -50,7 +51,11 @@ class UserService:
 
     @staticmethod
     def add_user(
-        email: str, password: str, name: str | None = None, protocol: Protocol = Protocol.IMAP
+        email: str,
+        password: str,
+        host: str,
+        name: str | None = None,
+        protocol: Protocol = Protocol.IMAP,
     ) -> User:
         """
         Add a new user to the database.
@@ -58,6 +63,7 @@ class UserService:
         Args:
             email: User's email address (must be unique)
             password: User's password (should be hashed before passing!)
+            host: IMAP/SMTP server hostname
             name: User's display name (optional, defaults to email username part)
             protocol: Email protocol (default: IMAP)
 
@@ -83,6 +89,7 @@ class UserService:
             new_user = User(
                 name=name,
                 email=email,
+                host=host,
                 password=password,
                 protocol=protocol,
             )
@@ -141,6 +148,7 @@ class UserService:
         user_id: int,
         name: str | None = None,
         email: str | None = None,
+        host: str | None = None,
         password: str | None = None,
         protocol: Protocol | None = None,
     ) -> User | None:
@@ -151,6 +159,7 @@ class UserService:
             user_id: ID of user to update
             name: New name (optional)
             email: New email (optional)
+            host: New host (optional)
             password: New password (optional, should be hashed!)
             protocol: New protocol (optional)
 
@@ -178,6 +187,8 @@ class UserService:
                 user.name = name
             if email is not None:
                 user.email = email
+            if host is not None:
+                user.host = host
             if password is not None:
                 user.password = password
             if protocol is not None:

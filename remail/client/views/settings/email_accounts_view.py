@@ -86,6 +86,7 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
                     UserService.add_user(
                         email=email_input.value,
                         password=password_input.value,
+                        host=host_input.value,
                     )
 
                     show_snackbar("Connected and saved!", ft.Colors.GREEN_400)

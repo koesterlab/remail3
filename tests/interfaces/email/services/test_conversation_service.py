@@ -50,6 +50,7 @@ class TestConversationService:
             user = User(
                 name="testuser",
                 email="test@example.com",
+                host="imap.example.com",
                 password="hash123",
                 protocol=Protocol.IMAP,
             )
@@ -253,6 +254,7 @@ class TestConversationService:
             user = User(
                 name="lonely",
                 email="lonely@example.com",
+                host="imap.example.com",
                 password="hash123",
                 protocol=Protocol.IMAP,
             )
@@ -274,12 +276,14 @@ class TestConversationService:
             user1 = User(
                 name="user1",
                 email="user1@example.com",
+                host="imap.example.com",
                 password="hash1",
                 protocol=Protocol.IMAP,
             )
             user2 = User(
                 name="user2",
                 email="user2@example.com",
+                host="imap.example.com",
                 password="hash2",
                 protocol=Protocol.IMAP,
             )

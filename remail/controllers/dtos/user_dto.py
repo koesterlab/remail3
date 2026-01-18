@@ -8,6 +8,7 @@ class UserDTO:
     id: int
     name: str
     email: str
+    host: str
     password: str
     category: UserAccountCategory
     protocol: Protocol

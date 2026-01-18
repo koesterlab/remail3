@@ -49,12 +49,14 @@ class TestUserService:
         user = UserService.add_user(
             email="test@example.com",
             password="hashed_password",
+            host="imap.example.com",
         )
 
         assert user is not None
         assert user.email == "test@example.com"
         assert user.password == "hashed_password"
         assert user.name == "test"  # Extracted from email
+        assert user.host == "imap.example.com"
         assert user.protocol == Protocol.IMAP  # Default protocol
         assert user.id is not None
 
@@ -63,6 +65,7 @@ class TestUserService:
         user = UserService.add_user(
             email="john@example.com",
             password="hash123",
+            host="imap.example.com",
             name="John Doe",
         )
 
@@ -74,6 +77,7 @@ class TestUserService:
         user = UserService.add_user(
             email="exchange@example.com",
             password="hash123",
+            host="exchange.example.com",
             protocol=Protocol.EXCHANGE,
         )
 
@@ -82,16 +86,24 @@ class TestUserService:
     def test_add_user_duplicate_email_raises_valueerror(self):
         """Test that adding duplicate email raises ValueError."""
         # Add first user
-        UserService.add_user(email="duplicate@example.com", password="hash1")
+        UserService.add_user(
+            email="duplicate@example.com", password="hash1", host="imap.example.com"
+        )
 
         # Try to add duplicate
         with pytest.raises(ValueError, match="already exists"):
-            UserService.add_user(email="duplicate@example.com", password="hash2")
+            UserService.add_user(
+                email="duplicate@example.com", password="hash2", host="imap.example.com"
+            )
 
     def test_get_user_by_email_found(self):
         """Test getting user by email when user exists."""
         # Create user
-        created_user = UserService.add_user(email="found@example.com", password="hash123")
+        created_user = UserService.add_user(
+            email="found@example.com",
+            password="hash123",
+            host="imap.example.com",
+        )
 
         # Get user
         found_user = UserService.get_user_by_email("found@example.com")
@@ -109,7 +121,11 @@ class TestUserService:
     def test_get_user_by_id_found(self):
         """Test getting user by ID when user exists."""
         # Create user
-        created_user = UserService.add_user(email="found@example.com", password="hash123")
+        created_user = UserService.add_user(
+            email="found@example.com",
+            password="hash123",
+            host="imap.example.com",
+        )
 
         # Get user by ID
         found_user = UserService.get_user_by_id(created_user.id)
@@ -134,17 +150,19 @@ class TestUserService:
     def test_get_all_users_multiple(self):
         """Test getting all users when multiple exist."""
         # Create multiple users
-        UserService.add_user(email="user1@example.com", password="hash1")
-        UserService.add_user(email="user2@example.com", password="hash2")
-        UserService.add_user(email="user3@example.com", password="hash3")
+        UserService.add_user(email="user1@example.com", password="hash1", host="imap.example.com")
+        UserService.add_user(email="user2@example.com", password="hash2", host="imap.example.com")
+        UserService.add_user(email="user3@example.com", password="hash3", host="imap.example.com")
 
         users = UserService.get_all_users()
 
         assert len(users) == 3
         emails = [u.email for u in users]
+        hosts = [u.host for u in users]
         assert "user1@example.com" in emails
         assert "user2@example.com" in emails
         assert "user3@example.com" in emails
+        assert all(host == "imap.example.com" for host in hosts)
 
     def test_update_user_all_fields(self):
         """Test updating all user fields."""
@@ -152,6 +170,7 @@ class TestUserService:
         user = UserService.add_user(
             email="original@example.com",
             password="old_password",
+            host="imap.example.com",
             name="Original Name",
             protocol=Protocol.IMAP,
         )
@@ -161,6 +180,7 @@ class TestUserService:
             user_id=user.id,
             name="New Name",
             email="new@example.com",
+            host="mail.example.com",
             password="new_password",
             protocol=Protocol.EXCHANGE,
         )
@@ -168,6 +188,7 @@ class TestUserService:
         assert updated_user is not None
         assert updated_user.name == "New Name"
         assert updated_user.email == "new@example.com"
+        assert updated_user.host == "mail.example.com"
         assert updated_user.password == "new_password"
         assert updated_user.protocol == Protocol.EXCHANGE
 
@@ -177,6 +198,7 @@ class TestUserService:
         user = UserService.add_user(
             email="partial@example.com",
             password="old_password",
+            host="imap.example.com",
             name="Old Name",
             protocol=Protocol.IMAP,
         )
@@ -187,6 +209,7 @@ class TestUserService:
         assert updated_user is not None
         assert updated_user.name == "New Name"
         assert updated_user.email == "partial@example.com"  # Unchanged
+        assert updated_user.host == "imap.example.com"  # Unchanged
         assert updated_user.password == "old_password"  # Unchanged
         assert updated_user.protocol == Protocol.IMAP  # Unchanged
 
@@ -199,8 +222,10 @@ class TestUserService:
     def test_update_user_duplicate_email_raises_valueerror(self):
         """Test that updating email to existing one raises ValueError."""
         # Create two users
-        UserService.add_user(email="user1@example.com", password="hash1")
-        user2 = UserService.add_user(email="user2@example.com", password="hash2")
+        UserService.add_user(email="user1@example.com", password="hash1", host="imap.example.com")
+        user2 = UserService.add_user(
+            email="user2@example.com", password="hash2", host="imap.example.com"
+        )
 
         # Try to change user2's email to user1's email
         with pytest.raises(ValueError, match="already taken"):
@@ -208,7 +233,11 @@ class TestUserService:
 
     def test_update_user_same_email_allowed(self):
         """Test that updating to the same email is allowed."""
-        user = UserService.add_user(email="same@example.com", password="hash1")
+        user = UserService.add_user(
+            email="same@example.com",
+            password="hash1",
+            host="imap.example.com",
+        )
 
         # Update with same email should work
         updated_user = UserService.update_user(user_id=user.id, email="same@example.com")
@@ -219,7 +248,9 @@ class TestUserService:
     def test_delete_user_success(self):
         """Test successful user deletion by email."""
         # Create user
-        UserService.add_user(email="delete@example.com", password="hash123")
+        UserService.add_user(
+            email="delete@example.com", password="hash123", host="imap.example.com"
+        )
 
         # Delete user
         result = UserService.delete_user("delete@example.com")
@@ -239,7 +270,11 @@ class TestUserService:
     def test_delete_user_by_id_success(self):
         """Test successful user deletion by ID."""
         # Create user
-        user = UserService.add_user(email="deleteid@example.com", password="hash123")
+        user = UserService.add_user(
+            email="deleteid@example.com",
+            password="hash123",
+            host="imap.example.com",
+        )
 
         # Delete user
         result = UserService.delete_user_by_id(user.id)

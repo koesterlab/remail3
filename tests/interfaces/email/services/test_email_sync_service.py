@@ -62,6 +62,7 @@ def create_test_user(engine) -> User:
         user = User(
             name="test",
             email="test@example.com",
+            host="imap.example.com",
             password="",
             protocol=Protocol.IMAP,
         )
