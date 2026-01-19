@@ -154,7 +154,7 @@ def test_generate_completion_creates_correct_messages(mock_env, mock_openai_resp
         assert messages[0]["role"] == "system"
         assert (
             messages[0]["content"]
-            == "You are a helpful assistant. Your name is Alfred. Provide clear, concise, and helpful responses."
+            == "You are Alfred, a helpful and concise assistant. Keep your responses brief and to the point, typically 1-3 sentences unless more detail is specifically requested."
         )
         assert messages[1]["role"] == "user"
         assert messages[1]["content"] == "Hello"

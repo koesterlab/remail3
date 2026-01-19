@@ -6,6 +6,7 @@ import pytest
 
 from remail.controllers.dtos import LLMResponseDTO
 from remail.controllers.llm_controller import LLMController
+from remail.interfaces.llm.dto import LLMMessage
 from remail.interfaces.llm.enums.llm_message_role import LLMMessageRole
 from remail.interfaces.llm.response import LLMCompletionResponse
 
@@ -22,24 +23,27 @@ def mock_llm_service():
 
 
 @pytest.fixture
-def controller(mock_llm_service):
-    """Create an LLMController instance with mocked service."""
+def mock_chat_service():
+    """Create a mock ChatService."""
+    with patch("remail.controllers.llm_controller.ChatService") as mock:
+        service_instance = MagicMock()
+        mock.return_value = service_instance
+        yield service_instance
+
+
+@pytest.fixture
+def controller(mock_llm_service, mock_chat_service):
+    """Create an LLMController instance with mocked services."""
     return LLMController()
 
 
 class TestInitialization:
     """Tests for controller initialization."""
 
-    def test_controller_initializes_with_system_message(self, controller):
-        """Test that controller initializes with a system message."""
-        assert len(controller.conversation_history) == 1
-        assert controller.conversation_history[0].role == LLMMessageRole.SYSTEM
-        assert "Alfred" in controller.conversation_history[0].content
-        assert "concise" in controller.conversation_history[0].content
-
-    def test_controller_has_service(self, controller, mock_llm_service):
-        """Test that controller has LLM service."""
+    def test_controller_has_services(self, controller, mock_llm_service, mock_chat_service):
+        """Test that controller initializes with both services."""
         assert controller.service == mock_llm_service
+        assert controller.chat_service == mock_chat_service
 
 
 class TestGenerateCompletion:
@@ -47,7 +51,6 @@ class TestGenerateCompletion:
 
     def test_generate_completion_success(self, controller, mock_llm_service):
         """Test successful completion generation."""
-        # Mock response
         mock_response = MagicMock(spec=LLMCompletionResponse)
         mock_response.completion_text = "This is a test response"
         mock_llm_service.generate_completion.return_value = mock_response
@@ -91,139 +94,121 @@ class TestGenerateCompletion:
 class TestChat:
     """Tests for chat method."""
 
-    def test_chat_success(self, controller, mock_llm_service):
-        """Test successful chat response."""
+    @pytest.fixture
+    def chat_session(self):
+        session = MagicMock()
+        session.id = 42
+        return session
+
+    def test_chat_success_persists_messages(
+        self, controller, mock_llm_service, mock_chat_service, chat_session
+    ):
+        """Test successful chat response and message persistence."""
         mock_response = MagicMock(spec=LLMCompletionResponse)
         mock_response.completion_text = "Nice to meet you!"
         mock_llm_service.generate_completion_with_history.return_value = mock_response
 
-        result = controller.chat(prompt="Hello, my name is Alice")
+        mock_chat_service.get_or_create_session.return_value = chat_session
+        mock_chat_service.build_thread_context.return_value = "Thread context"
+        mock_chat_service.get_session_messages.return_value = [
+            LLMMessage(role=LLMMessageRole.USER, content="Earlier message")
+        ]
+
+        result = controller.chat(prompt="Hello", user_id=1, thread_id=2)
 
         assert isinstance(result, LLMResponseDTO)
         assert result.content == "Nice to meet you!"
 
-    def test_chat_adds_messages_to_history(self, controller, mock_llm_service):
-        """Test that chat adds messages to conversation history."""
-        mock_response = MagicMock(spec=LLMCompletionResponse)
-        mock_response.completion_text = "Response 1"
-        mock_llm_service.generate_completion_with_history.return_value = mock_response
+        call_args = mock_llm_service.generate_completion_with_history.call_args
+        history_passed = call_args.kwargs["conversation_history"]
 
-        initial_length = len(controller.conversation_history)
-        controller.chat(prompt="First message")
+        assert history_passed[0].role == LLMMessageRole.SYSTEM
+        assert "Thread context" in history_passed[0].content
+        assert history_passed[1].content == "Earlier message"
 
-        # Should add user message and assistant message
-        assert len(controller.conversation_history) == initial_length + 2
-        assert controller.conversation_history[-2].role == LLMMessageRole.USER
-        assert controller.conversation_history[-2].content == "First message"
-        assert controller.conversation_history[-1].role == LLMMessageRole.ASSISTANT
-        assert controller.conversation_history[-1].content == "Response 1"
+        mock_chat_service.save_message.assert_any_call(
+            chat_session.id, LLMMessageRole.USER, "Hello"
+        )
+        mock_chat_service.save_message.assert_any_call(
+            chat_session.id, LLMMessageRole.ASSISTANT, "Nice to meet you!"
+        )
 
-    def test_chat_maintains_conversation_context(self, controller, mock_llm_service):
-        """Test that chat maintains conversation context across multiple messages."""
-        mock_response_1 = MagicMock(spec=LLMCompletionResponse)
-        mock_response_1.completion_text = "First response"
-        mock_response_2 = MagicMock(spec=LLMCompletionResponse)
-        mock_response_2.completion_text = "Second response"
-
-        mock_llm_service.generate_completion_with_history.side_effect = [
-            mock_response_1,
-            mock_response_2,
-        ]
-
-        controller.chat(prompt="First question")
-        controller.chat(prompt="Second question")
-
-        # Should have system message + 2 exchanges (4 messages)
-        assert len(controller.conversation_history) == 5
-        assert mock_llm_service.generate_completion_with_history.call_count == 2
-
-        # Check that history is passed correctly on second call
-        second_call_args = mock_llm_service.generate_completion_with_history.call_args_list[1]
-        history_passed = second_call_args.kwargs["conversation_history"]
-
-        # History should include system message + first exchange
-        assert len(history_passed) >= 3
-
-    def test_chat_uses_custom_parameters(self, controller, mock_llm_service):
+    def test_chat_uses_custom_parameters(
+        self, controller, mock_llm_service, mock_chat_service, chat_session
+    ):
         """Test chat with custom max_tokens and temperature."""
         mock_response = MagicMock(spec=LLMCompletionResponse)
         mock_response.completion_text = "Response"
         mock_llm_service.generate_completion_with_history.return_value = mock_response
 
-        controller.chat(prompt="Test", max_tokens=50, temperature=0.9)
+        mock_chat_service.get_or_create_session.return_value = chat_session
+        mock_chat_service.build_thread_context.return_value = ""
+        mock_chat_service.get_session_messages.return_value = []
+
+        controller.chat(prompt="Test", user_id=1, thread_id=2, max_tokens=50, temperature=0.9)
 
         call_args = mock_llm_service.generate_completion_with_history.call_args
         assert call_args.kwargs["max_tokens"] == 50
         assert call_args.kwargs["temperature"] == 0.9
 
-    def test_chat_uses_default_parameters_from_service(self, controller, mock_llm_service):
+    def test_chat_uses_default_parameters_from_service(
+        self, controller, mock_llm_service, mock_chat_service, chat_session
+    ):
         """Test chat uses service defaults when not specified."""
         mock_response = MagicMock(spec=LLMCompletionResponse)
         mock_response.completion_text = "Response"
         mock_llm_service.generate_completion_with_history.return_value = mock_response
 
-        controller.chat(prompt="Test")
+        mock_chat_service.get_or_create_session.return_value = chat_session
+        mock_chat_service.build_thread_context.return_value = ""
+        mock_chat_service.get_session_messages.return_value = []
+
+        controller.chat(prompt="Test", user_id=1, thread_id=2)
 
         call_args = mock_llm_service.generate_completion_with_history.call_args
         assert call_args.kwargs["max_tokens"] == mock_llm_service.default_max_tokens
         assert call_args.kwargs["temperature"] == mock_llm_service.default_temperature
 
-    def test_chat_raises_on_error(self, controller, mock_llm_service):
+    def test_chat_raises_on_error(
+        self, controller, mock_llm_service, mock_chat_service, chat_session
+    ):
         """Test that chat propagates errors."""
         mock_llm_service.generate_completion_with_history.side_effect = RuntimeError(
             "Service unavailable"
         )
+        mock_chat_service.get_or_create_session.return_value = chat_session
+        mock_chat_service.build_thread_context.return_value = ""
+        mock_chat_service.get_session_messages.return_value = []
 
         with pytest.raises(RuntimeError, match="Service unavailable"):
-            controller.chat(prompt="Test")
+            controller.chat(prompt="Test", user_id=1, thread_id=2)
 
 
-class TestResetChatMemory:
-    """Tests for reset_chat_memory method."""
+class TestSessionMessages:
+    """Tests for session message retrieval and reset."""
 
-    def test_reset_clears_history(self, controller, mock_llm_service):
-        """Test that reset clears conversation history."""
-        mock_response = MagicMock(spec=LLMCompletionResponse)
-        mock_response.completion_text = "Response"
-        mock_llm_service.generate_completion_with_history.return_value = mock_response
+    @pytest.fixture
+    def chat_session(self):
+        session = MagicMock()
+        session.id = 7
+        return session
 
-        # Add some conversation
-        controller.chat(prompt="First")
-        controller.chat(prompt="Second")
+    def test_get_session_messages(self, controller, mock_chat_service, chat_session):
+        """Test that session messages are fetched via ChatService."""
+        mock_chat_service.get_or_create_session.return_value = chat_session
+        mock_chat_service.get_session_messages.return_value = [
+            LLMMessage(role=LLMMessageRole.ASSISTANT, content="Hi")
+        ]
 
-        assert len(controller.conversation_history) > 1
+        result = controller.get_session_messages(user_id=1, thread_id=2)
 
-        # Reset
-        controller.reset_chat_memory()
+        assert result[0].content == "Hi"
+        mock_chat_service.get_session_messages.assert_called_once_with(chat_session.id)
 
-        # Should only have system message
-        assert len(controller.conversation_history) == 1
-        assert controller.conversation_history[0].role == LLMMessageRole.SYSTEM
+    def test_reset_chat_memory(self, controller, mock_chat_service, chat_session):
+        """Test that reset clears session messages."""
+        mock_chat_service.get_or_create_session.return_value = chat_session
 
-    def test_reset_reinitializes_system_message(self, controller):
-        """Test that reset adds system message back."""
-        controller.reset_chat_memory()
+        controller.reset_chat_memory(user_id=1, thread_id=2)
 
-        assert len(controller.conversation_history) == 1
-        system_msg = controller.conversation_history[0]
-        assert system_msg.role == LLMMessageRole.SYSTEM
-        assert "Alfred" in system_msg.content
-        assert "concise" in system_msg.content
-
-    def test_chat_works_after_reset(self, controller, mock_llm_service):
-        """Test that chat works correctly after reset."""
-        mock_response = MagicMock(spec=LLMCompletionResponse)
-        mock_response.completion_text = "Response"
-        mock_llm_service.generate_completion_with_history.return_value = mock_response
-
-        # Initial chat
-        controller.chat(prompt="Before reset")
-
-        # Reset
-        controller.reset_chat_memory()
-
-        # Chat again
-        result = controller.chat(prompt="After reset")
-
-        assert isinstance(result, LLMResponseDTO)
-        assert len(controller.conversation_history) == 3  # system + user + assistant
+        mock_chat_service.clear_session_messages.assert_called_once_with(chat_session.id)

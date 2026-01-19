@@ -7,6 +7,7 @@ import flet as ft
 import pytest
 
 from remail.client.state import MainAppState
+from remail.client.state.main_app_state import MainAppStateProperties
 from remail.client.widgets.chatbot.chatbot import create_chatbot
 from remail.controllers.dtos import LLMResponseDTO
 
@@ -16,6 +17,7 @@ def mock_llm_controller() -> Any:
     """Create a mock LLMController."""
     with patch("remail.client.widgets.chatbot.chatbot.LLMController") as mock:
         controller_instance = MagicMock()
+        controller_instance.get_session_messages.return_value = []
         mock.return_value = controller_instance
         yield controller_instance
 
@@ -23,8 +25,24 @@ def mock_llm_controller() -> Any:
 @pytest.fixture(autouse=True)
 def mock_flet_update() -> None:
     """Mock Flet control update methods to avoid page requirement."""
-    with patch.object(ft.TextField, "update"), patch.object(ft.ListView, "update"):
+    with (
+        patch.object(ft.TextField, "update"),
+        patch.object(ft.ListView, "update"),
+        patch.object(ft.Text, "update"),
+    ):
         yield
+
+
+def build_seeded_state() -> MainAppState:
+    state = MainAppState()
+    user = MagicMock()
+    user.id = 1
+    thread = MagicMock()
+    thread.thread_id = 101
+    thread.title = "Test Thread"
+    state.set(MainAppStateProperties.ACTIVE_USER, user)
+    state.set(MainAppStateProperties.ACTIVE_THREAD, thread)
+    return state
 
 
 class TestCreateChatbot:
@@ -46,8 +64,8 @@ class TestChatbotInteraction:
 
     def test_send_message_with_empty_input(self, mock_llm_controller: Any) -> None:
         """Test that empty messages are not sent."""
-        chatbot = create_chatbot(MainAppState())
-        input_row = chatbot.content.controls[1]
+        chatbot = create_chatbot(build_seeded_state())
+        input_row = chatbot.content.controls[3]
         message_input = input_row.controls[0]
 
         message_input.value = "   "
@@ -60,9 +78,9 @@ class TestChatbotInteraction:
         mock_response = LLMResponseDTO(content="Hello! How can I help you?")
         mock_llm_controller.chat.return_value = mock_response
 
-        chatbot = create_chatbot(MainAppState())
-        chat_display = chatbot.content.controls[0]
-        input_row = chatbot.content.controls[1]
+        chatbot = create_chatbot(build_seeded_state())
+        chat_display = chatbot.content.controls[2]
+        input_row = chatbot.content.controls[3]
         message_input = input_row.controls[0]
 
         message_input.value = "Hello"
@@ -70,6 +88,8 @@ class TestChatbotInteraction:
 
         mock_llm_controller.chat.assert_called_once_with(
             prompt="Hello",
+            user_id=1,
+            thread_id=101,
             max_tokens=100,
             temperature=0.7,
         )
@@ -80,9 +100,9 @@ class TestChatbotInteraction:
         mock_response = LLMResponseDTO(content="AI response")
         mock_llm_controller.chat.return_value = mock_response
 
-        chatbot = create_chatbot(MainAppState())
-        chat_display = chatbot.content.controls[0]
-        input_row = chatbot.content.controls[1]
+        chatbot = create_chatbot(build_seeded_state())
+        chat_display = chatbot.content.controls[2]
+        input_row = chatbot.content.controls[3]
         message_input = input_row.controls[0]
 
         message_input.value = "Test message"
@@ -101,9 +121,9 @@ class TestChatbotInteraction:
         mock_response = LLMResponseDTO(content="This is the AI response")
         mock_llm_controller.chat.return_value = mock_response
 
-        chatbot = create_chatbot(MainAppState())
-        chat_display = chatbot.content.controls[0]
-        input_row = chatbot.content.controls[1]
+        chatbot = create_chatbot(build_seeded_state())
+        chat_display = chatbot.content.controls[2]
+        input_row = chatbot.content.controls[3]
         message_input = input_row.controls[0]
 
         message_input.value = "Question"
@@ -122,8 +142,8 @@ class TestChatbotInteraction:
         mock_response = LLMResponseDTO(content="Response")
         mock_llm_controller.chat.return_value = mock_response
 
-        chatbot = create_chatbot(MainAppState())
-        input_row = chatbot.content.controls[1]
+        chatbot = create_chatbot(build_seeded_state())
+        input_row = chatbot.content.controls[3]
         message_input = input_row.controls[0]
         message_input.value = "Test"
 
@@ -135,8 +155,8 @@ class TestChatbotInteraction:
         mock_response = LLMResponseDTO(content="Response")
         mock_llm_controller.chat.return_value = mock_response
 
-        chatbot = create_chatbot(MainAppState())
-        input_row = chatbot.content.controls[1]
+        chatbot = create_chatbot(build_seeded_state())
+        input_row = chatbot.content.controls[3]
         message_input = input_row.controls[0]
 
         message_input.value = "  Hello World  "
@@ -154,9 +174,9 @@ class TestChatbotInteraction:
         ]
         mock_llm_controller.chat.side_effect = responses
 
-        chatbot = create_chatbot(MainAppState())
-        chat_display = chatbot.content.controls[0]
-        input_row = chatbot.content.controls[1]
+        chatbot = create_chatbot(build_seeded_state())
+        chat_display = chatbot.content.controls[2]
+        input_row = chatbot.content.controls[3]
         message_input = input_row.controls[0]
 
         message_input.value = "First"
@@ -177,9 +197,9 @@ class TestChatbotErrorHandling:
         """Test that exceptions are handled gracefully."""
         mock_llm_controller.chat.side_effect = RuntimeError("Connection failed")
 
-        chatbot = create_chatbot(MainAppState())
-        chat_display = chatbot.content.controls[0]
-        message_input = chatbot.content.controls[1].controls[0]
+        chatbot = create_chatbot(build_seeded_state())
+        chat_display = chatbot.content.controls[2]
+        message_input = chatbot.content.controls[3].controls[0]
 
         message_input.value = "Test"
         message_input.on_submit(None)
@@ -195,9 +215,9 @@ class TestChatbotErrorHandling:
         """Test that error message includes the user's input."""
         mock_llm_controller.chat.side_effect = Exception("Error")
 
-        chatbot = create_chatbot(MainAppState())
-        chat_display = chatbot.content.controls[0]
-        message_input = chatbot.content.controls[1].controls[0]
+        chatbot = create_chatbot(build_seeded_state())
+        chat_display = chatbot.content.controls[2]
+        message_input = chatbot.content.controls[3].controls[0]
 
         message_input.value = "My question"
         message_input.on_submit(None)
@@ -213,9 +233,9 @@ class TestChatbotErrorHandling:
         """Test that error messages are displayed in red."""
         mock_llm_controller.chat.side_effect = Exception("Error")
 
-        chatbot = create_chatbot(MainAppState())
-        chat_display = chatbot.content.controls[0]
-        message_input = chatbot.content.controls[1].controls[0]
+        chatbot = create_chatbot(build_seeded_state())
+        chat_display = chatbot.content.controls[2]
+        message_input = chatbot.content.controls[3].controls[0]
 
         message_input.value = "Test"
         message_input.on_submit(None)
@@ -237,8 +257,8 @@ class TestChatbotSubmit:
         mock_response = LLMResponseDTO(content="Response")
         mock_llm_controller.chat.return_value = mock_response
 
-        chatbot = create_chatbot(MainAppState())
-        input_row = chatbot.content.controls[1]
+        chatbot = create_chatbot(build_seeded_state())
+        input_row = chatbot.content.controls[3]
         message_input = input_row.controls[0]
         message_input.value = "Test via Enter"
 

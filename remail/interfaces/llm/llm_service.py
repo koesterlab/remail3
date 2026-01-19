@@ -14,6 +14,11 @@ from remail.interfaces.llm.enums.llm_message_role import LLMMessageRole
 from remail.interfaces.llm.enums.llm_model import LLMModel
 from remail.interfaces.llm.response import LLMCompletionResponse
 
+_BASE_SYSTEM_PROMPT = (
+    "You are Alfred, a helpful and concise assistant. Keep your responses brief and to the "
+    "point, typically 1-3 sentences unless more detail is specifically requested."
+)
+
 
 class LLMService(LLMBase):
     """LLM service implementation using OpenAI client."""
@@ -79,7 +84,7 @@ class LLMService(LLMBase):
         messages = [
             LLMMessage(
                 role=LLMMessageRole.SYSTEM,
-                content="You are a helpful assistant. Your name is Alfred. Provide clear, concise, and helpful responses.",
+                content=_BASE_SYSTEM_PROMPT,
             ),
             LLMMessage(role=LLMMessageRole.USER, content=prompt),
         ]
@@ -108,14 +113,20 @@ class LLMService(LLMBase):
             Structured LLM completion response
         """
 
-        messages = [
-            LLMMessage(
-                role=LLMMessageRole.SYSTEM,
-                content="You are a helpful assistant. Your name is Alfred. Provide clear, concise, and helpful responses.",
-            ),
-            *conversation_history,
-            LLMMessage(role=LLMMessageRole.USER, content=prompt),
-        ]
+        messages: list[LLMMessage] = []
+
+        if conversation_history and conversation_history[0].role == LLMMessageRole.SYSTEM:
+            messages.extend(conversation_history)
+        else:
+            messages.append(
+                LLMMessage(
+                    role=LLMMessageRole.SYSTEM,
+                    content=_BASE_SYSTEM_PROMPT,
+                )
+            )
+            messages.extend(conversation_history)
+
+        messages.append(LLMMessage(role=LLMMessageRole.USER, content=prompt))
 
         return self._generate_completion_internal(messages, max_tokens, temperature, **kwargs)
 

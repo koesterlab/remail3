@@ -4,6 +4,7 @@ from flet.core.colors import Colors
 from remail.client.state.main_app_state import MainAppState, MainAppStateProperties
 from remail.controllers.dtos import LLMResponseDTO
 from remail.controllers.llm_controller import LLMController
+from remail.interfaces.llm.enums.llm_message_role import LLMMessageRole
 
 
 def create_chatbot(app_state: MainAppState):
@@ -38,6 +39,19 @@ def create_chatbot(app_state: MainAppState):
 
     app_state.register_observer(MainAppStateProperties.ACTIVE_CHATBOT, change_chat_visibility)
 
+    thread_header = ft.Text(
+        value="No thread selected",
+        size=12,
+        color=Colors.GREY_500,
+    )
+
+    empty_state = ft.Text(
+        value="Select a thread to chat about it",
+        size=12,
+        color=Colors.GREY_500,
+        visible=False,
+    )
+
     message_input = ft.TextField(
         label="Call AIfred 🤖 ...",
         expand=True,
@@ -47,6 +61,25 @@ def create_chatbot(app_state: MainAppState):
         on_blur=lambda _: change_active_state(active_input=False),
         color=ft.Colors.ON_PRIMARY,
     )
+
+    def _render_message(role: LLMMessageRole, content: str) -> ft.Text:
+        if role == LLMMessageRole.USER:
+            return ft.Text(f"You: {content}", color=Colors.BLUE)
+
+        if role == LLMMessageRole.ASSISTANT:
+            return ft.Text(f"AI: {content}", color=Colors.GREEN)
+
+        return ft.Text(f"{role.value}: {content}", color=Colors.ON_SURFACE)
+
+    def _get_active_thread():
+        return app_state.get(MainAppStateProperties.ACTIVE_THREAD)
+
+    def _get_active_user():
+        return app_state.get(MainAppStateProperties.ACTIVE_USER)
+
+    def _safe_update(control: ft.Control) -> None:
+        if getattr(control, "page", None) is not None:
+            control.update()
 
     def _get_ai_response(user_message: str) -> LLMResponseDTO | None:
         """Get AI response using LLM controller with chat memory.
@@ -58,9 +91,17 @@ def create_chatbot(app_state: MainAppState):
             LLMResponseDTO or None if an error occurred
         """
 
+        thread = _get_active_thread()
+        user = _get_active_user()
+
+        if thread is None or user is None:
+            return None
+
         try:
             response_dto: LLMResponseDTO = llm_controller.chat(
                 prompt=user_message,
+                user_id=user.id,
+                thread_id=thread.thread_id,
                 max_tokens=100,
                 temperature=0.7,
             )
@@ -76,10 +117,16 @@ def create_chatbot(app_state: MainAppState):
         if not user_message:
             return
 
+        thread = _get_active_thread()
+        user = _get_active_user()
+
+        if thread is None or user is None:
+            return
+
         message_input.value = ""
         message_input.update()
 
-        chat_display.controls.append(ft.Text(f"You: {user_message}", color=Colors.BLUE))
+        chat_display.controls.append(_render_message(LLMMessageRole.USER, user_message))
 
         loading_indicator = ft.ProgressRing()
         loading_container = ft.Row(
@@ -102,7 +149,9 @@ def create_chatbot(app_state: MainAppState):
             )
 
         else:
-            chat_display.controls.append(ft.Text(f"AI: {response_dto.content}", color=Colors.GREEN))
+            chat_display.controls.append(
+                _render_message(LLMMessageRole.ASSISTANT, response_dto.content)
+            )
 
         chat_display.update()
 
@@ -114,10 +163,37 @@ def create_chatbot(app_state: MainAppState):
         height=50,
     )
 
+    def refresh_thread_messages(thread) -> None:
+        user = _get_active_user()
+        has_thread = thread is not None
+
+        thread_header.value = f"Thread: {thread.title}" if has_thread else "No thread selected"
+        empty_state.visible = not has_thread
+        message_input.disabled = not has_thread
+
+        chat_display.controls.clear()
+
+        if has_thread and user is not None:
+            messages = llm_controller.get_session_messages(user.id, thread.thread_id)
+
+            for msg in messages:
+                chat_display.controls.append(_render_message(msg.role, msg.content))
+
+        _safe_update(thread_header)
+        _safe_update(empty_state)
+        _safe_update(message_input)
+        _safe_update(chat_display)
+
+    app_state.register_observer(MainAppStateProperties.ACTIVE_THREAD, refresh_thread_messages)
+
+    refresh_thread_messages(_get_active_thread())
+
     return ft.Container(
         ft.Column(
             controls=[
                 # ft.Text("Alfred 🤖", size=24, weight=FontWeight.BOLD),
+                thread_header,
+                empty_state,
                 chat_display,
                 input_row,
             ],
