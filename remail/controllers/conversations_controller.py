@@ -4,9 +4,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from remail.controllers.dtos.conversations import ContactDTO, ConversationDTO
+from remail.controllers.dtos.conversations import (
+    ContactDTO,
+    ConversationDTO,
+    ThreadPreviewDTO,
+)
 from remail.enums import ContactType
 from remail.interfaces.email.services.conversation_service import ConversationService
+from remail.interfaces.email.services.thread_service import ThreadService
 
 if TYPE_CHECKING:
     pass
@@ -21,6 +26,7 @@ class ConversationsController:
         """
 
         self.service = ConversationService()
+        self.thread_service = ThreadService()
 
     def get_conversations(self, user_id: int) -> list[ConversationDTO]:
         """
@@ -35,22 +41,43 @@ class ConversationsController:
 
         conversations_data = self.service.get_all_conversations(user_id)
 
-        return [
-            ConversationDTO(
-                contacts=[
-                    ContactDTO(
-                        id=c["id"],
-                        first_name=c["first_name"],
-                        last_name=c["last_name"],
-                        email=c["email"],
-                        is_known=c["is_known"],
-                        type=ContactType(c["type"]),
-                    )
-                    for c in conv["contacts"]
-                ],
-                threads=[],  # TODO: Implement thread fetching
-                is_favorite=conv["is_favorite"],
-                customName=conv["custom_name"],
+        result = []
+
+        for conv in conversations_data:
+            conversation_id = conv.get("id")
+            thread_data = None
+
+            if conversation_id:
+                thread_data = self.thread_service.get_thread_for_conversation(conversation_id)
+
+            result.append(
+                ConversationDTO(
+                    contacts=[
+                        ContactDTO(
+                            id=c["id"],
+                            first_name=c["first_name"],
+                            last_name=c["last_name"],
+                            email=c["email"],
+                            is_known=c["is_known"],
+                            type=ContactType(c["type"]),
+                        )
+                        for c in conv["contacts"]
+                    ],
+                    threads=[
+                        ThreadPreviewDTO(
+                            thread_id=thread_data["thread_id"],
+                            title=thread_data["title"],
+                            total_count=thread_data["total_count"],
+                            unread_count=thread_data["unread_count"],
+                            last_message=thread_data["last_message"],
+                            last_message_datetime=thread_data["last_message_datetime"],
+                        )
+                    ]
+                    if thread_data
+                    else [],
+                    is_favorite=conv["is_favorite"],
+                    customName=conv["custom_name"],
+                )
             )
-            for conv in conversations_data
-        ]
+
+        return result

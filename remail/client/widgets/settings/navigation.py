@@ -42,8 +42,6 @@ def create_settings_navigation(app_state: AppState, on_navigate: Callable) -> ft
         """Rebuild navigation items with updated active state."""
 
         nav_items.current.controls = [
-            ft.Text("Settings", size=24, weight=ft.FontWeight.BOLD),
-            ft.Divider(height=2),
             create_nav_item("Appearance", SettingsSubView.APPEARANCE),
             create_nav_item("Email Accounts", SettingsSubView.EMAIL_ACCOUNTS),
             create_nav_item("Language & Region", SettingsSubView.LANGUAGE),
@@ -56,8 +54,6 @@ def create_settings_navigation(app_state: AppState, on_navigate: Callable) -> ft
         ft.Column(
             ref=nav_items,
             controls=[
-                ft.Text("Settings", size=24, weight=ft.FontWeight.BOLD),
-                ft.Divider(height=2),
                 create_nav_item("Appearance", SettingsSubView.APPEARANCE),
                 create_nav_item("Email Accounts", SettingsSubView.EMAIL_ACCOUNTS),
                 create_nav_item("Language & Region", SettingsSubView.LANGUAGE),

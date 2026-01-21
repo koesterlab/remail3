@@ -1,1 +1,1 @@
-"""Tests for the email protocol implementations."""
+"""Tests for email interfaces."""

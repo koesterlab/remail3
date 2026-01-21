@@ -31,7 +31,7 @@ class MessageBubble(ft.Container):
                 color=ft.Colors.with_opacity(0.12, ft.Colors.BLACK),
             ),
             content=ft.Text(
-                message.content,
+                message.content.body,
                 color=ft.Colors.ON_PRIMARY if is_me else ft.Colors.ON_SECONDARY,
                 size=15,
                 weight=ft.FontWeight.W_400,

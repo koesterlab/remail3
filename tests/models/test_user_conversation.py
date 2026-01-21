@@ -20,6 +20,7 @@ class TestUserConversationModel:
         user = User(
             name="testuser",
             email="test@example.com",
+            host="imap.example.com",
             password="hash123",
             protocol=Protocol.IMAP,
         )
@@ -51,6 +52,7 @@ class TestUserConversationModel:
         user = User(
             name="testuser",
             email="test@example.com",
+            host="imap.example.com",
             password="hash123",
             protocol=Protocol.IMAP,
         )
@@ -76,6 +78,7 @@ class TestUserConversationModel:
         user = User(
             name="testuser",
             email="test@example.com",
+            host="imap.example.com",
             password="hash123",
             protocol=Protocol.IMAP,
         )
@@ -115,6 +118,7 @@ class TestUserConversationModel:
         user = User(
             name="testuser",
             email="test@example.com",
+            host="imap.example.com",
             password="hash123",
             protocol=Protocol.IMAP,
         )
@@ -157,11 +161,25 @@ class TestUserConversationModel:
 
         # Create multiple users
         user1 = User(
-            name="alice", email="alice@example.com", password="hash1", protocol=Protocol.IMAP
+            name="alice",
+            email="alice@example.com",
+            host="imap.example.com",
+            password="hash1",
+            protocol=Protocol.IMAP,
         )
-        user2 = User(name="bob", email="bob@example.com", password="hash2", protocol=Protocol.IMAP)
+        user2 = User(
+            name="bob",
+            email="bob@example.com",
+            host="imap.example.com",
+            password="hash2",
+            protocol=Protocol.IMAP,
+        )
         user3 = User(
-            name="charlie", email="charlie@example.com", password="hash3", protocol=Protocol.IMAP
+            name="charlie",
+            email="charlie@example.com",
+            host="imap.example.com",
+            password="hash3",
+            protocol=Protocol.IMAP,
         )
         session.add_all([user1, user2, user3])
         session.commit()
@@ -203,6 +221,7 @@ class TestUserConversationModel:
         user = User(
             name="testuser",
             email="test@example.com",
+            host="imap.example.com",
             password="hash123",
             protocol=Protocol.IMAP,
         )
@@ -247,6 +266,7 @@ class TestUserConversationModel:
         user = User(
             name="testuser",
             email="test@example.com",
+            host="imap.example.com",
             password="hash123",
             protocol=Protocol.IMAP,
         )
@@ -293,6 +313,7 @@ class TestUserConversationModel:
         user = User(
             name="testuser",
             email="test@example.com",
+            host="imap.example.com",
             password="hash123",
             protocol=Protocol.IMAP,
         )

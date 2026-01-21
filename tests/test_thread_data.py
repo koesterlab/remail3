@@ -1,26 +1,23 @@
-from remail.controllers.dtos.conversations import ContactDTO, ThreadPreviewDTO
-from remail.controllers.dtos.threads import MessageDTO, ThreadDTO
-from remail.enums import ContactType
+from datetime import datetime
+
+from remail.controllers.dtos.conversations import ThreadPreviewDTO
+from remail.controllers.dtos.threads import MessageContentDTO, MessageDTO, SenderDTO, ThreadDTO
 
 
 # chatgpt
 def fetch_thread(preview: ThreadPreviewDTO) -> ThreadDTO:
-    contact = ContactDTO(
+    contact = SenderDTO(
         id=2,
         first_name="John",
         last_name="Doe",
         email="john.doe@example.com",
-        is_known=True,
-        type=ContactType.PRIVATE,
     )
 
-    me = ContactDTO(
+    me = SenderDTO(
         id=1,
         first_name="Me",
         last_name="User",
         email="me@example.com",
-        is_known=True,
-        type=ContactType.PRIVATE,
     )
 
     # Basisnachrichten
@@ -29,15 +26,15 @@ def fetch_thread(preview: ThreadPreviewDTO) -> ThreadDTO:
             id=101,
             sender=contact,
             subject="Meeting Reminder",
-            content="Hello, how are you?",
-            sent_at="2024-05-30T10:15:30Z",
+            content=MessageContentDTO(body="Hello, how are you?", attachments=[]),
+            sent_at=datetime(2024, 5, 30, 10, 15, 30),
         ),
         MessageDTO(
             id=102,
             sender=me,
             subject="Re: Meeting Reminder",
-            content="I'm good, thanks for asking!",
-            sent_at="2024-05-30T10:17:45Z",
+            content=MessageContentDTO(body="I'm good, thanks for asking!", attachments=[]),
+            sent_at=datetime(2024, 5, 30, 10, 17, 45),
         ),
     ]
 
@@ -69,23 +66,19 @@ def fetch_thread(preview: ThreadPreviewDTO) -> ThreadDTO:
                 id=msg_id,
                 sender=me if sender_toggle else contact,
                 subject="Project Discussion",
-                content=text,
-                sent_at=f"2024-05-30T10:{20 + msg_id % 40:02d}:00Z",
+                content=MessageContentDTO(body=text, attachments=[]),
+                sent_at=datetime(2024, 5, 30, 10, 20 + msg_id % 40, 0),
             )
         )
         msg_id += 1
         sender_toggle = not sender_toggle
 
     # ---------------------------------------------------------
-    # ThreadPreview + ThreadDTO
+    # ThreadDTO
     # ---------------------------------------------------------
 
     return ThreadDTO(
-        thread_id=preview.thread_id,
+        id=preview.thread_id,
         title=preview.title,
-        total_count=preview.total_count,
-        unread_count=preview.unread_count,
-        last_message=preview.last_message,
-        last_message_datetime=preview.last_message_datetime,
         messages=messages,
     )

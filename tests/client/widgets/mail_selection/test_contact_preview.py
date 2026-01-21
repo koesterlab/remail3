@@ -2,6 +2,7 @@
 import unittest
 from datetime import datetime
 
+from remail.client.state import MainAppState
 from remail.client.widgets.mail_selection.contact_preview import ContactPreview
 from remail.controllers.dtos.conversations import ContactDTO, ConversationDTO, ThreadPreviewDTO
 from remail.enums import ContactType
@@ -60,7 +61,7 @@ class TestContactPreview(unittest.TestCase):
         )
 
     def test_unknown_contact_preview_creation(self):
-        ContactPreview(self.conv_unknown)
+        ContactPreview(MainAppState(), self.conv_unknown)
 
 
 if __name__ == "__main__":

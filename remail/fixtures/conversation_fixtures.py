@@ -31,6 +31,7 @@ def load_conversation_fixtures(
         user = User(
             name=fake.user_name(),
             email=fake.email(),
+            host=f"imap.{fake.domain_name()}",
             password=fake.password(),
             protocol=Protocol.IMAP,
         )

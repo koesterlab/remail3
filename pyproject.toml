@@ -74,7 +74,10 @@ check = { depends-on = ["format-check", "typecheck", "security", "test"] }
 # 8) Database initialization
 init-db = "python init_db.py --force --fixtures"
 
-# 9) Run the application
+# 9) Initialize settings
+init-settings = "python -c 'from remail.interfaces.email.services.settings_service import SettingsService; SettingsService.init_settings()'"
+
+# 10) Run the application
 app = "python -m remail.client.index"
 
 [tool.pixi.dependencies]

@@ -21,6 +21,7 @@ class User(SQLModel, table=True):
     email: str = Field(
         sa_column=sqlalchemy.Column(sqlalchemy.String, unique=True, index=True, nullable=False)
     )
+    host: str = Field(sa_column=sqlalchemy.Column(sqlalchemy.String, nullable=False))
     password: str
     protocol: Protocol = Field(
         sa_column=sqlalchemy.Column(sqlalchemy.Enum(Protocol), nullable=False)

@@ -1,6 +1,6 @@
 """Conversation model for grouping contacts."""
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import sqlalchemy
 from sqlmodel import Field, Relationship, SQLModel
@@ -13,6 +13,7 @@ from .user_conversation import UserConversation  # noqa: F401
 
 if TYPE_CHECKING:
     from .contact import Contact
+    from .thread import Thread
     from .user import User
 
 
@@ -38,3 +39,5 @@ class Conversation(SQLModel, table=True):
         back_populates="conversations",
         link_model=UserConversation,
     )
+    # One-to-one relationship with thread
+    thread: Optional["Thread"] = Relationship(back_populates="conversation")

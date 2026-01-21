@@ -1,3 +1,4 @@
+import datetime
 from collections.abc import Callable
 
 import flet as ft
@@ -16,6 +17,7 @@ Subwidget of selectionBar to choose between different contacts (+groups) and act
 
 class ConversationSelection(ft.Container):
     def __init__(self, callback: Callable[[Action | ConversationDTO], None], state: MainAppState):
+        self.state = state
         self.callback = callback
         self.content = ft.Column(spacing=0)
         super().__init__(
@@ -31,7 +33,19 @@ class ConversationSelection(ft.Container):
 
     def set_content(self, content: list[ConversationDTO | Action]):
         # todo: make more efficient on reload
-        # todo: sort algorithm
+        def compute_order_value(elem: ConversationDTO | Action):
+            time = datetime.datetime.min
+            if isinstance(elem, Action):
+                category = "C"
+            else:
+                if len(elem.threads) <= 0:
+                    time = datetime.datetime.min
+                else:
+                    time = max([t.last_message_datetime for t in elem.threads])
+                category = "B" if elem.is_favorite else "A"
+            return category, time
+
+        content.sort(key=compute_order_value, reverse=True)
 
         def create_list_item(elem: Action | ConversationDTO):
             def callback():
@@ -40,9 +54,9 @@ class ConversationSelection(ft.Container):
             if isinstance(elem, Action):
                 item = ActionPreview(elem, callback)
             elif len(elem.contacts) == 1:
-                item = ContactPreview(elem, callback)
+                item = ContactPreview(self.state, elem, callback)
             else:
-                item = GroupPreview(elem, callback)
+                item = GroupPreview(self.state, elem, callback)
 
             return item
 

@@ -12,6 +12,7 @@ def test_user_create(session: Session):
     u = User(
         name="Ada",
         email="ada@example.com",
+        host="imap.example.com",
         password="secret",
         protocol=Protocol.IMAP,
     )
@@ -21,11 +22,24 @@ def test_user_create(session: Session):
 
     assert u.id is not None
     assert u.protocol == Protocol.IMAP
+    assert u.host == "imap.example.com"
 
 
 def test_user_auto_increment(session: Session):
-    u1 = User(name="A", email="a@example.com", password="x", protocol=Protocol.IMAP)
-    u2 = User(name="B", email="b@example.com", password="x", protocol=Protocol.IMAP)
+    u1 = User(
+        name="A",
+        email="a@example.com",
+        host="imap.example.com",
+        password="x",
+        protocol=Protocol.IMAP,
+    )
+    u2 = User(
+        name="B",
+        email="b@example.com",
+        host="imap.example.com",
+        password="x",
+        protocol=Protocol.IMAP,
+    )
     session.add(u1)
     session.add(u2)
     session.commit()
@@ -37,8 +51,20 @@ def test_user_auto_increment(session: Session):
 
 
 def test_user_unique_emails(session: Session):
-    u1 = User(name="C", email="dup@example.com", password="x", protocol=Protocol.IMAP)
-    u2 = User(name="D", email="dup@example.com", password="y", protocol=Protocol.EXCHANGE)
+    u1 = User(
+        name="C",
+        email="dup@example.com",
+        host="imap.example.com",
+        password="x",
+        protocol=Protocol.IMAP,
+    )
+    u2 = User(
+        name="D",
+        email="dup@example.com",
+        host="imap.example.com",
+        password="y",
+        protocol=Protocol.EXCHANGE,
+    )
     session.add(u1)
     session.commit()
     session.add(u2)
@@ -48,7 +74,13 @@ def test_user_unique_emails(session: Session):
 
 
 def test_user_protocol_persistence(session: Session):
-    u = User(name="Proto", email="p@example.com", password="x", protocol=Protocol.IMAP)
+    u = User(
+        name="Proto",
+        email="p@example.com",
+        host="imap.example.com",
+        password="x",
+        protocol=Protocol.IMAP,
+    )
     session.add(u)
     session.commit()
 
@@ -66,6 +98,7 @@ def test_user_with_last_refresh(session: Session):
     u = User(
         name="Ref",
         email="ref@example.com",
+        host="imap.example.com",
         password="x",
         protocol=Protocol.IMAP,
         last_refresh=now,
@@ -78,7 +111,13 @@ def test_user_with_last_refresh(session: Session):
 
 
 def test_user_update_last_refresh(session: Session):
-    u = User(name="Upd", email="upd@example.com", password="x", protocol=Protocol.IMAP)
+    u = User(
+        name="Upd",
+        email="upd@example.com",
+        host="imap.example.com",
+        password="x",
+        protocol=Protocol.IMAP,
+    )
     session.add(u)
     session.commit()
     session.refresh(u)
@@ -93,7 +132,13 @@ def test_user_update_last_refresh(session: Session):
 
 
 def test_user_delete(session: Session):
-    u = User(name="Del", email="del@example.com", password="x", protocol=Protocol.IMAP)
+    u = User(
+        name="Del",
+        email="del@example.com",
+        host="imap.example.com",
+        password="x",
+        protocol=Protocol.IMAP,
+    )
     session.add(u)
     session.commit()
 
@@ -107,7 +152,13 @@ def test_user_delete(session: Session):
 
 
 def test_user_query_by_email(session: Session):
-    u = User(name="Q", email="q@example.com", password="x", protocol=Protocol.IMAP)
+    u = User(
+        name="Q",
+        email="q@example.com",
+        host="imap.example.com",
+        password="x",
+        protocol=Protocol.IMAP,
+    )
     session.add(u)
     session.commit()
 
@@ -117,8 +168,20 @@ def test_user_query_by_email(session: Session):
 
 
 def test_user_query_by_protocol(session: Session):
-    u1 = User(name="I", email="i@example.com", password="x", protocol=Protocol.IMAP)
-    u2 = User(name="E", email="e@example.com", password="x", protocol=Protocol.EXCHANGE)
+    u1 = User(
+        name="I",
+        email="i@example.com",
+        host="imap.example.com",
+        password="x",
+        protocol=Protocol.IMAP,
+    )
+    u2 = User(
+        name="E",
+        email="e@example.com",
+        host="imap.example.com",
+        password="x",
+        protocol=Protocol.EXCHANGE,
+    )
     session.add(u1)
     session.add(u2)
     session.commit()

@@ -1,18 +1,15 @@
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
-from remail.controllers.dtos.conversations import ContactDTO, ThreadPreviewDTO
+if TYPE_CHECKING:
+    from ..conversations import ContactDTO
+
+from .message import MessageDTO
 
 
 @dataclass
-class MessageDTO:
+class ThreadDTO:
     id: int
-    sender: ContactDTO
-    subject: str
-    content: str
-    sent_at: str  # ISO timestamp
-    attachments: list[str] = field(default_factory=list)
-
-
-@dataclass
-class ThreadDTO(ThreadPreviewDTO):
+    title: str
     messages: list[MessageDTO]
+    contacts: list["ContactDTO"] = field(default_factory=list)

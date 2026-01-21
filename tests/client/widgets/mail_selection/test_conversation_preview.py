@@ -3,6 +3,7 @@ import unittest
 
 import flet as ft
 
+from remail.client.state import MainAppState, MainAppStateProperties
 from remail.client.widgets.mail_selection.conversation_preview import ConversationPreview
 from remail.controllers.dtos.conversations import ContactDTO, ConversationDTO
 from remail.enums import ContactType
@@ -22,6 +23,8 @@ class TestConversationPreview(unittest.TestCase):
         self.conversation = ConversationDTO(
             contacts=[self.contact], threads=[], is_favorite=True, customName=None
         )
+        self.state = MainAppState()
+        self.state.set(MainAppStateProperties.DISPLAYED_MAILS, [])
 
     def test_registered_contact_preview(self):
         fav_called = {"called": False}
@@ -34,6 +37,7 @@ class TestConversationPreview(unittest.TestCase):
             click_called["called"] = True
 
         preview = ConversationPreview(
+            self.state,
             self.conversation,
             primary_text="Max Mustermann",
             secondary_text="max@example.com",
@@ -44,8 +48,7 @@ class TestConversationPreview(unittest.TestCase):
         # Prüfen von Avatar und Column
         row = preview.content
         avatar = row.controls[0]
-        self.assertIsInstance(avatar, ft.CircleAvatar)
-        self.assertEqual(avatar.content.value, "MM")
+        self.assertEqual(avatar.content.content.value, "MM")
         col = row.controls[1]
         self.assertIsInstance(col, ft.Column)
         primary_row = col.controls[0]
@@ -73,6 +76,7 @@ class TestConversationPreview(unittest.TestCase):
 
     def test_unregistered_contact_preview(self):
         preview = ConversationPreview(
+            MainAppState(),
             self.conversation,
             primary_text="Unknown",
             secondary_text="unknown@example.com",

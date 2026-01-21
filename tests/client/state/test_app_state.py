@@ -23,12 +23,12 @@ class TestAppState:
         assert isinstance(app_state, AppState)
 
     def test_app_state_is_empty(self):
-        """Test that AppState has 9 fields."""
+        """Test that AppState has the expected number of fields."""
 
         app_state = AppState()
         field_names = [f.name for f in fields(app_state)]
 
-        assert len(field_names) == 10
+        assert len(field_names) == 12
 
     def test_app_state_repr(self):
         """Test that AppState has a proper string representation."""
@@ -78,4 +78,4 @@ class TestAppStateFutureProof:
 
         annotations = getattr(AppState, "__annotations__", {})
 
-        assert len(annotations) == 10
+        assert len(annotations) == 12
