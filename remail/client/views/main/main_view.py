@@ -1,6 +1,7 @@
 import flet as ft
 
 from remail.client.state import AppState
+from remail.client.views.dashboard_view import create_dashboard_view   
 from remail.client.widgets.chatbot.chatbot import create_chatbot
 from remail.client.widgets.mail_selection import SelectionBar
 from remail.controllers.dtos.conversations import ThreadPreviewDTO
@@ -18,20 +19,20 @@ def create_main_view(page: ft.Page, global_state: AppState):
         if global_state.router is not None:
             global_state.router.load_view(MainView.SETTINGS)
         return ft.Container()
+
     main_state.set(MainAppStateProperties.ACTIVE_USER, users[0])
     main_state.set(
         MainAppStateProperties.DISPLAYED_MAILS,
         list(main_state.conversations_controller.get_conversations(users[0].id)),
-    )  # todo
+    )
     main_state.set(MainAppStateProperties.ACTIVE_CHATBOT, False)
     main_state.set(MainAppStateProperties.ACTIVE_THREAD, None)
     main_state.set(MainAppStateProperties.ACTIVE_CONVERSATION, None)
     main_state.set(MainAppStateProperties.SEARCH_TERM, "")
+
     selection_bar = SelectionBar(main_state)
 
-    # Settings button
     def navigate_to_settings(e):
-        """Navigate to settings page."""
         if global_state.router:
             page.clean()
             settings_view = global_state.router.load_view(MainView.SETTINGS)
@@ -44,21 +45,23 @@ def create_main_view(page: ft.Page, global_state: AppState):
         on_click=navigate_to_settings,
     )
 
+    # Replace placeholder columns with real dashboard views
     dashboard = ft.Column(
         [
             ft.Container(
                 content=ft.Row(
                     [
-                        ft.Text("Dashboard (vertrau ist fast fertig)", size=20),
                         settings_button,
                     ],
-                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    alignment=ft.MainAxisAlignment.END,
                 ),
                 padding=10,
             ),
+            create_dashboard_view(page, global_state, users[0].id),
         ],
         expand=True,
     )
+
     right_view = ft.Container(dashboard, col={"xs": 6, "md": 8, "lg": 9}, expand=True)
 
     # Chatbot
@@ -69,14 +72,13 @@ def create_main_view(page: ft.Page, global_state: AppState):
     container = ft.ResponsiveRow(
         expand=True,
         controls=[
-            ft.Column(
-                [ft.Container(selection_bar, expand=1), chatbot], col={"xs": 6, "md": 4, "lg": 3}
-            ),
+            ft.Column([ft.Container(selection_bar, expand=1), chatbot], col={"xs": 6, "md": 4, "lg": 3}),
             right_view,
         ],
     )
 
     def on_thread_change(new: ThreadPreviewDTO | None) -> None:
+        print("ACTIVE_THREAD changed:", new)
         if new:
             right_view.content = ThreadList(main_state)
         else:

@@ -80,6 +80,9 @@ init-settings = "python -c 'from remail.interfaces.email.services.settings_servi
 # 10) Run the application
 app = "python -m remail.client.index"
 
+# 11) Seed demo / UI test data
+seed-demo = "python -m remail.scripts.seed_demo_data"
+
 [tool.pixi.dependencies]
 pixi-pycharm = ">=0.0.10,<0.0.11"
 
