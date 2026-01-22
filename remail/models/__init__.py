@@ -1,4 +1,6 @@
 from .attachment import Attachment
+from .chat_message import ChatMessage
+from .chat_session import ChatSession
 from .contact import Contact
 from .conversation import Conversation
 from .conversation_contact import ConversationContact
@@ -11,6 +13,8 @@ from .user_conversation import UserConversation
 
 __all__ = [
     "Attachment",
+    "ChatMessage",
+    "ChatSession",
     "Contact",
     "Conversation",
     "ConversationContact",

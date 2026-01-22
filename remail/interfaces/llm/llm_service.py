@@ -108,11 +108,13 @@ class LLMService(LLMBase):
             Structured LLM completion response
         """
 
+        system_prompt = kwargs.pop(
+            "system_prompt",
+            "You are a helpful assistant. Your name is Alfred. Provide clear, concise, and helpful responses.",
+        )
+
         messages = [
-            LLMMessage(
-                role=LLMMessageRole.SYSTEM,
-                content="You are a helpful assistant. Your name is Alfred. Provide clear, concise, and helpful responses.",
-            ),
+            LLMMessage(role=LLMMessageRole.SYSTEM, content=system_prompt),
             *conversation_history,
             LLMMessage(role=LLMMessageRole.USER, content=prompt),
         ]
