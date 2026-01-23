@@ -24,4 +24,5 @@ class ThreadController:
             ThreadDTO with thread data, or None if not found
         """
         result: ThreadDTO | None = self.service.get_thread_by_id(thread_id)
+
         return result

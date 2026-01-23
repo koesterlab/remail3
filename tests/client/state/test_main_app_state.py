@@ -73,7 +73,3 @@ class TestMainAppState(unittest.TestCase):
         # Item ohne Listener → kein Fehler, kein Call
         self.state.toggle_selection(self.item1)
         self.state.toggle_selection(self.item1)
-
-
-if __name__ == "__main__":
-    unittest.main()

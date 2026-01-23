@@ -113,7 +113,3 @@ class TestConversationSelection(unittest.TestCase):
         self.assertIsInstance(item, GroupPreview)
         item.on_click(None)
         self.callback.assert_called_with(conv)
-
-
-if __name__ == "__main__":
-    unittest.main()

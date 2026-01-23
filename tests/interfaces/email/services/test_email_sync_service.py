@@ -1,11 +1,10 @@
 """Tests for EmailSyncService."""
 
 from datetime import datetime
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
-from sqlalchemy.pool import StaticPool
-from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel import Session
 
 from remail.enums import Protocol
 from remail.interfaces.email.services.email_sync_service import EmailSyncService
@@ -16,20 +15,6 @@ from remail.models import (
     Thread,
     User,
 )
-
-
-@pytest.fixture
-def test_engine():
-    """Create a test database engine."""
-    engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-        echo=False,
-    )
-    SQLModel.metadata.create_all(engine)
-    yield engine
-    SQLModel.metadata.drop_all(engine)
 
 
 @pytest.fixture
@@ -80,8 +65,7 @@ class TestEmailSyncService:
         mock_protocol.fetch_emails.return_value = []
         create_test_user(test_engine)
 
-        with patch("remail.interfaces.email.services.email_sync_service.engine", test_engine):
-            result = service.sync_emails()
+        result = service.sync_emails()
 
         assert result["status"] == "success"
         assert result["synced_count"] == 0
@@ -90,9 +74,8 @@ class TestEmailSyncService:
         """Test that sync fails if user does not exist."""
         mock_protocol.fetch_emails.return_value = []
 
-        with patch("remail.interfaces.email.services.email_sync_service.engine", test_engine):
-            with pytest.raises(ValueError, match="not found"):
-                service.sync_emails()
+        with pytest.raises(ValueError, match="not found"):
+            service.sync_emails()
 
     def test_sync_emails_creates_contact_for_sender(self, service, mock_protocol, test_engine):
         """Test that sync creates a contact for email sender."""
@@ -109,23 +92,22 @@ class TestEmailSyncService:
         mock_protocol.fetch_emails.return_value = [mock_email]
         create_test_user(test_engine)
 
-        with patch("remail.interfaces.email.services.email_sync_service.engine", test_engine):
-            result = service.sync_emails()
+        result = service.sync_emails()
 
-            assert result["status"] == "success"
-            assert result["synced_count"] == 1
+        assert result["status"] == "success"
+        assert result["synced_count"] == 1
 
-            # Check contact was created
-            with Session(test_engine) as session:
-                from sqlmodel import select
+        # Check contact was created
+        with Session(test_engine) as session:
+            from sqlmodel import select
 
-                contact = session.exec(
-                    select(Contact).where(Contact.email_address == "john@example.com")
-                ).first()
-                assert contact is not None
-                assert contact.name == "John Doe"
-                assert contact.first_name == "John"
-                assert contact.last_name == "Doe"
+            contact = session.exec(
+                select(Contact).where(Contact.email_address == "john@example.com")
+            ).first()
+            assert contact is not None
+            assert contact.name == "John Doe"
+            assert contact.first_name == "John"
+            assert contact.last_name == "Doe"
 
     def test_sync_emails_creates_thread(self, service, mock_protocol, test_engine):
         """Test that sync creates a thread for emails."""
@@ -141,15 +123,14 @@ class TestEmailSyncService:
         mock_protocol.fetch_emails.return_value = [mock_email]
         create_test_user(test_engine)
 
-        with patch("remail.interfaces.email.services.email_sync_service.engine", test_engine):
-            service.sync_emails()
+        service.sync_emails()
 
-            with Session(test_engine) as session:
-                from sqlmodel import select
+        with Session(test_engine) as session:
+            from sqlmodel import select
 
-                thread = session.exec(select(Thread)).first()
-                assert thread is not None
-                assert thread.title == "Hello World"
+            thread = session.exec(select(Thread)).first()
+            assert thread is not None
+            assert thread.title == "Hello World"
 
     def test_sync_emails_creates_conversation(self, service, mock_protocol, test_engine):
         """Test that sync creates a conversation for participants."""
@@ -165,39 +146,36 @@ class TestEmailSyncService:
         mock_protocol.fetch_emails.return_value = [mock_email]
         create_test_user(test_engine)
 
-        with patch("remail.interfaces.email.services.email_sync_service.engine", test_engine):
-            service.sync_emails()
+        service.sync_emails()
 
-            with Session(test_engine) as session:
-                from sqlmodel import select
+        with Session(test_engine) as session:
+            from sqlmodel import select
 
-                conversation = session.exec(select(Conversation)).first()
-                assert conversation is not None
+            conversation = session.exec(select(Conversation)).first()
+            assert conversation is not None
 
     def test_sync_emails_updates_last_refresh(self, service, mock_protocol, test_engine):
         """Test that sync updates user's last_refresh timestamp."""
         mock_protocol.fetch_emails.return_value = []
         create_test_user(test_engine)
 
-        with patch("remail.interfaces.email.services.email_sync_service.engine", test_engine):
-            before_sync = datetime.now()
-            service.sync_emails()
+        before_sync = datetime.now()
+        service.sync_emails()
 
-            with Session(test_engine) as session:
-                from sqlmodel import select
+        with Session(test_engine) as session:
+            from sqlmodel import select
 
-                user = session.exec(select(User).where(User.email == "test@example.com")).first()
-                assert user is not None
-                assert user.last_refresh is not None
-                assert user.last_refresh >= before_sync
+            user = session.exec(select(User).where(User.email == "test@example.com")).first()
+            assert user is not None
+            assert user.last_refresh is not None
+            assert user.last_refresh >= before_sync
 
     def test_sync_emails_handles_fetch_error(self, service, mock_protocol, test_engine):
         """Test that sync handles IMAP fetch errors gracefully."""
         mock_protocol.fetch_emails.side_effect = Exception("Connection failed")
         create_test_user(test_engine)
 
-        with patch("remail.interfaces.email.services.email_sync_service.engine", test_engine):
-            result = service.sync_emails()
+        result = service.sync_emails()
 
         assert result["status"] == "error"
         assert "Connection failed" in result["message"]
@@ -273,19 +251,18 @@ class TestEmailSyncServiceThreading:
         mock_protocol.fetch_emails.return_value = [mock_email1, mock_email2]
         create_test_user(test_engine)
 
-        with patch("remail.interfaces.email.services.email_sync_service.engine", test_engine):
-            result = service.sync_emails()
+        result = service.sync_emails()
 
-            assert result["synced_count"] == 2
+        assert result["synced_count"] == 2
 
-            with Session(test_engine) as session:
-                from sqlmodel import select
+        with Session(test_engine) as session:
+            from sqlmodel import select
 
-                threads = session.exec(select(Thread)).all()
-                # Both emails should be in the same thread
-                assert len(threads) == 1
+            threads = session.exec(select(Thread)).all()
+            # Both emails should be in the same thread
+            assert len(threads) == 1
 
-                emails = session.exec(select(Email)).all()
-                assert len(emails) == 2
-                # Both emails have same thread_id
-                assert emails[0].thread_id == emails[1].thread_id
+            emails = session.exec(select(Email)).all()
+            assert len(emails) == 2
+            # Both emails have same thread_id
+            assert emails[0].thread_id == emails[1].thread_id

@@ -63,7 +63,3 @@ class TestMessageBubble(unittest.TestCase):
         bubble = MessageBubble(message, self.user_contact)
 
         self.assertEqual(bubble.alignment, ft.alignment.center_left)
-
-
-if __name__ == "__main__":
-    unittest.main()

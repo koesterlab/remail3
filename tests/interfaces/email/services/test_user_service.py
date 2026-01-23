@@ -1,10 +1,6 @@
 """Tests for UserService."""
 
-from unittest.mock import patch
-
 import pytest
-from sqlalchemy.pool import StaticPool
-from sqlmodel import SQLModel, create_engine
 
 from remail.enums import Protocol
 from remail.interfaces.email.services.user_service import UserService
@@ -12,37 +8,6 @@ from remail.interfaces.email.services.user_service import UserService
 
 class TestUserService:
     """Test suite for UserService."""
-
-    @pytest.fixture
-    def test_engine(self):
-        """Create a fresh test database engine for each test."""
-        import os
-
-        # Use test.db file and clean it up after each test
-        test_db_path = "test.db"
-        # Remove test.db if it exists from previous test
-        if os.path.exists(test_db_path):
-            os.remove(test_db_path)
-
-        engine = create_engine(
-            f"sqlite:///{test_db_path}",
-            connect_args={"check_same_thread": False},
-            poolclass=StaticPool,
-            echo=False,
-        )
-        SQLModel.metadata.create_all(engine)
-        yield engine
-        SQLModel.metadata.drop_all(engine)
-        # Clean up test database file
-        if os.path.exists(test_db_path):
-            os.remove(test_db_path)
-
-    @pytest.fixture(autouse=True)
-    def setup_database(self, test_engine):
-        """Auto-patch the database engine for all tests."""
-        with patch("remail.database.db.engine", test_engine):
-            with patch("remail.interfaces.email.services.user_service.engine", test_engine):
-                yield
 
     def test_add_user_success(self):
         """Test adding a new user successfully."""

@@ -81,3 +81,60 @@ class ConversationsController:
             )
 
         return result
+
+    def create_conversation(
+        self, user_id: int, contact_ids: list[int], custom_name: str | None = None
+    ) -> ConversationDTO | None:
+        """
+        Create a new conversation for a specific user.
+
+        Args:
+            user_id: User ID to create conversation for
+            contact_ids: List of contact IDs to include
+            custom_name: Optional custom name for the conversation
+
+        Returns:
+            ConversationDTO for the created/existing conversation, or None if invalid input
+        """
+        conversation_data = self.service.create_conversation(
+            user_id=user_id,
+            contact_ids=contact_ids,
+            custom_name=custom_name,
+        )
+
+        if not conversation_data:
+            return None
+
+        conversation_id = conversation_data.get("id")
+        thread_data = None
+
+        if conversation_id:
+            thread_data = self.thread_service.get_thread_for_conversation(conversation_id)
+
+        return ConversationDTO(
+            contacts=[
+                ContactDTO(
+                    id=c["id"],
+                    first_name=c["first_name"],
+                    last_name=c["last_name"],
+                    email=c["email"],
+                    is_known=c["is_known"],
+                    type=ContactType(c["type"]),
+                )
+                for c in conversation_data["contacts"]
+            ],
+            threads=[
+                ThreadPreviewDTO(
+                    thread_id=thread_data["thread_id"],
+                    title=thread_data["title"],
+                    total_count=thread_data["total_count"],
+                    unread_count=thread_data["unread_count"],
+                    last_message=thread_data["last_message"],
+                    last_message_datetime=thread_data["last_message_datetime"],
+                )
+            ]
+            if thread_data
+            else [],
+            is_favorite=conversation_data["is_favorite"],
+            customName=conversation_data["custom_name"],
+        )

@@ -86,7 +86,3 @@ class TestGroupPreview(unittest.TestCase):
         col = preview.content.controls[1]
         self.assertEqual(col.controls[0].controls[0].value, "My Group")
         self.assertEqual(col.controls[1].controls[0].value, "2 Members")
-
-
-if __name__ == "__main__":
-    unittest.main()

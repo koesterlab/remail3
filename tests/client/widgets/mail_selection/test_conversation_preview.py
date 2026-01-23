@@ -88,7 +88,3 @@ class TestConversationPreview(unittest.TestCase):
         self.assertEqual(len(icon_btn_row.controls), 2)
         self.assertEqual(icon_btn_row.controls[0].icon, ft.Icons.ADD)
         self.assertEqual(icon_btn_row.controls[1].icon, ft.Icons.DELETE)
-
-
-if __name__ == "__main__":
-    unittest.main()

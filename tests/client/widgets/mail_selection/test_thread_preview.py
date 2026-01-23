@@ -49,7 +49,3 @@ class TestThreadPreview(unittest.TestCase):
         # Simuliere Klick
         preview.on_click(None)
         self.assertEqual(self.topic, self.state.get(MainAppStateProperties.ACTIVE_THREAD))
-
-
-if __name__ == "__main__":
-    unittest.main()

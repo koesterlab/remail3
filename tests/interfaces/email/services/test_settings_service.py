@@ -1,38 +1,15 @@
 """Unit tests for SettingsService."""
 
-import pytest
-from sqlalchemy.pool import StaticPool
-from sqlmodel import Session, SQLModel, create_engine
-
 from remail.enums import FontFamily, FontSize, Language, ThemeMode, Timezone
 from remail.interfaces.email.services.settings_service import SettingsService
 from remail.models.settings import Settings
 
 
-@pytest.fixture
-def test_session():
-    """Create a test database session."""
-    engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    SQLModel.metadata.create_all(engine)
-    with Session(engine) as session:
-        yield session
-    SQLModel.metadata.drop_all(engine)
-
-
 class TestSettingsService:
     """Test suite for SettingsService."""
 
-    def test_init_settings_creates_default_settings(self, test_session, monkeypatch):
+    def test_init_settings_creates_default_settings(self, test_session):
         """Test that init_settings creates default settings when none exist."""
-        # Patch the engine used by SettingsService
-        from remail.interfaces.email.services import settings_service
-
-        monkeypatch.setattr(settings_service, "engine", test_session.get_bind())
-
         result = SettingsService.init_settings()
 
         assert result is not None
@@ -46,12 +23,8 @@ class TestSettingsService:
         assert result.email_notifications is True
         assert result.quiet_hours is False
 
-    def test_init_settings_returns_existing_settings(self, test_session, monkeypatch):
+    def test_init_settings_returns_existing_settings(self, test_session):
         """Test that init_settings returns existing settings without overwriting."""
-        from remail.interfaces.email.services import settings_service
-
-        monkeypatch.setattr(settings_service, "engine", test_session.get_bind())
-
         # Create existing settings
         existing = Settings(
             id=1,
@@ -79,22 +52,14 @@ class TestSettingsService:
         assert result.email_notifications is False
         assert result.quiet_hours is True
 
-    def test_load_settings_returns_none_when_no_settings(self, test_session, monkeypatch):
+    def test_load_settings_returns_none_when_no_settings(self, test_session):
         """Test that load_settings returns None when no settings exist."""
-        from remail.interfaces.email.services import settings_service
-
-        monkeypatch.setattr(settings_service, "engine", test_session.get_bind())
-
         result = SettingsService.load_settings()
 
         assert result is None
 
-    def test_load_settings_returns_settings_when_exist(self, test_session, monkeypatch):
+    def test_load_settings_returns_settings_when_exist(self, test_session):
         """Test that load_settings returns settings when they exist."""
-        from remail.interfaces.email.services import settings_service
-
-        monkeypatch.setattr(settings_service, "engine", test_session.get_bind())
-
         # Create settings
         settings = Settings(
             id=1,
@@ -122,12 +87,8 @@ class TestSettingsService:
         assert result.email_notifications is False
         assert result.quiet_hours is True
 
-    def test_save_settings_updates_all_fields(self, test_session, monkeypatch):
+    def test_save_settings_updates_all_fields(self, test_session):
         """Test that save_settings updates all fields."""
-        from remail.interfaces.email.services import settings_service
-
-        monkeypatch.setattr(settings_service, "engine", test_session.get_bind())
-
         # Create initial settings
         settings = Settings(
             id=1,
@@ -163,12 +124,8 @@ class TestSettingsService:
         assert result.email_notifications is False
         assert result.quiet_hours is True
 
-    def test_save_settings_updates_partial_fields(self, test_session, monkeypatch):
+    def test_save_settings_updates_partial_fields(self, test_session):
         """Test that save_settings only updates provided fields."""
-        from remail.interfaces.email.services import settings_service
-
-        monkeypatch.setattr(settings_service, "engine", test_session.get_bind())
-
         # Create initial settings
         settings = Settings(
             id=1,
@@ -201,12 +158,8 @@ class TestSettingsService:
         assert result.email_notifications is True
         assert result.quiet_hours is False
 
-    def test_save_settings_creates_if_not_exists(self, test_session, monkeypatch):
+    def test_save_settings_creates_if_not_exists(self, test_session):
         """Test that save_settings creates settings if they don't exist."""
-        from remail.interfaces.email.services import settings_service
-
-        monkeypatch.setattr(settings_service, "engine", test_session.get_bind())
-
         result = SettingsService.save_settings(
             theme_mode=ThemeMode.LIGHT.value,
             font_size=FontSize.SMALL.value,
@@ -217,12 +170,8 @@ class TestSettingsService:
         assert result.theme_mode == ThemeMode.LIGHT.value
         assert result.font_size == FontSize.SMALL.value
 
-    def test_save_settings_preserves_id(self, test_session, monkeypatch):
+    def test_save_settings_preserves_id(self, test_session):
         """Test that save_settings preserves the id=1."""
-        from remail.interfaces.email.services import settings_service
-
-        monkeypatch.setattr(settings_service, "engine", test_session.get_bind())
-
         # Create initial settings
         settings = Settings(id=1, theme_mode=ThemeMode.SYSTEM.value)
         test_session.add(settings)
@@ -232,12 +181,8 @@ class TestSettingsService:
 
         assert result.id == 1
 
-    def test_notification_settings_persist(self, test_session, monkeypatch):
+    def test_notification_settings_persist(self, test_session):
         """Test that notification settings persist correctly."""
-        from remail.interfaces.email.services import settings_service
-
-        monkeypatch.setattr(settings_service, "engine", test_session.get_bind())
-
         # Create and save settings
         SettingsService.init_settings()
         SettingsService.save_settings(

@@ -348,25 +348,29 @@ class TestSendEmailNewConversation:
 
         contact1 = Contact(id=1, name="User One", email_address="one@example.com")
         contact2 = Contact(id=2, name="User Two", email_address="two@example.com")
-        conversation_stub = SimpleNamespace(id=77)
+        conversation_stub = {"id": 77}
         thread_stub = SimpleNamespace(id=88)
 
         with patch("remail.controllers.email_controller.ContactService") as contact_service:
             with patch("remail.controllers.email_controller.ConversationService") as conv_service:
                 with patch("remail.controllers.email_controller.ThreadService") as thread_service:
-                    contact_service.return_value.get_contact_by_id.side_effect = [
-                        contact1,
-                        contact2,
-                    ]
-                    conv_service.return_value.create_conversation.return_value = conversation_stub
-                    thread_service.return_value.create_thread.return_value = thread_stub
+                    with patch("remail.controllers.email_controller.UserService") as user_service:
+                        contact_service.return_value.get_contact_by_id.side_effect = [
+                            contact1,
+                            contact2,
+                        ]
+                        user_service.get_user_by_email.return_value = SimpleNamespace(id=7)
+                        conv_service.return_value.create_conversation.return_value = (
+                            conversation_stub
+                        )
+                        thread_service.return_value.create_thread.return_value = thread_stub
 
-                    result = controller.send_email_new_conversation(
-                        contact_ids=[1, 2],
-                        subject="Hello",
-                        body="Body",
-                        attachments=["doc.pdf"],
-                    )
+                        result = controller.send_email_new_conversation(
+                            contact_ids=[1, 2],
+                            subject="Hello",
+                            body="Body",
+                            attachments=["doc.pdf"],
+                        )
 
         assert result["status"] == "success"
         assert result["thread_id"] == 88

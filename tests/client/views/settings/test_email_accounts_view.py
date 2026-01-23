@@ -826,7 +826,3 @@ class TestEmailAccoutsView(unittest.TestCase):
 
         # Start text should be visible
         self.assertTrue(start_text.visible)
-
-
-if __name__ == "__main__":
-    unittest.main(verbosity=2)

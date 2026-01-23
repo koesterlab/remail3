@@ -77,7 +77,3 @@ class TestObservableState(unittest.TestCase):
 
         c1.assert_called_once_with(999)
         c2.assert_called_once_with(999)
-
-
-if __name__ == "__main__":
-    unittest.main()

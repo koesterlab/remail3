@@ -1,5 +1,6 @@
 """Tests for ConversationsController."""
 
+from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -19,7 +20,16 @@ def mock_conversation_service():
 
 
 @pytest.fixture
-def controller(mock_conversation_service):
+def mock_thread_service():
+    """Create a mock ThreadService."""
+    with patch("remail.controllers.conversations_controller.ThreadService") as mock:
+        service_instance = MagicMock()
+        mock.return_value = service_instance
+        yield service_instance
+
+
+@pytest.fixture
+def controller(mock_conversation_service, mock_thread_service):
     """Create a ConversationsController instance with mocked service."""
     return ConversationsController()
 
@@ -263,4 +273,66 @@ class TestConversationsController:
         assert result[0].contacts[0].first_name == "Alice"
         assert result[0].contacts[1].first_name == "Bob"
         assert result[0].contacts[2].first_name == "Charlie"
-        assert result[0].contacts[2].first_name == "Charlie"
+
+    def test_create_conversation_returns_none_when_service_returns_none(
+        self, controller, mock_conversation_service, mock_thread_service
+    ):
+        """Test that create_conversation returns None when service returns None."""
+        mock_conversation_service.create_conversation.return_value = None
+
+        result = controller.create_conversation(user_id=1, contact_ids=[1])
+
+        assert result is None
+        mock_conversation_service.create_conversation.assert_called_once_with(
+            user_id=1, contact_ids=[1], custom_name=None
+        )
+        mock_thread_service.get_thread_for_conversation.assert_not_called()
+
+    def test_create_conversation_returns_dto_with_thread(
+        self, controller, mock_conversation_service, mock_thread_service
+    ):
+        """Test create_conversation converts service data to DTOs."""
+        service_data = {
+            "id": 5,
+            "custom_name": "Team",
+            "type": "group",
+            "is_favorite": False,
+            "contacts": [
+                {
+                    "id": 10,
+                    "email": "alice@example.com",
+                    "first_name": "Alice",
+                    "last_name": "Smith",
+                    "type": "private",
+                    "is_known": True,
+                }
+            ],
+        }
+        thread_data = {
+            "thread_id": 99,
+            "title": "Hello",
+            "total_count": 2,
+            "unread_count": 1,
+            "last_message": "Hi",
+            "last_message_datetime": datetime(2024, 1, 1, 10, 0, 0),
+        }
+        mock_conversation_service.create_conversation.return_value = service_data
+        mock_thread_service.get_thread_for_conversation.return_value = thread_data
+
+        result = controller.create_conversation(
+            user_id=1,
+            contact_ids=[10],
+            custom_name="Team",
+        )
+
+        assert isinstance(result, ConversationDTO)
+        assert result.customName == "Team"
+        assert result.is_favorite is False
+        assert len(result.contacts) == 1
+        assert result.contacts[0].type == ContactType.PRIVATE
+        assert len(result.threads) == 1
+        assert result.threads[0].thread_id == 99
+        mock_conversation_service.create_conversation.assert_called_once_with(
+            user_id=1, contact_ids=[10], custom_name="Team"
+        )
+        mock_thread_service.get_thread_for_conversation.assert_called_once_with(5)

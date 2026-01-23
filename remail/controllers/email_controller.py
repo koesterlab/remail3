@@ -7,7 +7,7 @@ from typing import Any
 
 from remail import errors as ee
 from remail.controllers.dtos.user_dto import UserDTO
-from remail.enums import ConversationType, RecipientKind
+from remail.enums import RecipientKind
 from remail.interfaces.email.protocols.imap import ImapProtocol
 from remail.interfaces.email.services import ConversationService, ThreadService
 from remail.interfaces.email.services.contact_service import ContactService
@@ -241,18 +241,31 @@ class EmailController:
             if not contacts:
                 raise ValueError("No recipients provided.")
 
+            resolved_contact_ids = [contact.id for contact in contacts if contact.id is not None]
+            if len(resolved_contact_ids) != len(contacts):
+                raise ValueError("One or more contacts are missing IDs.")
+
+            user_email = self.protocol.user_username
+            if not user_email:
+                raise ValueError("User email is not available.")
+
+            user = UserService.get_user_by_email(user_email)
+            if not user or user.id is None:
+                raise ValueError("User account not found.")
+
             conversation = ConversationService().create_conversation(
-                conversation_type=ConversationType.GROUP,
+                user_id=user.id,
+                contact_ids=resolved_contact_ids,
                 custom_name=subject,
-                contacts=contacts,
             )
 
-            if conversation.id is None:
+            conversation_id = conversation.get("id") if conversation else None
+            if conversation_id is None:
                 raise ValueError("Failed to create conversation.")
 
             thread = ThreadService().create_thread(
                 title=subject,
-                conversation_id=conversation.id,
+                conversation_id=conversation_id,
             )
 
             if thread.id is None:
@@ -275,7 +288,7 @@ class EmailController:
                 "message": "Email sent successfully",
                 "email": self._serialize_email(email),
                 "thread_id": thread.id,
-                "conversation_id": conversation.id,
+                "conversation_id": conversation_id,
             }
 
         except ee.NotLoggedIn:

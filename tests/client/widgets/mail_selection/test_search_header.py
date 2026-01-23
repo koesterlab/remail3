@@ -34,7 +34,3 @@ class TestSearchHeader(unittest.TestCase):
         home_button.on_click(None)
         self.assertEqual(self.state.get(MainAppStateProperties.SEARCH_TERM), "")
         self.assertIsNone(self.state.get(MainAppStateProperties.ACTIVE_THREAD))
-
-
-if __name__ == "__main__":
-    unittest.main()
