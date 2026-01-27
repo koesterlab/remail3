@@ -40,7 +40,7 @@ class TestSettingsDTO:
         mock_settings.font_size = FontSize.SMALL.value
         mock_settings.font_family = FontFamily.COURIER_NEW.value
         mock_settings.language = Language.FRENCH.value
-        mock_settings.timezone = Timezone.AMERICA_NEW_YORK.value
+        mock_settings.timezone = Timezone.EUROPE_BERLIN.value
         mock_settings.desktop_notifications = False
         mock_settings.email_notifications = True
         mock_settings.quiet_hours = False
@@ -52,7 +52,7 @@ class TestSettingsDTO:
         assert dto.font_size == FontSize.SMALL.value
         assert dto.font_family == FontFamily.COURIER_NEW.value
         assert dto.language == Language.FRENCH.value
-        assert dto.timezone == Timezone.AMERICA_NEW_YORK.value
+        assert dto.timezone == Timezone.EUROPE_BERLIN.value
         assert dto.desktop_notifications is False
         assert dto.email_notifications is True
         assert dto.quiet_hours is False
@@ -65,7 +65,7 @@ class TestSettingsDTO:
             font_size=FontSize.MEDIUM.value,
             font_family=FontFamily.ARIAL.value,
             language=Language.ENGLISH.value,
-            timezone=Timezone.EUROPE_LONDON.value,
+            timezone=Timezone.EUROPE_BERLIN.value,
             desktop_notifications=True,
             email_notifications=True,
             quiet_hours=False,
@@ -78,7 +78,7 @@ class TestSettingsDTO:
         assert result["font_size"] == FontSize.MEDIUM.value
         assert result["font_family"] == FontFamily.ARIAL.value
         assert result["language"] == Language.ENGLISH.value
-        assert result["timezone"] == Timezone.EUROPE_LONDON.value
+        assert result["timezone"] == Timezone.EUROPE_BERLIN.value
         assert result["desktop_notifications"] is True
         assert result["email_notifications"] is True
         assert result["quiet_hours"] is False
@@ -91,7 +91,7 @@ class TestSettingsDTO:
             font_size=FontSize.MEDIUM.value,
             font_family=FontFamily.ARIAL.value,
             language=Language.ENGLISH.value,
-            timezone=Timezone.EUROPE_LONDON.value,
+            timezone=Timezone.EUROPE_BERLIN.value,
             desktop_notifications=True,
             email_notifications=True,
             quiet_hours=False,
@@ -131,7 +131,7 @@ class TestSettingsDTO:
             font_size=FontSize.MEDIUM.value,
             font_family=FontFamily.ARIAL.value,
             language=Language.ENGLISH.value,
-            timezone=Timezone.EUROPE_LONDON.value,
+            timezone=Timezone.EUROPE_BERLIN.value,
             desktop_notifications=True,
             email_notifications=True,
             quiet_hours=False,
@@ -143,7 +143,7 @@ class TestSettingsDTO:
             font_size=FontSize.MEDIUM.value,
             font_family=FontFamily.ARIAL.value,
             language=Language.ENGLISH.value,
-            timezone=Timezone.EUROPE_LONDON.value,
+            timezone=Timezone.EUROPE_BERLIN.value,
             desktop_notifications=True,
             email_notifications=True,
             quiet_hours=False,
@@ -159,7 +159,7 @@ class TestSettingsDTO:
             font_size=FontSize.MEDIUM.value,
             font_family=FontFamily.ARIAL.value,
             language=Language.ENGLISH.value,
-            timezone=Timezone.EUROPE_LONDON.value,
+            timezone=Timezone.EUROPE_BERLIN.value,
             desktop_notifications=True,
             email_notifications=True,
             quiet_hours=False,
@@ -171,7 +171,7 @@ class TestSettingsDTO:
             font_size=FontSize.MEDIUM.value,
             font_family=FontFamily.ARIAL.value,
             language=Language.ENGLISH.value,
-            timezone=Timezone.EUROPE_LONDON.value,
+            timezone=Timezone.EUROPE_BERLIN.value,
             desktop_notifications=True,
             email_notifications=True,
             quiet_hours=False,

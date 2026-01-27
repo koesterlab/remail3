@@ -76,14 +76,6 @@ def test_decode_header_plain_and_encoded(parser: EmailParser):
     assert parser.decode_header(encoded) == "Grüße"
 
 
-def test_extract_addresses(parser: EmailParser):
-    header = 'Alice <alice@example.com>, "Bob B." <bob@example.com>'
-    addrs = parser.extract_addresses(header)
-
-    assert parser.extract_addresses(None) == []
-    assert addrs == [("Alice", "alice@example.com"), ("Bob B.", "bob@example.com")]
-
-
 def test_parse_email_message_multipart_plain_html_and_attachment(parser: EmailParser):
     msg = EmailMessage()
     msg["Subject"] = "=?utf-8?b?VGVzdCDigJxTdWJqZWN04oCd?="

@@ -1,11 +1,7 @@
-"""Base protocol interface for email services."""
-
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from remail.models import Email
+from remail.models import Email
 
 
 class EmailProtocol(ABC):
@@ -25,19 +21,21 @@ class EmailProtocol(ABC):
         pass
 
     @abstractmethod
-    def logout(self) -> None:
-        """Log out the user."""
-
-        pass
-
-    @abstractmethod
-    def fetch_emails(self, date: datetime | None = None) -> list["Email"]:
+    def fetch_emails(
+        self,
+        folder: str | None = None,
+        since: datetime | None = None,
+        flags: list[str] | None = None,
+    ) -> list[Email]:
         """
         Retrieve emails from server.
 
         Args:
-            date: If provided, only return emails after this datetime.
-                  Must include timezone information.
+            folder: Optional mailbox name. If None, fetch from all user folders.
+            since: If provided, only return emails after this datetime.
+                Must include timezone information.
+            flags: Optional IMAP search terms (e.g., ["UNSEEN"], ["SEEN"],
+                ["DELETED"], ["HEADER", "From", "x@y"]).
 
         Returns:
             List of Email objects
@@ -48,30 +46,5 @@ class EmailProtocol(ABC):
     @abstractmethod
     def send_email(self, email: "Email") -> None:
         """Send the given email."""
-
-        pass
-
-    @abstractmethod
-    def delete_email(self, message_id: str, hard_delete: bool = False) -> None:
-        """
-        Delete email.
-
-        Args:
-            message_id: The message ID to delete
-            hard_delete: If True, permanently delete; if False, move to trash
-        """
-
-        pass
-
-    @abstractmethod
-    def tag_email(self, message_id: str, tag: str, remove: bool = False) -> None:
-        """
-        Add or remove a tag from an email.
-
-        Args:
-            message_id: The message ID to tag
-            tag: Tag name to add or remove
-            remove: If True, remove the tag; if False, add it
-        """
 
         pass

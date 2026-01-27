@@ -1,19 +1,10 @@
-"""Settings service for managing application preferences."""
-
-from sqlmodel import Session, SQLModel, select
+from sqlmodel import Session, select
 
 from remail.database.db import engine
 from remail.models.settings import Settings
 
 
 class SettingsService:
-    """Service for managing application settings."""
-
-    @staticmethod
-    def _ensure_settings_table() -> None:
-        """Ensure the settings table exists before querying."""
-        SQLModel.metadata.create_all(engine)
-
     @staticmethod
     def init_settings() -> Settings:
         """
@@ -25,10 +16,8 @@ class SettingsService:
         Returns:
             The settings row (either existing or newly created).
         """
-        SettingsService._ensure_settings_table()
 
         with Session(engine) as session:
-            # Check if settings row with id=1 exists
             statement = select(Settings).where(Settings.id == 1)
             existing = session.exec(statement).first()
 
@@ -60,10 +49,10 @@ class SettingsService:
         Returns:
             Settings object if found, None otherwise.
         """
-        SettingsService._ensure_settings_table()
 
         with Session(engine) as session:
             statement = select(Settings).where(Settings.id == 1)
+
             return session.exec(statement).first()
 
     @staticmethod
@@ -93,7 +82,6 @@ class SettingsService:
         Returns:
             Updated Settings object
         """
-        SettingsService._ensure_settings_table()
 
         with Session(engine) as session:
             statement = select(Settings).where(Settings.id == 1)

@@ -41,7 +41,7 @@ class AppState:
     font_size: FontSize = FontSize.MEDIUM
     font_family: FontFamily = FontFamily.ARIAL
     language: Language = Language.ENGLISH
-    timezone: Timezone = Timezone.EUROPE_LONDON
+    timezone: Timezone = Timezone.EUROPE_BERLIN
     desktop_notifications: bool = True
     email_notifications: bool = True
     quiet_hours: bool = False

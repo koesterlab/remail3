@@ -50,24 +50,6 @@ def test_get_user_folders_includes_trash_when_requested(
     assert folders == ["Trash", "INBOX"]
 
 
-def test_get_trash_folder_found(service: FolderService, imap_mock: IMAPClient):
-    imap_mock.list_folders.return_value = [
-        ([], "/", "INBOX"),
-        ([b"\\Trash"], "/", "Deleted Items"),
-    ]
-
-    assert service.get_trash_folder() == "Deleted Items"
-
-
-def test_get_trash_folder_not_found(service: FolderService, imap_mock: IMAPClient):
-    imap_mock.list_folders.return_value = [
-        ([], "/", "INBOX"),
-        ([], "/", "Archive"),
-    ]
-
-    assert service.get_trash_folder() is None
-
-
 @pytest.mark.parametrize(
     "since,flags,expected_prefix",
     [

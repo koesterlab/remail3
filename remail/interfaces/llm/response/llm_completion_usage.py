@@ -1,24 +1,16 @@
-"""LLM completion usage dataclass."""
-
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import Any
 
 
 @dataclass(slots=True)
 class LLMCompletionUsage:
-    """Token accounting for the completion request."""
-
-    prompt_tokens: int | None = None
-    completion_tokens: int | None = None
-    total_tokens: int | None = None
-    prompt_tokens_details: dict[str, Any] | None = None
+    prompt_tokens: int | None = None  # vulture: ignore
+    completion_tokens: int | None = None  # vulture: ignore
+    total_tokens: int | None = None  # vulture: ignore
+    prompt_tokens_details: dict[str, Any] | None = None  # vulture: ignore
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any] | None) -> LLMCompletionUsage | None:
-        """Create a usage instance from an API response dictionary."""
-
+    def from_dict(cls, data: dict[str, Any] | None) -> "LLMCompletionUsage | None":
         if not isinstance(data, dict):
             return None
 

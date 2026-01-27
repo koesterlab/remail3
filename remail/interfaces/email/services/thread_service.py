@@ -34,6 +34,7 @@ class ThreadService:
         Returns:
             ThreadDTO with thread data including messages, or None if not found
         """
+
         with Session(self.engine) as session:
             thread = session.get(Thread, thread_id)
 
@@ -57,6 +58,7 @@ class ThreadService:
         Returns:
             Created Thread object
         """
+
         new_thread = Thread(title=title, conversation_id=conversation_id)
 
         with Session(self.engine) as session:
@@ -76,6 +78,7 @@ class ThreadService:
         Returns:
             Thread dictionary with preview information, or None if no thread exists
         """
+
         with Session(self.engine) as session:
             thread = session.exec(
                 select(Thread).where(Thread.conversation_id == conversation_id)
@@ -93,46 +96,6 @@ class ThreadService:
 
             return self._build_thread_preview_dict(thread, list(messages))
 
-    def organize_emails_into_threads(self, emails: list[Email], conversation_id: int) -> None:
-        """
-        Organize emails into threads within a conversation.
-
-        Creates or updates a single thread for the conversation with all emails in chronological order.
-
-        Args:
-            emails: List of Email objects to organize
-            conversation_id: Conversation ID to create thread for
-        """
-
-        if not emails:
-            return
-
-        with Session(self.engine) as session:
-            existing_thread = session.exec(
-                select(Thread).where(Thread.conversation_id == conversation_id)
-            ).first()
-
-            if existing_thread:
-                for email in emails:
-                    if email.thread_id != existing_thread.id and existing_thread.id is not None:
-                        email.thread_id = existing_thread.id
-            else:
-                thread_title = emails[0].subject
-
-                new_thread = Thread(
-                    title=thread_title,
-                    conversation_id=conversation_id,
-                )
-
-                session.add(new_thread)
-                session.flush()  # Get the thread ID
-
-                if new_thread.id is not None:
-                    for email in emails:
-                        email.thread_id = new_thread.id
-
-            session.commit()
-
     def _build_thread_dto(
         self, session: Session, thread: Thread, messages: list[Email]
     ) -> ThreadDTO:
@@ -147,12 +110,12 @@ class ThreadService:
         Returns:
             ThreadDTO with thread data and messages
         """
+
         from remail.controllers.dtos.threads import ThreadDTO
 
         if thread.id is None:
             raise ValueError("Thread ID cannot be None")
 
-        # Collect all contacts from the thread (senders + recipients)
         contacts = self._collect_thread_contacts(session, messages)
 
         return ThreadDTO(

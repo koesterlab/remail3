@@ -27,8 +27,6 @@ def test_llm_message_all_roles():
         LLMMessageRole.SYSTEM,
         LLMMessageRole.USER,
         LLMMessageRole.ASSISTANT,
-        LLMMessageRole.FUNCTION,
-        LLMMessageRole.TOOL,
     ]
 
     for role in roles:

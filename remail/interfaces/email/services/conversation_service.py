@@ -31,7 +31,6 @@ class ConversationService:
         """
 
         with Session(self.engine) as session:
-            # Get all conversations for this user with favorite status
             user_conversations = session.exec(
                 select(Conversation, UserConversation.is_favorite)
                 .join(
@@ -76,6 +75,7 @@ class ConversationService:
         Returns:
             Conversation dictionary with contacts and favorite status, or None if not found
         """
+
         with Session(self.engine) as session:
             conversation = session.get(Conversation, conversation_id)
 
@@ -92,12 +92,14 @@ class ConversationService:
             ).all()
 
             is_favorite = False
+
             if user_id is not None:
                 user_conversation = session.exec(
                     select(UserConversation)
                     .where(UserConversation.user_id == user_id)
                     .where(UserConversation.conversation_id == conversation.id)
                 ).first()
+
                 if user_conversation:
                     is_favorite = user_conversation.is_favorite
 
@@ -117,21 +119,25 @@ class ConversationService:
         Returns:
             Conversation dictionary with contacts and favorite status, or None if invalid input
         """
+
         if not contact_ids:
             return None
 
         normalized_ids = {contact_id for contact_id in contact_ids if contact_id is not None}
+
         if not normalized_ids:
             return None
 
         with Session(self.engine) as session:
             user = session.get(User, user_id)
+
             if not user:
                 return None
 
             contacts = session.exec(
                 select(Contact).where(col(Contact.id).in_(normalized_ids))
             ).all()
+
             if len(contacts) != len(normalized_ids):
                 return None
 
@@ -176,6 +182,7 @@ class ConversationService:
                     is_favorite=False,
                 )
                 session.add(user_conv)
+
             elif custom_name is not None:
                 conversation.custom_name = custom_name
                 session.add(conversation)

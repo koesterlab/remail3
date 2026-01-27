@@ -63,13 +63,9 @@ class EmailSyncService:
         """
 
         with Session(engine) as session:
-            # Get or create user
             user = self._get_user(session)
-
-            # Determine the cutoff date for fetching
             fetch_since = since or user.last_refresh
 
-            # Fetch emails from IMAP
             try:
                 raw_emails = self.protocol.fetch_emails(since=fetch_since)
 
@@ -102,7 +98,6 @@ class EmailSyncService:
 
                         continue
 
-                    # Process and save the email
                     self._process_email(session, raw_email, user)
                     synced_count += 1
 
@@ -111,7 +106,6 @@ class EmailSyncService:
 
                     continue
 
-            # Update user's last_refresh timestamp
             user.last_refresh = datetime.now()
             session.commit()
 
@@ -135,6 +129,7 @@ class EmailSyncService:
         Raises:
             ValueError: If user does not exist
         """
+
         user = session.exec(select(User).where(User.email == self.user_email)).first()
 
         if not user:
@@ -170,39 +165,32 @@ class EmailSyncService:
         Returns:
             Saved Email instance
         """
-        # Extract sender info
+
         sender_data = self._extract_sender(raw_email)
         sender_contact = self._get_or_create_contact(session, sender_data)
 
-        # Extract recipients
         to_recipients = self._extract_recipients(raw_email, "to")
         cc_recipients = self._extract_recipients(raw_email, "cc")
         bcc_recipients = self._extract_recipients(raw_email, "bcc")
 
-        # Get all participant contacts (excluding the user themselves)
         all_participants = set()
         all_participants.add(sender_contact.email_address)
         for _name, email in to_recipients + cc_recipients + bcc_recipients:
             all_participants.add(email)
 
-        # Remove user's own email from participants if present
         all_participants.discard(self.user_email)
 
-        # Get or create contacts for all participants
         participant_contacts = [sender_contact]
         for name, email in to_recipients + cc_recipients + bcc_recipients:
             if email != self.user_email and email != sender_contact.email_address:
                 contact = self._get_or_create_contact(session, {"name": name, "email": email})
                 participant_contacts.append(contact)
 
-        # Find or create conversation based on participants
         conversation = self._get_or_create_conversation(session, participant_contacts, user)
 
-        # Find or create thread based on subject
         subject = getattr(raw_email, "subject", "") or ""
         thread = self._get_or_create_thread(session, subject, conversation, raw_email)
 
-        # Create the email record
         sent_at = getattr(raw_email, "date", None) or datetime.now()
         body = getattr(raw_email, "body", "") or ""
         message_id = getattr(raw_email, "message_id", None)
@@ -218,12 +206,10 @@ class EmailSyncService:
         session.add(db_email)
         session.flush()
 
-        # Create EmailReception records for all recipients
         self._create_email_receptions(
             session, db_email, to_recipients, cc_recipients, bcc_recipients
         )
 
-        # Handle attachments if present
         attachments = getattr(raw_email, "attachments", []) or []
         for attachment in attachments:
             attachment.email_id = db_email.id
@@ -333,13 +319,13 @@ class EmailSyncService:
         parts = full_name.strip().split()
 
         if len(parts) == 0:
-            return ("", "")
+            return "", ""
 
         elif len(parts) == 1:
-            return (parts[0], "")
+            return parts[0], ""
 
         else:
-            return (parts[0], " ".join(parts[1:]))
+            return parts[0], " ".join(parts[1:])
 
     def _get_or_create_conversation(
         self, session: Session, contacts: list[Contact], user: User
@@ -355,9 +341,8 @@ class EmailSyncService:
         Returns:
             Conversation instance
         """
-        contact_ids = {c.id for c in contacts if c.id is not None}
 
-        # Find conversations that have exactly these contacts
+        contact_ids = {c.id for c in contacts if c.id is not None}
         existing_conversations = session.exec(
             select(Conversation).join(UserConversation).where(UserConversation.user_id == user.id)
         ).all()
@@ -371,7 +356,6 @@ class EmailSyncService:
             if set(conv_contact_ids) == contact_ids:
                 return conv
 
-        # Create new conversation
         conversation_type = (
             ConversationType.GROUP if len(contacts) > 1 else ConversationType.CONVERSATION
         )
@@ -380,7 +364,6 @@ class EmailSyncService:
         session.add(conversation)
         session.flush()
 
-        # Link contacts to conversation
         for contact in contacts:
             conv_contact = ConversationContact(
                 conversation_id=conversation.id,  # type: ignore
@@ -388,7 +371,6 @@ class EmailSyncService:
             )
             session.add(conv_contact)
 
-        # Link user to conversation
         user_conv = UserConversation(
             user_id=user.id,  # type: ignore
             conversation_id=conversation.id,  # type: ignore
@@ -422,10 +404,7 @@ class EmailSyncService:
             Thread instance
         """
 
-        # Normalize subject for matching
         normalized_subject = self._normalize_subject(subject)
-
-        # Try to find existing thread in this conversation with similar subject
         existing_threads = session.exec(
             select(Thread).where(Thread.conversation_id == conversation.id)
         ).all()
@@ -434,7 +413,6 @@ class EmailSyncService:
             if self._normalize_subject(thread.title) == normalized_subject:
                 return thread
 
-        # Create new thread
         thread = Thread(
             title=subject or "No Subject",
             conversation_id=conversation.id,
@@ -459,7 +437,6 @@ class EmailSyncService:
         if not subject:
             return ""
 
-        # Remove common reply/forward prefixes
         patterns = [
             r"^(re|aw|sv|vs|fw|fwd|wg|tr):\s*",  # Common prefixes
             r"^\[.*?\]\s*",  # Remove [tags]
@@ -498,6 +475,7 @@ class EmailSyncService:
             cc_recipients: List of CC recipient (name, email) tuples
             bcc_recipients: List of BCC recipient (name, email) tuples
         """
+
         for name, addr in to_recipients:
             contact = self._get_or_create_contact(session, {"name": name, "email": addr})
             reception = EmailReception(

@@ -1,5 +1,3 @@
-"""Email error handler decorator."""
-
 from functools import wraps
 from smtplib import (
     SMTPAuthenticationError,
@@ -21,8 +19,6 @@ from remail import errors as ee
 
 
 def email_error_handler(func):
-    """Decorator to handle common email protocol errors and convert them to custom exceptions."""
-
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         _RECIPIENTS_FAIL = (SMTPRecipientsRefused,)

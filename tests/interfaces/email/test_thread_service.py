@@ -88,7 +88,7 @@ class TestThreadService:
                 email_address="bob@example.com",
                 first_name="Bob",
                 last_name="Recipient",
-                contact_type=ContactType.BUSINESS,
+                contact_type=ContactType.PRIVATE,
             )
             session.add(recipient)
             session.flush()

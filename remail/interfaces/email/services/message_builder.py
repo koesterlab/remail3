@@ -55,6 +55,7 @@ class MessageBuilder:
         Raises:
             FileNotFoundError: If any attachment path doesn't exist
         """
+
         for p in paths:
             path = os.path.abspath(p)
 
@@ -81,6 +82,7 @@ class MessageBuilder:
         Returns:
             Tuple of (main_type, sub_type)
         """
+
         mime, _ = mimetypes.guess_type(path)
 
         if not mime:

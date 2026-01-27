@@ -44,9 +44,6 @@ def load_conversation_fixtures(
     contacts = []
     contact_types = [
         ContactType.PRIVATE,
-        ContactType.BUSINESS,
-        ContactType.COMPANY,
-        ContactType.NEWSLETTER,
     ]
     print(f"Creating {num_contacts} contacts...")
     for i in range(num_contacts):

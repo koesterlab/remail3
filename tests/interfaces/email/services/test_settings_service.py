@@ -67,7 +67,7 @@ class TestSettingsService:
             font_size=FontSize.SMALL.value,
             font_family=FontFamily.COURIER_NEW.value,
             language=Language.FRENCH.value,
-            timezone=Timezone.AMERICA_NEW_YORK.value,
+            timezone=Timezone.EUROPE_BERLIN.value,
             desktop_notifications=True,
             email_notifications=False,
             quiet_hours=True,
@@ -82,7 +82,7 @@ class TestSettingsService:
         assert result.font_size == FontSize.SMALL.value
         assert result.font_family == FontFamily.COURIER_NEW.value
         assert result.language == Language.FRENCH.value
-        assert result.timezone == Timezone.AMERICA_NEW_YORK.value
+        assert result.timezone == Timezone.EUROPE_BERLIN.value
         assert result.desktop_notifications is True
         assert result.email_notifications is False
         assert result.quiet_hours is True
@@ -96,7 +96,7 @@ class TestSettingsService:
             font_size=FontSize.MEDIUM.value,
             font_family=FontFamily.ARIAL.value,
             language=Language.ENGLISH.value,
-            timezone=Timezone.EUROPE_LONDON.value,
+            timezone=Timezone.EUROPE_BERLIN.value,
             desktop_notifications=True,
             email_notifications=True,
             quiet_hours=False,
@@ -133,7 +133,7 @@ class TestSettingsService:
             font_size=FontSize.MEDIUM.value,
             font_family=FontFamily.ARIAL.value,
             language=Language.ENGLISH.value,
-            timezone=Timezone.EUROPE_LONDON.value,
+            timezone=Timezone.EUROPE_BERLIN.value,
             desktop_notifications=True,
             email_notifications=True,
             quiet_hours=False,
@@ -154,7 +154,7 @@ class TestSettingsService:
         assert result.font_size == FontSize.MEDIUM.value
         assert result.font_family == FontFamily.ARIAL.value
         assert result.language == Language.ENGLISH.value
-        assert result.timezone == Timezone.EUROPE_LONDON.value
+        assert result.timezone == Timezone.EUROPE_BERLIN.value
         assert result.email_notifications is True
         assert result.quiet_hours is False
 

@@ -1,7 +1,3 @@
-"""Email controller for managing email operations."""
-
-from __future__ import annotations
-
 from datetime import datetime
 from typing import Any
 
@@ -18,11 +14,6 @@ from remail.models import Contact, Email, EmailReception
 class EmailController:
     """Controller for email operations using IMAP protocol."""
 
-    @classmethod
-    def from_id(cls, account_id: int):
-        user: UserDTO = next(filter(lambda u: u.id == account_id, UserService.get_all_users()))
-        return EmailController(username=user.email, password=user.password, host=user.host)
-
     def __init__(self, username: str, password: str, host: str):
         """
         Initialize email controller.
@@ -35,6 +26,12 @@ class EmailController:
 
         self.protocol = ImapProtocol(username=username, password=password, host=host)
         self.thread_service = ThreadService()
+
+    @classmethod
+    def from_id(cls, account_id: int):
+        user: UserDTO = next(filter(lambda u: u.id == account_id, UserService.get_all_users()))
+
+        return EmailController(username=user.email, password=user.password, host=user.host)
 
     def login(self) -> dict[str, Any]:
         """
@@ -64,30 +61,6 @@ class EmailController:
             return {
                 "status": "error",
                 "message": f"Login failed: {str(e)}",
-                "logged_in": False,
-            }
-
-    def logout(self) -> dict[str, Any]:
-        """
-        Logout from IMAP server.
-
-        Returns:
-            Dict with status and message
-        """
-
-        try:
-            self.protocol.logout()
-
-            return {
-                "status": "success",
-                "message": "Successfully logged out",
-                "logged_in": False,
-            }
-
-        except Exception as e:
-            return {
-                "status": "error",
-                "message": f"Logout failed: {str(e)}",
                 "logged_in": False,
             }
 
@@ -307,76 +280,6 @@ class EmailController:
             return {
                 "status": "error",
                 "message": f"Failed to send email: {str(e)}",
-            }
-
-    def delete_email(self, message_id: str, hard_delete: bool = False) -> dict[str, Any]:
-        """
-        Delete an email.
-
-        Args:
-            message_id: Message ID of the email to delete
-            hard_delete: If True, permanently delete; otherwise move to trash
-
-        Returns:
-            Dict with status and message
-        """
-
-        try:
-            self.protocol.delete_email(message_id=message_id, hard_delete=hard_delete)
-
-            return {
-                "status": "success",
-                "message": f"Email {'permanently deleted' if hard_delete else 'moved to trash'}",
-                "message_id": message_id,
-                "hard_delete": hard_delete,
-            }
-
-        except ee.NotLoggedIn:
-            return {
-                "status": "error",
-                "message": "Not logged in",
-            }
-
-        except Exception as e:
-            return {
-                "status": "error",
-                "message": f"Failed to delete email: {str(e)}",
-            }
-
-    def tag_email(self, message_id: str, tag: str, remove: bool = False) -> dict[str, Any]:
-        """
-        Add or remove a tag from an email.
-
-        Args:
-            message_id: Message ID of the email to tag
-            tag: Tag name to add or remove
-            remove: If True, remove the tag; otherwise add it
-
-        Returns:
-            Dict with status, message, and tag details
-        """
-
-        try:
-            self.protocol.tag_email(message_id=message_id, tag=tag, remove=remove)
-
-            return {
-                "status": "success",
-                "message": f"Tag '{tag}' {'removed from' if remove else 'added to'} email",
-                "message_id": message_id,
-                "tag": tag,
-                "action": "remove" if remove else "add",
-            }
-
-        except ee.NotLoggedIn:
-            return {
-                "status": "error",
-                "message": "Not logged in",
-            }
-
-        except Exception as e:
-            return {
-                "status": "error",
-                "message": f"Failed to tag email: {str(e)}",
             }
 
     def _create_email_model(

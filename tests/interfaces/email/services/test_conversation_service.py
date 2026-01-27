@@ -86,7 +86,7 @@ class TestConversationService:
                 email_address="contact2@example.com",
                 first_name="Jane",
                 last_name="Smith",
-                contact_type=ContactType.BUSINESS,
+                contact_type=ContactType.PRIVATE,
                 is_known=False,
             )
             contact3 = Contact(
@@ -238,8 +238,7 @@ class TestConversationService:
 
         conv2 = next(c for c in result if c["custom_name"] == "Second Conversation")
         contact_types = {c["type"] for c in conv2["contacts"]}
-        assert "private" in contact_types
-        assert "business" in contact_types
+        assert contact_types == {"private"}
 
     def test_get_all_conversations_type_values(
         self, service: ConversationService, user_with_conversations: int

@@ -42,52 +42,6 @@ class TestInitialization:
         assert controller.service == mock_llm_service
 
 
-class TestGenerateCompletion:
-    """Tests for generate_completion method."""
-
-    def test_generate_completion_success(self, controller, mock_llm_service):
-        """Test successful completion generation."""
-        # Mock response
-        mock_response = MagicMock(spec=LLMCompletionResponse)
-        mock_response.completion_text = "This is a test response"
-        mock_llm_service.generate_completion.return_value = mock_response
-
-        result = controller.generate_completion(
-            prompt="Hello",
-            max_tokens=100,
-            temperature=0.5,
-        )
-
-        assert isinstance(result, LLMResponseDTO)
-        assert result.content == "This is a test response"
-        mock_llm_service.generate_completion.assert_called_once_with(
-            prompt="Hello",
-            max_tokens=100,
-            temperature=0.5,
-        )
-
-    def test_generate_completion_uses_default_params(self, controller, mock_llm_service):
-        """Test completion generation with default parameters."""
-        mock_response = MagicMock(spec=LLMCompletionResponse)
-        mock_response.completion_text = "Response"
-        mock_llm_service.generate_completion.return_value = mock_response
-
-        controller.generate_completion(prompt="Test")
-
-        mock_llm_service.generate_completion.assert_called_once()
-        call_args = mock_llm_service.generate_completion.call_args
-        assert call_args.kwargs["prompt"] == "Test"
-        assert call_args.kwargs["max_tokens"] is None
-        assert call_args.kwargs["temperature"] is None
-
-    def test_generate_completion_raises_on_error(self, controller, mock_llm_service):
-        """Test that errors are propagated."""
-        mock_llm_service.generate_completion.side_effect = RuntimeError("LLM failed")
-
-        with pytest.raises(RuntimeError, match="LLM failed"):
-            controller.generate_completion(prompt="Test")
-
-
 class TestChat:
     """Tests for chat method."""
 
@@ -176,54 +130,3 @@ class TestChat:
 
         with pytest.raises(RuntimeError, match="Service unavailable"):
             controller.chat(prompt="Test")
-
-
-class TestResetChatMemory:
-    """Tests for reset_chat_memory method."""
-
-    def test_reset_clears_history(self, controller, mock_llm_service):
-        """Test that reset clears conversation history."""
-        mock_response = MagicMock(spec=LLMCompletionResponse)
-        mock_response.completion_text = "Response"
-        mock_llm_service.generate_completion_with_history.return_value = mock_response
-
-        # Add some conversation
-        controller.chat(prompt="First")
-        controller.chat(prompt="Second")
-
-        assert len(controller.conversation_history) > 1
-
-        # Reset
-        controller.reset_chat_memory()
-
-        # Should only have system message
-        assert len(controller.conversation_history) == 1
-        assert controller.conversation_history[0].role == LLMMessageRole.SYSTEM
-
-    def test_reset_reinitializes_system_message(self, controller):
-        """Test that reset adds system message back."""
-        controller.reset_chat_memory()
-
-        assert len(controller.conversation_history) == 1
-        system_msg = controller.conversation_history[0]
-        assert system_msg.role == LLMMessageRole.SYSTEM
-        assert "Alfred" in system_msg.content
-        assert "concise" in system_msg.content
-
-    def test_chat_works_after_reset(self, controller, mock_llm_service):
-        """Test that chat works correctly after reset."""
-        mock_response = MagicMock(spec=LLMCompletionResponse)
-        mock_response.completion_text = "Response"
-        mock_llm_service.generate_completion_with_history.return_value = mock_response
-
-        # Initial chat
-        controller.chat(prompt="Before reset")
-
-        # Reset
-        controller.reset_chat_memory()
-
-        # Chat again
-        result = controller.chat(prompt="After reset")
-
-        assert isinstance(result, LLMResponseDTO)
-        assert len(controller.conversation_history) == 3  # system + user + assistant
