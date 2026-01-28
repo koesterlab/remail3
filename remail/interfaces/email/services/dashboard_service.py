@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from sqlmodel import Session, select, col
+from sqlmodel import Session, col, select
 
 from remail.database.db import engine
 from remail.models.contact import Contact
