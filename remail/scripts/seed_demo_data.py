@@ -71,9 +71,7 @@ def _clean_demo_data(session: Session) -> None:
         if e.id is not None
     ]
     if demo_email_ids:
-        session.exec(
-            delete(EmailReception).where(col(EmailReception.email_id).in_(demo_email_ids))
-        )
+        session.exec(delete(EmailReception).where(col(EmailReception.email_id).in_(demo_email_ids)))
 
     session.exec(
         delete(Email).where(
@@ -84,9 +82,7 @@ def _clean_demo_data(session: Session) -> None:
 
     demo_thread_ids = [
         t.id
-        for t in session.exec(
-            select(Thread).where(col(Thread.title).contains(DEMO_TAG))
-        ).all()
+        for t in session.exec(select(Thread).where(col(Thread.title).contains(DEMO_TAG))).all()
         if t.id is not None
     ]
     if demo_thread_ids:
@@ -110,14 +106,11 @@ def _clean_demo_data(session: Session) -> None:
                 col(ConversationContact.conversation_id).in_(demo_conversation_ids)
             )
         )
-        session.exec(
-            delete(Conversation).where(col(Conversation.id).in_(demo_conversation_ids))
-        )
+        session.exec(delete(Conversation).where(col(Conversation.id).in_(demo_conversation_ids)))
 
     session.exec(
         delete(Contact).where(
-            (col(Contact.email_address).endswith(".demo"))
-            | (col(Contact.name).contains(DEMO_TAG))
+            (col(Contact.email_address).endswith(".demo")) | (col(Contact.name).contains(DEMO_TAG))
         )
     )
 
@@ -138,9 +131,7 @@ def _ensure_user(session: Session, user_id: int | None = None) -> User:
 
 
 def _upsert_contact(session: Session, spec: DemoContactSpec) -> Contact:
-    existing = session.exec(
-        select(Contact).where(Contact.email_address == spec.email)
-    ).first()
+    existing = session.exec(select(Contact).where(Contact.email_address == spec.email)).first()
     if existing:
         _require_id(existing.id, what="contact")
         return existing
