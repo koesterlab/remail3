@@ -41,7 +41,3 @@ class TestThreadList(unittest.TestCase):
         widget = ThreadList(self.state)
         self.assertIsInstance(widget, ft.Container)
         self.assertTrue(widget.expand)
-
-
-if __name__ == "__main__":
-    unittest.main()

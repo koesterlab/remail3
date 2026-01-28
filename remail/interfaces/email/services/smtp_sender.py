@@ -52,7 +52,6 @@ class SmtpSender:
             Various SMTP exceptions on failure
         """
 
-        # Ensure credentials are set (should be validated before calling)
         if self.username is None or self.password is None:
             raise ee.InvalidLoginData()
 

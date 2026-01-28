@@ -17,7 +17,6 @@ from remail.interfaces.email.services import (
     MessageBuilder,
     RecipientService,
     SmtpSender,
-    TagService,
 )
 from remail.models import Email
 
@@ -59,8 +58,6 @@ class ImapProtocol(EmailProtocol):
 
         return self._logged_in
 
-    # ---- public ---------------------------------------------------------------
-
     @email_error_handler
     def login(self) -> None:
         """Log in to IMAP server."""
@@ -77,20 +74,6 @@ class ImapProtocol(EmailProtocol):
 
         except LoginError:
             raise ee.InvalidLoginData() from None
-
-    @email_error_handler
-    def logout(self) -> None:
-        """Log out from IMAP server."""
-
-        try:
-            self.IMAP.logout()
-
-        finally:
-            self.user_password = None
-            self.user_username = None
-            self.smtp_sender.username = None
-            self.smtp_sender.password = None
-            self._logged_in = False
 
     @email_error_handler
     def fetch_emails(
@@ -181,72 +164,3 @@ class ImapProtocol(EmailProtocol):
         envelope = list(OrderedDict.fromkeys(ordered_recipients).keys())
 
         self.smtp_sender.send(msg, envelope)
-
-    @email_error_handler
-    def delete_email(self, message_id: str, hard_delete: bool = False) -> None:
-        """
-        'Delete' means:
-          - if hard_delete: add \\Deleted and EXPUNGE (or delete_messages+expunge)
-          - else: move to the server's Trash folder when detectable, otherwise add \\Deleted
-        """
-
-        if not self.logged_in:
-            raise ee.NotLoggedIn()
-
-        for box in self.folder_service.get_user_folders(include_trash=True):
-            with self.folder_service.selected_folder(box):
-                uids = self.IMAP.search(["HEADER", "Message-ID", message_id])
-
-                if not uids:
-                    continue
-
-                if hard_delete:
-                    self.IMAP.delete_messages(uids)
-                    self.IMAP.expunge()
-
-                else:
-                    trash = self.folder_service.get_trash_folder()
-
-                    if trash:
-                        self.IMAP.move(uids, trash)
-
-                    else:
-                        self.IMAP.add_flags(uids, [b"\\Deleted"])
-
-                return
-
-    @email_error_handler
-    def tag_email(self, message_id: str, tag: str, remove: bool = False) -> None:
-        """
-        Add or remove a tag/keyword from an email.
-
-        Searches across all folders for the email with the given Message-ID
-        and adds/removes the specified tag.
-
-        Args:
-            message_id: The Message-ID header of the email
-            tag: Tag name to add or remove
-            remove: If True, remove the tag; if False, add it
-
-        Raises:
-            NotLoggedIn: If not currently logged in
-        """
-        if not self.logged_in:
-            raise ee.NotLoggedIn()
-
-        for box in self.folder_service.get_user_folders(include_trash=True):
-            with self.folder_service.selected_folder(box):
-                uids = self.IMAP.search(["HEADER", "Message-ID", message_id])
-
-                if not uids:
-                    continue
-
-                tag_service = TagService(self.IMAP)
-
-                for uid in uids:
-                    if remove:
-                        tag_service.remove_tag(uid, tag)
-                    else:
-                        tag_service.add_tag(uid, tag)
-
-                return

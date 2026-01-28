@@ -97,7 +97,3 @@ class TestSelectionBar(unittest.TestCase):
         # Mit Suchbegriff
         data2 = self.bar._SelectionBar__search_request("abc")
         self.assertTrue(all(isinstance(c, ConversationDTO) for c in data2))
-
-
-if __name__ == "__main__":
-    unittest.main()

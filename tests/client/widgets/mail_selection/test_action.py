@@ -42,7 +42,3 @@ class TestAction(unittest.TestCase):
         # Callback aufrufen
         action.on_executed()
         self.assertTrue(executed["called"])
-
-
-if __name__ == "__main__":
-    unittest.main()

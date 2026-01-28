@@ -1,7 +1,3 @@
-"""Thread controller for managing thread operations."""
-
-from __future__ import annotations
-
 from remail.controllers.dtos.threads import ThreadDTO
 from remail.interfaces.email.services.thread_service import ThreadService
 
@@ -11,6 +7,7 @@ class ThreadController:
 
     def __init__(self):
         """Initialize thread controller."""
+
         self.service = ThreadService()
 
     def get_thread(self, thread_id: int) -> ThreadDTO | None:
@@ -23,5 +20,7 @@ class ThreadController:
         Returns:
             ThreadDTO with thread data, or None if not found
         """
+
         result: ThreadDTO | None = self.service.get_thread_by_id(thread_id)
+
         return result

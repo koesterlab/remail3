@@ -48,7 +48,3 @@ class TestActionPreview(unittest.TestCase):
         # on_click sollte den callback aufrufen
         self.preview.on_click(None)
         self.callback.assert_called_once()
-
-
-if __name__ == "__main__":
-    unittest.main()

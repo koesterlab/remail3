@@ -1,7 +1,3 @@
-"""Settings controller for managing application preferences."""
-
-from __future__ import annotations
-
 from remail.controllers.dtos.settings_dto import SettingsDTO
 from remail.interfaces.email.services.settings_service import SettingsService
 
@@ -20,6 +16,7 @@ class SettingsController:
         Returns:
             SettingsDTO with initialized settings
         """
+
         settings = self.service.init_settings()
 
         return SettingsDTO.from_model(settings)
@@ -31,6 +28,7 @@ class SettingsController:
         Returns:
             SettingsDTO if found, None otherwise
         """
+
         settings = self.service.load_settings()
 
         if not settings:
@@ -65,6 +63,7 @@ class SettingsController:
         Returns:
             Updated SettingsDTO
         """
+
         settings = self.service.save_settings(
             theme_mode=theme_mode,
             font_size=font_size,

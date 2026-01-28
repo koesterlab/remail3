@@ -62,7 +62,3 @@ class TestContactPreview(unittest.TestCase):
 
     def test_unknown_contact_preview_creation(self):
         ContactPreview(MainAppState(), self.conv_unknown)
-
-
-if __name__ == "__main__":
-    unittest.main()

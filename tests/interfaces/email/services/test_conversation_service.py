@@ -1,10 +1,7 @@
 """Tests for ConversationService."""
 
-from unittest.mock import patch
-
 import pytest
-from sqlalchemy.pool import StaticPool
-from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel import Session, select
 
 from remail.enums.contact_type import ContactType
 from remail.enums.conversation_type import ConversationType
@@ -17,30 +14,48 @@ from remail.models.user import User
 from remail.models.user_conversation import UserConversation
 
 
+def _create_user(session: Session, email: str) -> User:
+    user = User(
+        name=email.split("@")[0],
+        email=email,
+        host="imap.example.com",
+        password="hash123",
+        protocol=Protocol.IMAP,
+    )
+    session.add(user)
+    session.flush()
+    return user
+
+
+def _create_contact(
+    session: Session,
+    email: str,
+    first_name: str = "First",
+    last_name: str = "Last",
+    contact_type: ContactType = ContactType.PRIVATE,
+) -> Contact:
+    contact = Contact(
+        name=f"{first_name} {last_name}".strip(),
+        email_address=email,
+        first_name=first_name,
+        last_name=last_name,
+        contact_type=contact_type,
+        is_known=True,
+    )
+    session.add(contact)
+    session.flush()
+    return contact
+
+
 class TestConversationService:
     """Test suite for ConversationService."""
 
     @pytest.fixture
-    def test_engine(self):
-        """Create a test database engine."""
-        engine = create_engine(
-            "sqlite://",
-            connect_args={"check_same_thread": False},
-            poolclass=StaticPool,
-            echo=False,
-        )
-        SQLModel.metadata.create_all(engine)
-        yield engine
-        SQLModel.metadata.drop_all(engine)
-
-    @pytest.fixture
     def service(self, test_engine):
         """Create a ConversationService instance with test engine."""
-        with patch("remail.interfaces.email.services.conversation_service.engine", test_engine):
-            svc = ConversationService()
-            # Also patch engine on the instance for when methods are called
-            svc.engine = test_engine
-            return svc
+        svc = ConversationService()
+        svc.engine = test_engine
+        return svc
 
     @pytest.fixture
     def user_with_conversations(self, test_engine):
@@ -71,7 +86,7 @@ class TestConversationService:
                 email_address="contact2@example.com",
                 first_name="Jane",
                 last_name="Smith",
-                contact_type=ContactType.BUSINESS,
+                contact_type=ContactType.PRIVATE,
                 is_known=False,
             )
             contact3 = Contact(
@@ -223,8 +238,7 @@ class TestConversationService:
 
         conv2 = next(c for c in result if c["custom_name"] == "Second Conversation")
         contact_types = {c["type"] for c in conv2["contacts"]}
-        assert "private" in contact_types
-        assert "business" in contact_types
+        assert contact_types == {"private"}
 
     def test_get_all_conversations_type_values(
         self, service: ConversationService, user_with_conversations: int
@@ -315,3 +329,106 @@ class TestConversationService:
         # User2 should not see the conversation
         result2 = service.get_all_conversations(user2_id)
         assert len(result2) == 0
+
+    def test_create_conversation_returns_none_for_empty_contact_ids(
+        self, service: ConversationService
+    ):
+        """Test that empty contact_ids returns None."""
+        result = service.create_conversation(user_id=1, contact_ids=[])
+        assert result is None
+
+    def test_create_conversation_returns_none_for_missing_user(
+        self, service: ConversationService, test_engine
+    ):
+        """Test that missing user returns None."""
+        with Session(test_engine) as session:
+            contact = _create_contact(session, "contact@example.com")
+            session.commit()
+            contact_id = contact.id
+
+        result = service.create_conversation(user_id=999, contact_ids=[contact_id])
+        assert result is None
+
+    def test_create_conversation_returns_none_for_missing_contact(
+        self, service: ConversationService, test_engine
+    ):
+        """Test that missing contacts return None."""
+        with Session(test_engine) as session:
+            user = _create_user(session, "user@example.com")
+            contact = _create_contact(session, "contact@example.com")
+            session.commit()
+            user_id = user.id
+            contact_id = contact.id
+
+        result = service.create_conversation(user_id=user_id, contact_ids=[contact_id, 9999])
+        assert result is None
+
+    def test_create_conversation_creates_group_conversation(
+        self, service: ConversationService, test_engine
+    ):
+        """Test creating a new group conversation."""
+        with Session(test_engine) as session:
+            user = _create_user(session, "group@example.com")
+            contact1 = _create_contact(session, "alice@example.com", "Alice", "One")
+            contact2 = _create_contact(session, "bob@example.com", "Bob", "Two")
+            session.commit()
+            user_id = user.id
+            contact_ids = [contact1.id, contact2.id]
+
+        result = service.create_conversation(
+            user_id=user_id,
+            contact_ids=contact_ids,
+            custom_name="Team",
+        )
+
+        assert result is not None
+        assert result["custom_name"] == "Team"
+        assert result["type"] == "group"
+        assert result["is_favorite"] is False
+        assert {c["email"] for c in result["contacts"]} == {
+            "alice@example.com",
+            "bob@example.com",
+        }
+
+        with Session(test_engine) as session:
+            conversation = session.exec(select(Conversation)).first()
+            assert conversation is not None
+            conv_contacts = session.exec(
+                select(ConversationContact).where(
+                    ConversationContact.conversation_id == conversation.id
+                )
+            ).all()
+            user_conversations = session.exec(select(UserConversation)).all()
+            assert len(list(conv_contacts)) == 2
+            assert len(list(user_conversations)) == 1
+
+    def test_create_conversation_reuses_existing_and_updates_name(
+        self, service: ConversationService, test_engine
+    ):
+        """Test reusing an existing conversation and updating its name."""
+        with Session(test_engine) as session:
+            user = _create_user(session, "reuse@example.com")
+            contact = _create_contact(session, "contact@example.com", "Single", "User")
+            session.commit()
+            user_id = user.id
+            contact_id = contact.id
+
+        first = service.create_conversation(user_id=user_id, contact_ids=[contact_id])
+        assert first is not None
+        first_id = first["id"]
+
+        updated = service.create_conversation(
+            user_id=user_id,
+            contact_ids=[contact_id],
+            custom_name="Updated Name",
+        )
+
+        assert updated is not None
+        assert updated["id"] == first_id
+        assert updated["custom_name"] == "Updated Name"
+        assert updated["type"] == "conversation"
+
+        with Session(test_engine) as session:
+            conversations = session.exec(select(Conversation)).all()
+            assert len(list(conversations)) == 1
+            assert conversations[0].custom_name == "Updated Name"

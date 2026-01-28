@@ -2,8 +2,6 @@ from enum import Enum
 
 
 class Language(str, Enum):
-    """Enum for supported languages."""
-
     ENGLISH = "English"
     GERMAN = "German"
     RUSSIAN = "Russian"
@@ -24,3 +22,6 @@ class Language(str, Enum):
     NORWEGIAN = "Norwegian"
     DANISH = "Danish"
     FINNISH = "Finnish"
+
+
+__all__ = ["Language"]

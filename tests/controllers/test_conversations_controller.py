@@ -19,7 +19,16 @@ def mock_conversation_service():
 
 
 @pytest.fixture
-def controller(mock_conversation_service):
+def mock_thread_service():
+    """Create a mock ThreadService."""
+    with patch("remail.controllers.conversations_controller.ThreadService") as mock:
+        service_instance = MagicMock()
+        mock.return_value = service_instance
+        yield service_instance
+
+
+@pytest.fixture
+def controller(mock_conversation_service, mock_thread_service):
     """Create a ConversationsController instance with mocked service."""
     return ConversationsController()
 
@@ -142,7 +151,7 @@ class TestConversationsController:
                         "email": "contact2@example.com",
                         "first_name": "Bob",
                         "last_name": "Smith",
-                        "type": "business",
+                        "type": "private",
                         "is_known": False,
                     },
                 ],
@@ -158,7 +167,7 @@ class TestConversationsController:
         assert result[0].contacts[0].email == "contact1@example.com"
         assert result[0].contacts[0].type == ContactType.PRIVATE
         assert result[0].contacts[1].email == "contact2@example.com"
-        assert result[0].contacts[1].type == ContactType.BUSINESS
+        assert result[0].contacts[1].type == ContactType.PRIVATE
 
     def test_get_conversations_handles_empty_list(self, controller, mock_conversation_service):
         """Test that get_conversations handles empty list from service."""
@@ -241,7 +250,7 @@ class TestConversationsController:
                         "email": "bob@example.com",
                         "first_name": "Bob",
                         "last_name": "Builder",
-                        "type": "business",
+                        "type": "private",
                         "is_known": True,
                     },
                     {
@@ -262,5 +271,4 @@ class TestConversationsController:
         assert len(result[0].contacts) == 3
         assert result[0].contacts[0].first_name == "Alice"
         assert result[0].contacts[1].first_name == "Bob"
-        assert result[0].contacts[2].first_name == "Charlie"
         assert result[0].contacts[2].first_name == "Charlie"

@@ -15,10 +15,13 @@ from ...widgets.thread.thread_list import ThreadList
 def create_main_view(page: ft.Page, global_state: AppState):
     main_state = MainAppState()
     users = UserService.get_all_users()
+
     if len(users) < 1:
-        if global_state.router is not None:
-            global_state.router.load_view(MainView.SETTINGS)
-        return ft.Container()
+    router = global_state.router
+    if router is not None:
+        router.load_view(MainView.SETTINGS)
+    return ft.Container()
+
 
     main_state.set(MainAppStateProperties.ACTIVE_USER, users[0])
     main_state.set(

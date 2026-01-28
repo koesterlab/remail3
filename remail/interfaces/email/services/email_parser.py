@@ -1,6 +1,6 @@
 from datetime import datetime
 from email.header import decode_header, make_header
-from email.utils import getaddresses, parsedate_to_datetime
+from email.utils import parsedate_to_datetime
 from typing import cast
 
 from pytz import timezone
@@ -64,20 +64,6 @@ class EmailParser:
         except Exception:
             return value
 
-    @staticmethod
-    def extract_addresses(header_val: str | None) -> list[tuple[str, str]]:
-        """
-        Extract email addresses from header.
-
-        Args:
-            header_val: Header value containing addresses
-
-        Returns:
-            List of (name, address) tuples
-        """
-
-        return [(n, a) for n, a in getaddresses([header_val]) if a] if header_val else []
-
     def parse_email_message(self, em) -> Email:
         """
         Parse an email message into an Email object.
@@ -89,11 +75,6 @@ class EmailParser:
             Email object
         """
         subject = self.decode_header(em.get("Subject"))
-        # sender = (self.extract_addresses(em.get("From")) or [("", "")])[0][1]
-        # to_list = self.extract_addresses(em.get("To"))
-        # cc_list = self.extract_addresses(em.get("Cc"))
-        # bcc_list = self.extract_addresses(em.get("Bcc"))
-
         dt = self.safe_msg_datetime(em)
         body_text: str = ""
         html_parts: list[str] = []
@@ -129,6 +110,7 @@ class EmailParser:
                         body_text = payload.decode(charset, errors="replace")
 
                     continue
+
         else:
             charset = em.get_content_charset() or "utf-8"
             payload = em.get_payload(decode=True)
@@ -140,7 +122,6 @@ class EmailParser:
             else:
                 body_text = payload.decode(charset, errors="replace") if payload else ""
 
-        # Create Email object with empty recipients list (contacts will be handled later)
         email = Email(
             message_id=em.get("Message-Id"),
             sender=None,  # Will be handled later with contacts

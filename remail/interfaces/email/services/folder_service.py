@@ -39,20 +39,6 @@ class FolderService:
             if not (set(flags) & excluded)
         ]
 
-    def get_trash_folder(self) -> str | None:
-        """
-        Find the trash folder.
-
-        Returns:
-            Trash folder name or None if not found
-        """
-
-        for flags, _, name in self.imap_client.list_folders():
-            if b"\\Trash" in set(flags):
-                return str(name)
-
-        return None
-
     @staticmethod
     def build_search_criteria(since: datetime | None, flags: list[str] | None) -> list:
         """

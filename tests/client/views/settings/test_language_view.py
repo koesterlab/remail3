@@ -187,7 +187,7 @@ class TestCreateLanguageView:
         """Test that timezone dropdown has default value from app_state."""
         page = Mock(spec=ft.Page)
         page.update = Mock()
-        app_state = AppState(timezone=Timezone.ASIA_TOKYO)
+        app_state = AppState(timezone=Timezone.EUROPE_BERLIN)
 
         with patch(
             "remail.client.views.settings.language_view.SettingsController"
@@ -199,7 +199,7 @@ class TestCreateLanguageView:
             result = create_language_view(page, app_state)
             dropdown = result.content.controls[6]
 
-            assert dropdown.value == Timezone.ASIA_TOKYO.value
+            assert dropdown.value == Timezone.EUROPE_BERLIN.value
 
     def test_timezone_dropdown_has_on_change_handler(self):
         """Test that timezone dropdown has an on_change handler."""
@@ -306,8 +306,8 @@ class TestCreateLanguageView:
         """Test that multiple view instances are independent."""
         page = Mock(spec=ft.Page)
         page.update = Mock()
-        app_state1 = AppState(language=Language.ENGLISH, timezone=Timezone.AMERICA_NEW_YORK)
-        app_state2 = AppState(language=Language.FRENCH, timezone=Timezone.EUROPE_LONDON)
+        app_state1 = AppState(language=Language.ENGLISH, timezone=Timezone.EUROPE_BERLIN)
+        app_state2 = AppState(language=Language.FRENCH, timezone=Timezone.EUROPE_BERLIN)
 
         with patch(
             "remail.client.views.settings.language_view.SettingsController"
@@ -330,8 +330,8 @@ class TestCreateLanguageView:
             tz_dropdown1 = view1.content.controls[6]
             tz_dropdown2 = view2.content.controls[6]
 
-            assert tz_dropdown1.value == Timezone.AMERICA_NEW_YORK.value
-            assert tz_dropdown2.value == Timezone.EUROPE_LONDON.value
+            assert tz_dropdown1.value == Timezone.EUROPE_BERLIN.value
+            assert tz_dropdown2.value == Timezone.EUROPE_BERLIN.value
 
     def test_english_selected_by_default(self):
         """Test that ENGLISH language is selected when app_state has default."""
@@ -367,4 +367,4 @@ class TestCreateLanguageView:
             result = create_language_view(page, app_state)
             tz_dropdown = result.content.controls[6]
 
-            assert tz_dropdown.value == Timezone.EUROPE_LONDON.value
+            assert tz_dropdown.value == Timezone.EUROPE_BERLIN.value

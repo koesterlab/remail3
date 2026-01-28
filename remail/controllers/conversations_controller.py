@@ -1,9 +1,3 @@
-"""Conversations controller for managing conversation operations."""
-
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
-
 from remail.controllers.dtos.conversations import (
     ContactDTO,
     ConversationDTO,
@@ -12,9 +6,6 @@ from remail.controllers.dtos.conversations import (
 from remail.enums import ContactType
 from remail.interfaces.email.services.conversation_service import ConversationService
 from remail.interfaces.email.services.thread_service import ThreadService
-
-if TYPE_CHECKING:
-    pass
 
 
 class ConversationsController:

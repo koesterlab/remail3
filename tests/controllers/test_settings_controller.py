@@ -74,7 +74,7 @@ class TestSettingsController:
             mock_updated_settings.font_size = FontSize.SMALL.value
             mock_updated_settings.font_family = FontFamily.COURIER_NEW.value
             mock_updated_settings.language = Language.FRENCH.value
-            mock_updated_settings.timezone = Timezone.AMERICA_NEW_YORK.value
+            mock_updated_settings.timezone = Timezone.EUROPE_BERLIN.value
             mock_updated_settings.desktop_notifications = False
             mock_updated_settings.email_notifications = True
             mock_updated_settings.quiet_hours = False
@@ -87,7 +87,7 @@ class TestSettingsController:
                 font_size=FontSize.SMALL.value,
                 font_family=FontFamily.COURIER_NEW.value,
                 language=Language.FRENCH.value,
-                timezone=Timezone.AMERICA_NEW_YORK.value,
+                timezone=Timezone.EUROPE_BERLIN.value,
                 desktop_notifications=False,
                 email_notifications=True,
                 quiet_hours=False,
@@ -98,7 +98,7 @@ class TestSettingsController:
             assert result.font_size == FontSize.SMALL.value
             assert result.font_family == FontFamily.COURIER_NEW.value
             assert result.language == Language.FRENCH.value
-            assert result.timezone == Timezone.AMERICA_NEW_YORK.value
+            assert result.timezone == Timezone.EUROPE_BERLIN.value
             assert result.desktop_notifications is False
             assert result.email_notifications is True
             assert result.quiet_hours is False
@@ -108,7 +108,7 @@ class TestSettingsController:
                 font_size=FontSize.SMALL.value,
                 font_family=FontFamily.COURIER_NEW.value,
                 language=Language.FRENCH.value,
-                timezone=Timezone.AMERICA_NEW_YORK.value,
+                timezone=Timezone.EUROPE_BERLIN.value,
                 desktop_notifications=False,
                 email_notifications=True,
                 quiet_hours=False,
@@ -124,7 +124,7 @@ class TestSettingsController:
             mock_updated_settings.font_size = FontSize.MEDIUM.value
             mock_updated_settings.font_family = FontFamily.ARIAL.value
             mock_updated_settings.language = Language.ENGLISH.value
-            mock_updated_settings.timezone = Timezone.EUROPE_LONDON.value
+            mock_updated_settings.timezone = Timezone.EUROPE_BERLIN.value
             mock_updated_settings.desktop_notifications = True
             mock_updated_settings.email_notifications = True
             mock_updated_settings.quiet_hours = False
@@ -159,7 +159,7 @@ class TestSettingsController:
             mock_updated_settings.font_size = FontSize.MEDIUM.value
             mock_updated_settings.font_family = FontFamily.ARIAL.value
             mock_updated_settings.language = Language.ENGLISH.value
-            mock_updated_settings.timezone = Timezone.EUROPE_LONDON.value
+            mock_updated_settings.timezone = Timezone.EUROPE_BERLIN.value
             mock_updated_settings.desktop_notifications = True
             mock_updated_settings.email_notifications = True
             mock_updated_settings.quiet_hours = False

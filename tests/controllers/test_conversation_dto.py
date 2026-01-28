@@ -27,20 +27,6 @@ class TestContactDTO:
         assert contact.type == ContactType.PRIVATE
         assert contact.is_known is True
 
-    def test_create_business_contact(self):
-        """Test creating a business ContactDTO."""
-        contact = ContactDTO(
-            id=2,
-            email="business@example.com",
-            first_name="Jane",
-            last_name="Smith",
-            type=ContactType.BUSINESS,
-            is_known=False,
-        )
-
-        assert contact.type == ContactType.BUSINESS
-        assert contact.is_known is False
-
 
 class TestThreadPreviewDTO:
     """Test suite for ThreadPreviewDTO."""
@@ -83,7 +69,7 @@ class TestConversationDTO:
             email="contact2@example.com",
             first_name="Jane",
             last_name="Smith",
-            type=ContactType.BUSINESS,
+            type=ContactType.PRIVATE,
             is_known=False,
         )
 

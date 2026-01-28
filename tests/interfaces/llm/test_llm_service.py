@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from remail.interfaces.llm.dto import LLMMessage
 from remail.interfaces.llm.enums.llm_message_role import LLMMessageRole
 from remail.interfaces.llm.enums.llm_model import LLMModel
 from remail.interfaces.llm.llm_service import LLMService
@@ -92,15 +93,16 @@ def test_llm_service_init_requires_base_url():
             LLMService()
 
 
-def test_generate_completion_success(mock_env, mock_openai_response):
-    """Test successful completion generation."""
+def test_generate_completion_with_history_success(mock_env, mock_openai_response):
+    """Test successful completion generation with history."""
 
     service = LLMService()
     mock_response = Mock()
     mock_response.model_dump.return_value = mock_openai_response
+    history = [LLMMessage(role=LLMMessageRole.USER, content="Earlier question")]
 
     with patch.object(service.client.chat.completions, "create", return_value=mock_response):
-        result = service.generate_completion("Tell me a joke")
+        result = service.generate_completion_with_history("Tell me a joke", history)
 
     assert isinstance(result, LLMCompletionResponse)
     assert result.id == "test-completion-id"
@@ -111,18 +113,20 @@ def test_generate_completion_success(mock_env, mock_openai_response):
     assert result.usage.total_tokens == 30
 
 
-def test_generate_completion_with_custom_parameters(mock_env, mock_openai_response):
+def test_generate_completion_with_history_custom_parameters(mock_env, mock_openai_response):
     """Test completion generation with custom parameters."""
 
     service = LLMService()
     mock_response = Mock()
     mock_response.model_dump.return_value = mock_openai_response
+    history = [LLMMessage(role=LLMMessageRole.USER, content="Earlier question")]
 
     with patch.object(
         service.client.chat.completions, "create", return_value=mock_response
     ) as mock_create:
-        service.generate_completion(
+        service.generate_completion_with_history(
             "Test prompt",
+            history,
             max_tokens=1024,
             temperature=0.9,
             top_p=0.95,
@@ -135,42 +139,51 @@ def test_generate_completion_with_custom_parameters(mock_env, mock_openai_respon
         assert call_args.kwargs["top_p"] == 0.95
 
 
-def test_generate_completion_creates_correct_messages(mock_env, mock_openai_response):
+def test_generate_completion_with_history_creates_correct_messages(mock_env, mock_openai_response):
     """Test that messages are created correctly."""
 
     service = LLMService()
     mock_response = Mock()
     mock_response.model_dump.return_value = mock_openai_response
+    history = [
+        LLMMessage(role=LLMMessageRole.USER, content="Previous user"),
+        LLMMessage(role=LLMMessageRole.ASSISTANT, content="Previous assistant"),
+    ]
 
     with patch.object(
         service.client.chat.completions, "create", return_value=mock_response
     ) as mock_create:
-        service.generate_completion("Hello")
+        service.generate_completion_with_history("Hello", history)
 
         call_args = mock_create.call_args
         messages = call_args.kwargs["messages"]
 
-        assert len(messages) == 2
+        assert len(messages) == 4
         assert messages[0]["role"] == "system"
         assert (
             messages[0]["content"]
             == "You are a helpful assistant. Your name is Alfred. Provide clear, concise, and helpful responses."
         )
         assert messages[1]["role"] == "user"
-        assert messages[1]["content"] == "Hello"
+        assert messages[1]["content"] == "Previous user"
+        assert messages[2]["role"] == "assistant"
+        assert messages[2]["content"] == "Previous assistant"
+        assert messages[3]["role"] == "user"
+        assert messages[3]["content"] == "Hello"
 
 
-def test_generate_completion_uses_defaults(mock_env, mock_openai_response):
+def test_generate_completion_with_history_uses_defaults(mock_env, mock_openai_response):
     """Test that default parameters are used when not overridden."""
 
     service = LLMService()
     mock_response = Mock()
     mock_response.model_dump.return_value = mock_openai_response
+    history = [LLMMessage(role=LLMMessageRole.USER, content="Earlier question")]
 
     with patch.object(
         service.client.chat.completions, "create", return_value=mock_response
     ) as mock_create:
-        service.generate_completion("Test")
+        service.generate_completion_with_history("Test", history)
 
         call_args = mock_create.call_args
 
@@ -179,17 +192,18 @@ def test_generate_completion_uses_defaults(mock_env, mock_openai_response):
         assert call_args.kwargs["top_p"] == 1.0
 
 
-def test_generate_completion_api_error(mock_env):
+def test_generate_completion_with_history_api_error(mock_env):
     """Test that API errors are raised as RuntimeError."""
 
     service = LLMService()
+    history = [LLMMessage(role=LLMMessageRole.USER, content="Earlier question")]
     with patch.object(
         service.client.chat.completions,
         "create",
         side_effect=Exception("API connection failed"),
     ):
         with pytest.raises(RuntimeError, match="LLM completion failed: API connection failed"):
-            service.generate_completion("Test")
+            service.generate_completion_with_history("Test", history)
 
 
 def test_completion_response_text_property(mock_env, mock_openai_response):
@@ -198,8 +212,9 @@ def test_completion_response_text_property(mock_env, mock_openai_response):
     service = LLMService()
     mock_response = Mock()
     mock_response.model_dump.return_value = mock_openai_response
+    history = [LLMMessage(role=LLMMessageRole.USER, content="Earlier question")]
 
     with patch.object(service.client.chat.completions, "create", return_value=mock_response):
-        result = service.generate_completion("Test")
+        result = service.generate_completion_with_history("Test", history)
 
     assert result.completion_text == "This is a test response"

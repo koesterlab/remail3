@@ -1,5 +1,3 @@
-"""Custom exceptions for email protocol operations."""
-
 from .email_error import EmailError
 from .handlers import email_error_handler
 from .invalid_login_data import InvalidLoginData

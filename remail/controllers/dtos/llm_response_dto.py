@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 
 
@@ -30,8 +29,3 @@ class LLMResponseDTO:
         """Convert DTO to dictionary."""
 
         return {"content": self.content}
-
-    def to_json(self) -> str:
-        """Convert DTO to JSON string."""
-
-        return json.dumps(self.to_dict())

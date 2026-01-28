@@ -89,7 +89,3 @@ class TestThreadSelection(unittest.TestCase):
         back_button = widget.content.controls[0].content.controls[0]
         back_button.on_click(None)
         self.on_click_back.assert_called_once()
-
-
-if __name__ == "__main__":
-    unittest.main()

@@ -41,16 +41,6 @@ class TestLLMResponseDTO:
         assert isinstance(result, dict)
         assert result == {"content": "Hello world"}
 
-    def test_to_json(self):
-        """Test converting DTO to JSON string."""
-
-        dto = LLMResponseDTO(content="Test response")
-        json_str = dto.to_json()
-
-        assert isinstance(json_str, str)
-        assert '"content"' in json_str
-        assert "Test response" in json_str
-
     def test_dto_equality(self):
         """Test DTO equality comparison."""
 

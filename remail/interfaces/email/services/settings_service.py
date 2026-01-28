@@ -1,5 +1,3 @@
-"""Settings service for managing application preferences."""
-
 from sqlmodel import Session, select
 
 from remail.database.db import engine
@@ -7,8 +5,6 @@ from remail.models.settings import Settings
 
 
 class SettingsService:
-    """Service for managing application settings."""
-
     @staticmethod
     def init_settings() -> Settings:
         """
@@ -20,8 +16,8 @@ class SettingsService:
         Returns:
             The settings row (either existing or newly created).
         """
+
         with Session(engine) as session:
-            # Check if settings row with id=1 exists
             statement = select(Settings).where(Settings.id == 1)
             existing = session.exec(statement).first()
 
@@ -53,8 +49,10 @@ class SettingsService:
         Returns:
             Settings object if found, None otherwise.
         """
+
         with Session(engine) as session:
             statement = select(Settings).where(Settings.id == 1)
+
             return session.exec(statement).first()
 
     @staticmethod
@@ -84,6 +82,7 @@ class SettingsService:
         Returns:
             Updated Settings object
         """
+
         with Session(engine) as session:
             statement = select(Settings).where(Settings.id == 1)
             settings = session.exec(statement).first()

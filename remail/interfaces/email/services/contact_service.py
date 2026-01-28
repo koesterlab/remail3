@@ -5,37 +5,23 @@ from remail.models import Contact
 
 
 class ContactService:
-    def __init__(self):
-        """
-        Initialize conversation service.
-        """
+    """Service for managing contacts."""
+
+    def __init__(self) -> None:
+        """Initialize contact service."""
 
         self.engine = engine
 
     def get_contact_by_id(self, contact_id: int) -> Contact | None:
         """
-        Fetch a contact by its ID.
+        Fetch a contact by ID.
 
         Args:
             contact_id: Contact ID to fetch
 
         Returns:
-            Contact object if found, else None
+            Contact model instance, or None if not found
         """
-        with Session(self.engine) as session:
-            contact = session.get(Contact, contact_id)
-
-            return contact
-
-    def create_contact(self, name: str, email: str) -> Contact:
-        new_contact = Contact(
-            name=name,
-            email_address=email,
-        )
 
         with Session(self.engine) as session:
-            session.add(new_contact)
-            session.commit()
-            session.refresh(new_contact)
-
-        return new_contact
+            return session.get(Contact, contact_id)

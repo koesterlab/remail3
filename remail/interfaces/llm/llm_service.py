@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from llama_index.llms.openai_like import OpenAILike
 from openai import OpenAI
 
 from remail.interfaces.llm.base import LLMBase
@@ -33,9 +32,7 @@ class LLMService(LLMBase):
         self.default_max_tokens = 150
         self.default_temperature = 0.7
         self.default_top_p = 1.0
-
         self.client = self._init_client()
-        self.llama_llm = self._init_llama_llm()
 
     def _init_client(self) -> OpenAI:
         """Initialize the OpenAI client."""
@@ -44,47 +41,6 @@ class LLMService(LLMBase):
             api_key=self.api_key,
             base_url=self.base_url,
         )
-
-    def _init_llama_llm(self) -> OpenAILike:
-        """Initialize LlamaIndex OpenAI-compatible LLM."""
-
-        return OpenAILike(
-            model=self.model.value,
-            api_key=self.api_key,
-            api_base=self.base_url,
-            max_tokens=self.default_max_tokens,
-            temperature=self.default_temperature,
-        )
-
-    def generate_completion(
-        self,
-        prompt: str,
-        max_tokens: int | None = None,
-        temperature: float | None = None,
-        **kwargs: Any,
-    ) -> LLMCompletionResponse:
-        """
-        Generate text completion from prompt.
-
-        Args:
-            prompt: Input prompt for the LLM
-            max_tokens: Optional override for maximum generated tokens
-            temperature: Optional override for sampling temperature
-            **kwargs: Additional parameters (e.g., top_p)
-
-        Returns:
-            Structured LLM completion response
-        """
-
-        messages = [
-            LLMMessage(
-                role=LLMMessageRole.SYSTEM,
-                content="You are a helpful assistant. Your name is Alfred. Provide clear, concise, and helpful responses.",
-            ),
-            LLMMessage(role=LLMMessageRole.USER, content=prompt),
-        ]
-
-        return self._generate_completion_internal(messages, max_tokens, temperature, **kwargs)
 
     def generate_completion_with_history(
         self,
