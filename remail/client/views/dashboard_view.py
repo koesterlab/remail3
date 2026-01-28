@@ -10,6 +10,7 @@ import flet as ft
 
 from remail.client.state.app_state import AppState
 from remail.client.widgets.dashboard.dashboard_page import DashboardPage
+from remail.controllers.dtos.user_dto import UserDTO
 from remail.interfaces.email.services.dashboard_service import DashboardService
 from remail.interfaces.email.services.user_service import UserService
 
@@ -68,6 +69,19 @@ TodoDict = dict[str, Any]
 AppointmentDict = dict[str, Any]
 
 
+def _user_email_label(u: UserDTO) -> str:
+    """
+    UI display label for a user account.
+
+    Notes:
+    - In the current DTO, we don't have a dedicated `email` field.
+    - `username` is often the email already; if not, we compose `username@host`.
+    """
+    if "@" in u.username:
+        return u.username
+    return f"{u.username}@{u.host}"
+
+
 def _build_accounts() -> list[AccountDict]:
     """
     Build account cards from DB users.
@@ -85,7 +99,7 @@ def _build_accounts() -> list[AccountDict]:
     for i, u in enumerate(users):
         accounts.append(
             {
-                "email": u.email,
+                "email": _user_email_label(u),
                 "name": u.name,
                 "label": "Active",
                 "color": palette[i % len(palette)],
@@ -98,7 +112,7 @@ def _get_user_email(user_id: int) -> str:
     """Helper to map user_id -> user email for UI labels."""
     for u in UserService.get_all_users():
         if u.id == user_id:
-            return u.email
+            return _user_email_label(u)
     return ""
 
 
