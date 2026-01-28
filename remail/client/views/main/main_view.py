@@ -22,7 +22,6 @@ def create_main_view(page: ft.Page, global_state: AppState):
             router.load_view(MainView.SETTINGS)
         return ft.Container()
 
-
     main_state.set(MainAppStateProperties.ACTIVE_USER, users[0])
     main_state.set(
         MainAppStateProperties.DISPLAYED_MAILS,
