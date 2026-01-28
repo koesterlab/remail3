@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from sqlmodel import Session, select
+from sqlmodel import Session, select, col
 
 from remail.database.db import engine
 from remail.models.contact import Contact
@@ -49,7 +49,7 @@ class DashboardService:
                 # UserConversation.conversation_id -> Conversation.id
                 .join(UserConversation)
                 .where(UserConversation.user_id == user_id)
-                .order_by(Email.sent_at.desc())
+                .order_by(col(Email.sent_at).desc())
                 .limit(limit)
             )
             return session.exec(stmt).all()

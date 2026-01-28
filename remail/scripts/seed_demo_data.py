@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from sqlalchemy import delete
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from remail.database.db import engine
 from remail.models.contact import Contact
@@ -67,78 +67,84 @@ def _clean_demo_data(session: Session) -> None:
         e.id
         for e in session.exec(
             select(Email).where(
-                (Email.message_id.startswith(DEMO_MESSAGE_PREFIX))  # type: ignore[attr-defined]
-                | (Email.subject.contains(DEMO_TAG))  # type: ignore[attr-defined]
+                (col(Email.message_id).startswith(DEMO_MESSAGE_PREFIX))
+                | (col(Email.subject).contains(DEMO_TAG))
             )
         ).all()
         if e.id is not None
     ]
     if demo_email_ids:
-        session.exec(delete(EmailReception).where(EmailReception.email_id.in_(demo_email_ids)))
+        session.exec(
+            delete(EmailReception).where(col(EmailReception.email_id).in_(demo_email_ids))
+        )
 
     # Delete demo emails
     session.exec(
         delete(Email).where(
-            (Email.message_id.startswith(DEMO_MESSAGE_PREFIX))  # type: ignore[attr-defined]
-            | (Email.subject.contains(DEMO_TAG))  # type: ignore[attr-defined]
+            (col(Email.message_id).startswith(DEMO_MESSAGE_PREFIX))
+            | (col(Email.subject).contains(DEMO_TAG))
         )
     )
 
     # Delete demo threads
     demo_thread_ids = [
         t.id
-        for t in session.exec(select(Thread).where(Thread.title.contains(DEMO_TAG))).all()  # type: ignore[attr-defined]
+        for t in session.exec(select(Thread).where(col(Thread.title).contains(DEMO_TAG))).all()
         if t.id is not None
     ]
     if demo_thread_ids:
-        session.exec(delete(Thread).where(Thread.id.in_(demo_thread_ids)))
+        session.exec(delete(Thread).where(col(Thread.id).in_(demo_thread_ids)))
 
     # Delete demo user<->conversation links
     demo_conversation_ids = [
         c.id
         for c in session.exec(
-            select(Conversation).where(Conversation.custom_name.contains(DEMO_TAG))  # type: ignore[attr-defined]
+            select(Conversation).where(col(Conversation.custom_name).contains(DEMO_TAG))
         ).all()
         if c.id is not None
     ]
     if demo_conversation_ids:
         session.exec(
             delete(UserConversation).where(
-                UserConversation.conversation_id.in_(demo_conversation_ids)
+                col(UserConversation.conversation_id).in_(demo_conversation_ids)
             )
         )
         session.exec(
             delete(ConversationContact).where(
-                ConversationContact.conversation_id.in_(demo_conversation_ids)
+                col(ConversationContact.conversation_id).in_(demo_conversation_ids)
             )
         )
-        session.exec(delete(Conversation).where(Conversation.id.in_(demo_conversation_ids)))
+        session.exec(delete(Conversation).where(col(Conversation.id).in_(demo_conversation_ids)))
 
     # Delete demo contacts
     session.exec(
         delete(Contact).where(
-            (Contact.email_address.endswith(".demo"))  # type: ignore[attr-defined]
-            | (Contact.name.contains(DEMO_TAG))  # type: ignore[attr-defined]
+            (col(Contact.email_address).endswith(".demo"))
+            | (col(Contact.name).contains(DEMO_TAG))
         )
     )
 
 
 def _ensure_user(session: Session, user_id: int | None = None) -> User:
     if user_id is None:
-        user = session.exec(select(User).order_by(User.id.asc())).first()
+        user = session.exec(select(User).order_by(col(User.id).asc())).first()
         if not user:
             raise RuntimeError("No users found in DB. Run `pixi run init-db --fixtures` first.")
+        # mypy: User.id is often Optional[int] in SQLModel definitions
+        assert user.id is not None
         return user
 
     user = session.exec(select(User).where(User.id == user_id)).first()
     if not user:
         raise RuntimeError(f"User id={user_id} not found.")
+    assert user.id is not None
     return user
 
 
 def _upsert_contact(session: Session, spec: DemoContactSpec) -> Contact:
     existing = session.exec(select(Contact).where(Contact.email_address == spec.email)).first()
     if existing:
+        assert existing.id is not None
         return existing
 
     c = Contact(
@@ -148,6 +154,7 @@ def _upsert_contact(session: Session, spec: DemoContactSpec) -> Contact:
     )
     session.add(c)
     session.flush()  # assigns id
+    assert c.id is not None
     return c
 
 
@@ -158,10 +165,12 @@ def _create_conversation_with_thread(
     conv = Conversation(custom_name=custom_name)
     session.add(conv)
     session.flush()
+    assert conv.id is not None
 
     th = Thread(title=f"{custom_name} {DEMO_TAG}", conversation_id=conv.id)
     session.add(th)
     session.flush()
+    assert th.id is not None
     return conv, th
 
 
@@ -175,9 +184,7 @@ def _add_user_visibility(session: Session, user_id: int, conversation_id: int) -
     if link:
         return
 
-    session.add(
-        UserConversation(user_id=user_id, conversation_id=conversation_id, is_favorite=False)
-    )
+    session.add(UserConversation(user_id=user_id, conversation_id=conversation_id, is_favorite=False))
 
 
 def _add_participant(session: Session, conversation_id: int, contact_id: int) -> None:
@@ -214,6 +221,7 @@ def _add_email(
     )
     session.add(e)
     session.flush()
+    assert e.id is not None
 
     # recipient mapping (IN / TO, depending on your enum)
     # If your EmailReception.kind is an Enum, adjust accordingly.
@@ -221,7 +229,7 @@ def _add_email(
         session.add(
             EmailReception(
                 kind="TO",  # keep simple; change to your allowed values if needed
-                email_id=e.id,  # type: ignore[arg-type]
+                email_id=e.id,
                 contact_id=rid,
             )
         )
@@ -236,6 +244,7 @@ def seed_demo_data(
         _clean_demo_data(session)
 
         user = _ensure_user(session, user_id=user_id)
+        assert user.id is not None
 
         demo_contacts = [
             DemoContactSpec(name=f"Alice {DEMO_TAG}", email="alice@remail.demo"),
@@ -253,36 +262,42 @@ def seed_demo_data(
         for i in range(conversations):
             conv_name = f"Demo Conversation {i + 1} {DEMO_TAG}"
             conv, th = _create_conversation_with_thread(session, conv_name)
+            assert conv.id is not None
+            assert th.id is not None
 
-            _add_user_visibility(session, user.id, conv.id)  # type: ignore[arg-type]
+            _add_user_visibility(session, user.id, conv.id)
 
             # add 2 participants to conversation
             p1 = contacts[i % len(contacts)]
             p2 = contacts[(i + 1) % len(contacts)]
-            _add_participant(session, conv.id, p1.id)  # type: ignore[arg-type]
-            _add_participant(session, conv.id, p2.id)  # type: ignore[arg-type]
+            assert p1.id is not None
+            assert p2.id is not None
+            _add_participant(session, conv.id, p1.id)
+            _add_participant(session, conv.id, p2.id)
 
             # generate emails
             for j in range(emails_per_conversation):
                 sender = senders[(i + j) % len(senders)]
+                assert sender.id is not None
+
                 sent_at = base - timedelta(hours=(i * 7 + j * 3), minutes=(j * 11))
 
                 subject = f"{DEMO_TAG} Update {i + 1}-{j + 1}: UI test email"
                 body = (
-                    f"This is a seeded demo email for UI testing.\n\n"
+                    "This is a seeded demo email for UI testing.\n\n"
                     f"Conversation: {conv_name}\n"
                     f"Thread id: {th.id}\n"
                     f"Sent at: {sent_at.isoformat(sep=' ', timespec='minutes')}\n"
                 )
                 msg_id = f"{DEMO_MESSAGE_PREFIX}{user.id}-{i + 1}-{j + 1}"
 
-                # recipients: the two participants (excluding sender if desired)
-                recips = [p1.id, p2.id]  # type: ignore[list-item]
+                # recipients: the two participants (exclude None, exclude sender if you want)
+                recips = [rid for rid in (p1.id, p2.id) if rid is not None and rid != sender.id]
 
                 _add_email(
                     session,
-                    thread_id=th.id,  # type: ignore[arg-type]
-                    sender_id=sender.id,  # type: ignore[arg-type]
+                    thread_id=th.id,
+                    sender_id=sender.id,
                     sent_at=sent_at,
                     subject=subject,
                     body=body,
