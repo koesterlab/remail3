@@ -17,10 +17,10 @@ def create_main_view(page: ft.Page, global_state: AppState):
     users = UserService.get_all_users()
 
     if len(users) < 1:
-    router = global_state.router
-    if router is not None:
-        router.load_view(MainView.SETTINGS)
-    return ft.Container()
+        router = global_state.router
+        if router is not None:
+            router.load_view(MainView.SETTINGS)
+        return ft.Container()
 
 
     main_state.set(MainAppStateProperties.ACTIVE_USER, users[0])
