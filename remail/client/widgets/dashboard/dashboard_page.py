@@ -9,7 +9,6 @@ from remail.client.widgets.dashboard.account_card import AccountCard
 from remail.client.widgets.dashboard.appointments_list import AppointmentsList
 from remail.client.widgets.dashboard.todo_list import TodoList
 
-
 AccountDict = dict[str, Any]
 TodoDict = dict[str, Any]
 AppointmentDict = dict[str, Any]

@@ -19,9 +19,9 @@ Design goals:
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from collections.abc import Iterable
 
 from sqlalchemy import delete
 from sqlmodel import Session, select
@@ -103,10 +103,14 @@ def _clean_demo_data(session: Session) -> None:
     ]
     if demo_conversation_ids:
         session.exec(
-            delete(UserConversation).where(UserConversation.conversation_id.in_(demo_conversation_ids))
+            delete(UserConversation).where(
+                UserConversation.conversation_id.in_(demo_conversation_ids)
+            )
         )
         session.exec(
-            delete(ConversationContact).where(ConversationContact.conversation_id.in_(demo_conversation_ids))
+            delete(ConversationContact).where(
+                ConversationContact.conversation_id.in_(demo_conversation_ids)
+            )
         )
         session.exec(delete(Conversation).where(Conversation.id.in_(demo_conversation_ids)))
 
@@ -171,7 +175,9 @@ def _add_user_visibility(session: Session, user_id: int, conversation_id: int) -
     if link:
         return
 
-    session.add(UserConversation(user_id=user_id, conversation_id=conversation_id, is_favorite=False))
+    session.add(
+        UserConversation(user_id=user_id, conversation_id=conversation_id, is_favorite=False)
+    )
 
 
 def _add_participant(session: Session, conversation_id: int, contact_id: int) -> None:
@@ -223,7 +229,9 @@ def _add_email(
     return e
 
 
-def seed_demo_data(*, user_id: int | None = None, conversations: int = 3, emails_per_conversation: int = 5) -> None:
+def seed_demo_data(
+    *, user_id: int | None = None, conversations: int = 3, emails_per_conversation: int = 5
+) -> None:
     with Session(engine) as session:
         _clean_demo_data(session)
 
@@ -243,7 +251,7 @@ def seed_demo_data(*, user_id: int | None = None, conversations: int = 3, emails
         base = _now()
 
         for i in range(conversations):
-            conv_name = f"Demo Conversation {i+1} {DEMO_TAG}"
+            conv_name = f"Demo Conversation {i + 1} {DEMO_TAG}"
             conv, th = _create_conversation_with_thread(session, conv_name)
 
             _add_user_visibility(session, user.id, conv.id)  # type: ignore[arg-type]
@@ -259,14 +267,14 @@ def seed_demo_data(*, user_id: int | None = None, conversations: int = 3, emails
                 sender = senders[(i + j) % len(senders)]
                 sent_at = base - timedelta(hours=(i * 7 + j * 3), minutes=(j * 11))
 
-                subject = f"{DEMO_TAG} Update {i+1}-{j+1}: UI test email"
+                subject = f"{DEMO_TAG} Update {i + 1}-{j + 1}: UI test email"
                 body = (
                     f"This is a seeded demo email for UI testing.\n\n"
                     f"Conversation: {conv_name}\n"
                     f"Thread id: {th.id}\n"
                     f"Sent at: {sent_at.isoformat(sep=' ', timespec='minutes')}\n"
                 )
-                msg_id = f"{DEMO_MESSAGE_PREFIX}{user.id}-{i+1}-{j+1}"
+                msg_id = f"{DEMO_MESSAGE_PREFIX}{user.id}-{i + 1}-{j + 1}"
 
                 # recipients: the two participants (excluding sender if desired)
                 recips = [p1.id, p2.id]  # type: ignore[list-item]

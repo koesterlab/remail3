@@ -9,15 +9,12 @@ TodoDict = dict[str, Any]
 
 
 class TodoItem(ft.Container):
-
-
     def __init__(self, todo: TodoDict) -> None:
         sender: str = todo.get("sender", "")
         subject: str = todo.get("subject", "")
         account_email: str = todo.get("account_email", "")
         time_label: str = todo.get("time_label", "")
         badge: str = todo.get("badge", "")
-
 
         top_row = ft.Row(
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
@@ -47,7 +44,6 @@ class TodoItem(ft.Container):
             ],
         )
 
-
         meta_row = ft.Row(
             spacing=6,
             controls=[
@@ -73,7 +69,6 @@ class TodoItem(ft.Container):
                 ),
             ],
         )
-
 
         quick_reply = ft.Container(
             margin=ft.margin.only(top=8),
@@ -115,4 +110,3 @@ class TodoItem(ft.Container):
             margin=ft.margin.only(bottom=12),
             content=content_column,
         )
-

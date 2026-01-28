@@ -11,7 +11,6 @@ AppointmentDict = dict[str, Any]
 
 
 class AppointmentsList(ft.Container):
-
     def __init__(self, appointments: list[AppointmentDict]) -> None:
         self.appointments = appointments
 

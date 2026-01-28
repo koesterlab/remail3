@@ -1,7 +1,7 @@
 import flet as ft
 
 from remail.client.state import AppState
-from remail.client.views.dashboard_view import create_dashboard_view   
+from remail.client.views.dashboard_view import create_dashboard_view
 from remail.client.widgets.chatbot.chatbot import create_chatbot
 from remail.client.widgets.mail_selection import SelectionBar
 from remail.controllers.dtos.conversations import ThreadPreviewDTO
@@ -72,7 +72,9 @@ def create_main_view(page: ft.Page, global_state: AppState):
     container = ft.ResponsiveRow(
         expand=True,
         controls=[
-            ft.Column([ft.Container(selection_bar, expand=1), chatbot], col={"xs": 6, "md": 4, "lg": 3}),
+            ft.Column(
+                [ft.Container(selection_bar, expand=1), chatbot], col={"xs": 6, "md": 4, "lg": 3}
+            ),
             right_view,
         ],
     )

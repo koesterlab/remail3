@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from sqlalchemy import desc
 from sqlmodel import Session, select
 
 from remail.database.db import engine
@@ -33,16 +32,24 @@ class DashboardService:
 
         Visibility rules:
         - user -> user_conversations -> conversations -> threads -> emails
+
+        Why the joins are written without explicit ON clauses:
+        - SQLAlchemy/SQLModel can infer join paths from declared foreign keys.
+        - This avoids mypy interpreting the ON clause expression as a plain bool.
         """
         with Session(engine) as session:
             stmt = (
                 select(Email, Contact)
-                .join(Contact, Contact.id == Email.sender_id)
-                .join(Thread, Thread.id == Email.thread_id)
-                .join(Conversation, Conversation.id == Thread.conversation_id)
-                .join(UserConversation, UserConversation.conversation_id == Conversation.id)
+                # Email.sender_id -> Contact.id
+                .join(Contact)
+                # Email.thread_id -> Thread.id
+                .join(Thread)
+                # Thread.conversation_id -> Conversation.id
+                .join(Conversation)
+                # UserConversation.conversation_id -> Conversation.id
+                .join(UserConversation)
                 .where(UserConversation.user_id == user_id)
-                .order_by(desc(Email.sent_at))
+                .order_by(Email.sent_at.desc())
                 .limit(limit)
             )
             return session.exec(stmt).all()

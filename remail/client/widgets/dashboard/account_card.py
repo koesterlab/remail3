@@ -9,8 +9,6 @@ AccountDict = dict[str, Any]
 
 
 class AccountCard(ft.Container):
-
-
     def __init__(self, account: AccountDict) -> None:
         email: str = account.get("email", "")
         label: str = account.get("label", "Active")

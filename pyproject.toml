@@ -118,3 +118,5 @@ exclude_lines = [
     "if TYPE_CHECKING:",
 ]
 
+[tool.mypy]
+exclude = "^remail/scripts/"

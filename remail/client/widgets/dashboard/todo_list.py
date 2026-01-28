@@ -11,8 +11,6 @@ TodoDict = dict[str, Any]
 
 
 class TodoList(ft.Container):
-
-
     def __init__(self, todos: list[TodoDict]) -> None:
         self.todos = todos
 
@@ -53,7 +51,7 @@ class TodoList(ft.Container):
 
         super().__init__(
             bgcolor=None,
-            #bgcolor=ft.Colors.SURFACE,
+            # bgcolor=ft.Colors.SURFACE,
             padding=ft.padding.all(18),
             border_radius=24,
             expand=True,

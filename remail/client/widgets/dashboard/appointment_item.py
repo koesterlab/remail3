@@ -9,7 +9,6 @@ AppointmentDict = dict[str, Any]
 
 
 class AppointmentItem(ft.Container):
-
     def __init__(self, app: AppointmentDict) -> None:
         title: str = app.get("title", "")
         location: str = app.get("location", "")

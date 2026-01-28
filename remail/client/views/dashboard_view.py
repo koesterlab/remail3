@@ -158,13 +158,14 @@ def _load_appointments_for_user(
 # Dashboard view
 # ------------------------------------------------------------------ #
 
+
 def create_dashboard_view(
     page: ft.Page,
     app_state: AppState,
     active_user_id: int,
 ) -> ft.Container:
     """Create the dashboard view (data from DB)."""
-    #page.title = "Dashboard"
+    # page.title = "Dashboard"
     page.padding = 20
 
     now = datetime.now()
@@ -185,6 +186,7 @@ def create_dashboard_view(
 # ------------------------------------------------------------------ #
 # Standalone entry point (for preview)
 # ------------------------------------------------------------------ #
+
 
 def main(page: ft.Page) -> None:
     app_state = AppState()
