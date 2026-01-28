@@ -34,7 +34,7 @@ class AppState:
         quiet_hours: Whether quiet hours mode is enabled
         current_views: Dictionary mapping main views to their current sub-views
         connected_emails: List of connected user DTOs
-        email_schedulers: Dictionary mapping email addresses to their schedulers
+        email_schedulers: Dictionary mapping usernames to their schedulers
     """
 
     theme_mode: ThemeMode = ThemeMode.SYSTEM
@@ -50,24 +50,24 @@ class AppState:
     connected_emails: list[UserDTO] = field(default_factory=list)
     email_schedulers: dict[str, Any] = field(default_factory=dict)
 
-    def add_email_scheduler(self, email: str, scheduler: "Scheduler") -> None:
+    def add_email_scheduler(self, username: str, scheduler: "Scheduler") -> None:
         """Add an email scheduler for an account.
 
         Args:
-            email: The email address of the account
+            username: The username of the account
             scheduler: The scheduler instance
         """
 
-        self.email_schedulers[email] = scheduler
+        self.email_schedulers[username] = scheduler
 
-    def remove_email_scheduler(self, email: str) -> None:
+    def remove_email_scheduler(self, username: str) -> None:
         """Remove and stop an email scheduler.
 
         Args:
-            email: The email address of the account
+            username: The username of the account
         """
 
-        scheduler = self.email_schedulers.pop(email, None)
+        scheduler = self.email_schedulers.pop(username, None)
 
         if scheduler:
             scheduler.stop()

@@ -48,21 +48,26 @@ def load_settings_into_state(app_state: AppState, page: ft.Page) -> None:
 
     for user in saved_users:
         try:
-            # Get full user credentials from database
-            user_orm = UserService.get_user_by_email(user.email)
+            # Get host from database, password from keyring
+            user_orm = UserService.get_user_by_username(user.username)
             if not user_orm:
                 continue
 
+            password = UserService.get_user_password(user.username)
+            if not password:
+                print(f"Missing stored password for {user.username}; skipping sync.")
+                continue
+
             email_controller = EmailController(
-                username=user.email,
-                password=user_orm.password,
+                username=user.username,
+                password=password,
                 host=user_orm.host,
             )
 
             sync_service = EmailSyncService(
                 protocol=email_controller.protocol,
                 email_parser=email_controller.protocol.email_parser,
-                user_email=user.email,
+                username=user.username,
             )
 
             scheduler = Scheduler(
@@ -70,8 +75,8 @@ def load_settings_into_state(app_state: AppState, page: ft.Page) -> None:
                 sync_interval=60,
             )
 
-            app_state.add_email_scheduler(user.email, scheduler)
+            app_state.add_email_scheduler(user.username, scheduler)
             scheduler.start()
 
         except Exception as e:
-            print(f"Failed to load email account {user.email}: {e}")
+            print(f"Failed to load email account {user.username}: {e}")

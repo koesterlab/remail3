@@ -18,7 +18,7 @@ class User(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     name: str
-    email: str = Field(
+    username: str = Field(
         sa_column=sqlalchemy.Column(sqlalchemy.String, unique=True, index=True, nullable=False)
     )
     host: str = Field(sa_column=sqlalchemy.Column(sqlalchemy.String, nullable=False))

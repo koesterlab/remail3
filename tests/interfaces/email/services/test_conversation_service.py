@@ -17,7 +17,7 @@ from remail.models.user_conversation import UserConversation
 def _create_user(session: Session, email: str) -> User:
     user = User(
         name=email.split("@")[0],
-        email=email,
+        username=email,
         host="imap.example.com",
         password="hash123",
         protocol=Protocol.IMAP,
@@ -64,7 +64,7 @@ class TestConversationService:
             # Create user
             user = User(
                 name="testuser",
-                email="test@example.com",
+                username="test@example.com",
                 host="imap.example.com",
                 password="hash123",
                 protocol=Protocol.IMAP,
@@ -267,7 +267,7 @@ class TestConversationService:
         with Session(test_engine) as session:
             user = User(
                 name="lonely",
-                email="lonely@example.com",
+                username="lonely@example.com",
                 host="imap.example.com",
                 password="hash123",
                 protocol=Protocol.IMAP,
@@ -289,14 +289,14 @@ class TestConversationService:
             # Create two users
             user1 = User(
                 name="user1",
-                email="user1@example.com",
+                username="user1@example.com",
                 host="imap.example.com",
                 password="hash1",
                 protocol=Protocol.IMAP,
             )
             user2 = User(
                 name="user2",
-                email="user2@example.com",
+                username="user2@example.com",
                 host="imap.example.com",
                 password="hash2",
                 protocol=Protocol.IMAP,

@@ -19,7 +19,7 @@ class EmailController:
         Initialize email controller.
 
         Args:
-            username: Email username/address
+            username: Login username
             password: Email password
             host: IMAP/SMTP server hostname
         """
@@ -31,7 +31,11 @@ class EmailController:
     def from_id(cls, account_id: int):
         user: UserDTO = next(filter(lambda u: u.id == account_id, UserService.get_all_users()))
 
-        return EmailController(username=user.email, password=user.password, host=user.host)
+        password = UserService.get_user_password(user.username)
+        if not password:
+            raise ValueError(f"Missing stored password for {user.username}")
+
+        return EmailController(username=user.username, password=password, host=user.host)
 
     def login(self) -> dict[str, Any]:
         """
@@ -218,11 +222,11 @@ class EmailController:
             if len(resolved_contact_ids) != len(contacts):
                 raise ValueError("One or more contacts are missing IDs.")
 
-            user_email = self.protocol.user_username
-            if not user_email:
-                raise ValueError("User email is not available.")
+            user_username = self.protocol.user_username
+            if not user_username:
+                raise ValueError("User username is not available.")
 
-            user = UserService.get_user_by_email(user_email)
+            user = UserService.get_user_by_username(user_username)
             if not user or user.id is None:
                 raise ValueError("User account not found.")
 

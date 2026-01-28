@@ -36,7 +36,7 @@ class ImapProtocol(EmailProtocol):
         Initialize IMAP protocol.
 
         Args:
-            username: Username/email address
+            username: Login username
             password: User password
             host: IMAP/SMTP server hostname
         """

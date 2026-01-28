@@ -37,7 +37,7 @@ def service(mock_protocol, mock_email_parser):
     return EmailSyncService(
         protocol=mock_protocol,
         email_parser=mock_email_parser,
-        user_email="test@example.com",
+        username="test@example.com",
     )
 
 
@@ -46,7 +46,7 @@ def create_test_user(engine) -> User:
     with Session(engine) as session:
         user = User(
             name="test",
-            email="test@example.com",
+            username="test@example.com",
             host="imap.example.com",
             password="",
             protocol=Protocol.IMAP,
@@ -165,7 +165,7 @@ class TestEmailSyncService:
         with Session(test_engine) as session:
             from sqlmodel import select
 
-            user = session.exec(select(User).where(User.email == "test@example.com")).first()
+            user = session.exec(select(User).where(User.username == "test@example.com")).first()
             assert user is not None
             assert user.last_refresh is not None
             assert user.last_refresh >= before_sync

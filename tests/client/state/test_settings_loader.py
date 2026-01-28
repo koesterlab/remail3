@@ -241,11 +241,10 @@ class TestLoadSettingsIntoState:
         app_state = AppState()
 
         mock_user_dto = Mock()
-        mock_user_dto.email = "user@example.com"
+        mock_user_dto.username = "user@example.com"
         mock_user_dto.id = 1
 
         mock_user_orm = Mock()
-        mock_user_orm.password = "secret"
         mock_user_orm.host = "imap.example.com"
 
         with patch(
@@ -262,7 +261,8 @@ class TestLoadSettingsIntoState:
                             "remail.client.state.settings_loader.Scheduler"
                         ) as mock_scheduler:
                             mock_user_service.get_all_users.return_value = [mock_user_dto]
-                            mock_user_service.get_user_by_email.return_value = mock_user_orm
+                            mock_user_service.get_user_by_username.return_value = mock_user_orm
+                            mock_user_service.get_user_password.return_value = "secret"
 
                             controller_instance = Mock()
                             protocol = Mock()

@@ -71,13 +71,13 @@ class TestFromId:
         """Test that from_id uses the stored host value."""
         mock_user = MagicMock()
         mock_user.id = 7
-        mock_user.email = "user@example.com"
-        mock_user.password = "secret"
+        mock_user.username = "user@example.com"
         mock_user.host = "imap.example.com"
 
         with patch("remail.controllers.email_controller.UserService") as mock_user_service:
             with patch("remail.controllers.email_controller.ImapProtocol") as mock_protocol:
                 mock_user_service.get_all_users.return_value = [mock_user]
+                mock_user_service.get_user_password.return_value = "secret"
 
                 EmailController.from_id(7)
 
@@ -331,7 +331,7 @@ class TestSendEmailNewConversation:
                             contact1,
                             contact2,
                         ]
-                        user_service.get_user_by_email.return_value = SimpleNamespace(id=7)
+                        user_service.get_user_by_username.return_value = SimpleNamespace(id=7)
                         conv_service.return_value.create_conversation.return_value = (
                             conversation_stub
                         )

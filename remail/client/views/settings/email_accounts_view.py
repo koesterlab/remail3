@@ -12,7 +12,7 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
 
     start_text = ft.Text("No accounts connected yet")
     input_panel = ft.Container()
-    email_input = ft.TextField(label="Email Address", hint_text="Enter your email", width=300)
+    username_input = ft.TextField(label="Username", hint_text="Enter your username", width=300)
     password_input = ft.TextField(
         label="Password",
         hint_text="Enter your password",
@@ -43,7 +43,7 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
         input_panel.content = ft.Column(
             [
                 ft.Text("Add Email Account", size=16, weight=ft.FontWeight.BOLD),
-                email_input,
+                username_input,
                 password_input,
                 host_input,
                 ft.Row(
@@ -61,30 +61,30 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
         page.update()
 
     def connect_account(e):
-        if not email_input.value or not password_input.value or not host_input.value:
+        if not username_input.value or not password_input.value or not host_input.value:
             show_snackbar("Please fill in all fields", ft.Colors.RED_400)
 
             return
 
-        if email_input.value in [user.email for user in app_state.connected_emails]:
-            show_snackbar("This email account is already connected", ft.Colors.ORANGE_400)
+        if username_input.value in [user.username for user in app_state.connected_emails]:
+            show_snackbar("This account is already connected", ft.Colors.ORANGE_400)
 
             return
 
-        user_email = email_input.value
+        username = username_input.value
 
         try:
             show_snackbar("Connecting...", ft.Colors.BLUE_400)
 
             controller = EmailController(
-                username=email_input.value, password=password_input.value, host=host_input.value
+                username=username_input.value, password=password_input.value, host=host_input.value
             )
             result = controller.login()
 
             if result["status"] == "success":
                 try:
                     UserService.add_user(
-                        email=email_input.value,
+                        username=username_input.value,
                         password=password_input.value,
                         host=host_input.value,
                     )
@@ -105,7 +105,7 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
                 sync_service = EmailSyncService(
                     protocol=controller.protocol,
                     email_parser=controller.protocol.email_parser,
-                    user_email=user_email,
+                    username=username,
                 )
                 scheduler = Scheduler(
                     task=sync_service.sync_emails,
@@ -113,7 +113,7 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
                     on_complete=on_sync_complete,
                     on_error=on_sync_error,
                 )
-                app_state.add_email_scheduler(user_email, scheduler)
+                app_state.add_email_scheduler(username, scheduler)
                 scheduler.start()
 
                 show_snackbar("Connected! Syncing emails...", ft.Colors.GREEN_400)
@@ -133,12 +133,12 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
             ft.Row(
                 [
                     ft.Icon(ft.Icons.EMAIL, color=ft.Colors.BLUE),
-                    ft.Text(user_email, expand=True),
+                    ft.Text(username, expand=True),
                     ft.IconButton(
                         icon=ft.Icons.DELETE,
                         icon_color=ft.Colors.RED,
                         tooltip="Remove account",
-                        on_click=remove_account(user_email),
+                        on_click=remove_account(username),
                     ),
                 ]
             ),
@@ -149,7 +149,7 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
 
         create_connected_email_accounts.content.controls.insert(-2, new_account)
 
-        email_input.value = ""
+        username_input.value = ""
         password_input.value = ""
         host_input.value = ""
 
@@ -158,16 +158,16 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
 
         page.update()
 
-    def remove_account(email_to_remove):
+    def remove_account(username_to_remove):
         def handler(e):
             try:
-                UserService.delete_user(email_to_remove)
+                UserService.delete_user(username_to_remove)
             except Exception as e:
                 show_snackbar(f"Failed to remove user: {e}", ft.Colors.ORANGE_400)
 
-            app_state.remove_email_scheduler(email_to_remove)
+            app_state.remove_email_scheduler(username_to_remove)
             app_state.connected_emails = [
-                user for user in app_state.connected_emails if user.email != email_to_remove
+                user for user in app_state.connected_emails if user.username != username_to_remove
             ]
             create_connected_email_accounts.content.controls.remove(e.control.parent.parent)
 
@@ -179,7 +179,7 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
         return handler
 
     def cancel_add(e):
-        email_input.value = ""
+        username_input.value = ""
         password_input.value = ""
         host_input.value = ""
 
@@ -227,12 +227,12 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
             ft.Row(
                 [
                     ft.Icon(ft.Icons.EMAIL, color=ft.Colors.BLUE),
-                    ft.Text(user.email, expand=True),
+                    ft.Text(user.username, expand=True),
                     ft.IconButton(
                         icon=ft.Icons.DELETE,
                         icon_color=ft.Colors.RED,
                         tooltip="Remove account",
-                        on_click=remove_account(user.email),
+                        on_click=remove_account(user.username),
                     ),
                 ]
             ),
