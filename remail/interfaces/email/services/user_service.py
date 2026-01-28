@@ -1,15 +1,33 @@
 """User service for managing email account users."""
 
+import logging
+
+import keyring
 from sqlmodel import Session, select
+from werkzeug.security import generate_password_hash
 
 from remail.controllers.dtos.user_dto import UserDTO
 from remail.database.db import engine
-from remail.enums import UserAccountCategory
+from remail.enums import Protocol, UserAccountCategory
 from remail.models.user import User
+
+_KEYRING_SERVICE = "remail"
+_REDACTED_VALUE = "<redacted>"
+_logger = logging.getLogger(__name__)
 
 
 class UserService:
     """Service for managing user accounts in the database."""
+
+    @staticmethod
+    def _ensure_user_schema() -> None:
+        with engine.begin() as conn:
+            result = conn.exec_driver_sql("PRAGMA table_info(users)")
+            columns = [row[1] for row in result]
+            if not columns:
+                return
+            if "username" not in columns and "email" in columns:
+                conn.exec_driver_sql("ALTER TABLE users RENAME COLUMN email TO username")
 
     @staticmethod
     def count_unread(user: User) -> int:
@@ -41,28 +59,148 @@ class UserService:
         return UserDTO(
             id=user.id,
             name=user.name,
-            email=user.email,
+            username=user.username,
             host=user.host,
-            password=user.password,
+            password=_REDACTED_VALUE,
             category=UserAccountCategory.PRIVATE,  # User model doesn't have category
             protocol=user.protocol,
             unread_conversations=UserService.count_unread(user),
         )
 
     @staticmethod
-    def get_user_by_email(email: str) -> User | None:
+    def get_user_by_username(username: str) -> User | None:
         """
-        Get user by email address.
+        Get user by username.
 
         Args:
-            email: Email address to search for
+            username: Username to search for
 
         Returns:
             User object if found, None otherwise
         """
+        UserService._ensure_user_schema()
         with Session(engine) as session:
-            statement = select(User).where(User.email == email)
+            statement = select(User).where(User.username == username)
             return session.exec(statement).first()
+
+    @staticmethod
+    def get_user_by_email(email: str) -> User | None:
+        """Backward-compatible alias for username lookup."""
+        return UserService.get_user_by_username(email)
+
+    @staticmethod
+    def _is_hashed_password(value: str) -> bool:
+        return value.startswith(("pbkdf2:", "scrypt:", "argon2:"))
+
+    @staticmethod
+    def get_user_password(username: str) -> str | None:
+        """
+        Retrieve the raw password from keyring. If the database still has a
+        legacy plaintext password, migrate it to a hash.
+        """
+        UserService._ensure_user_schema()
+        stored = keyring.get_password(_KEYRING_SERVICE, username)
+
+        with Session(engine) as session:
+            user = session.exec(select(User).where(User.username == username)).first()
+
+            if user and user.password and not UserService._is_hashed_password(user.password):
+                raw_password = stored or user.password
+
+                if not stored:
+                    try:
+                        keyring.set_password(_KEYRING_SERVICE, username, raw_password)
+                    except Exception as exc:
+                        _logger.warning(
+                            "Failed to store password in keyring for %s: %s", username, exc
+                        )
+
+                user.password = generate_password_hash(raw_password)
+                session.add(user)
+                session.commit()
+
+                return raw_password
+
+        return stored
+
+    @staticmethod
+    def add_user(
+        username: str,
+        password: str,
+        host: str,
+        name: str | None = None,
+        protocol: Protocol = Protocol.IMAP,
+    ) -> UserDTO:
+        """
+        Add a new user to the database.
+
+        Args:
+            username: Username
+            password: Account password
+            host: IMAP/SMTP host
+            name: Optional display name
+            protocol: Email protocol (default: IMAP)
+
+        Returns:
+            UserDTO for the created user
+        """
+        UserService._ensure_user_schema()
+        with Session(engine) as session:
+            existing = session.exec(select(User).where(User.username == username)).first()
+
+            if existing:
+                raise ValueError("User already exists.")
+
+            try:
+                keyring.set_password(_KEYRING_SERVICE, username, password)
+            except Exception as exc:
+                raise RuntimeError("Failed to store password securely.") from exc
+
+            resolved_name = name or username
+
+            user = User(
+                name=resolved_name,
+                username=username,
+                host=host,
+                password=generate_password_hash(password),
+                protocol=protocol,
+            )
+
+            try:
+                session.add(user)
+                session.commit()
+                session.refresh(user)
+            except Exception:
+                try:
+                    keyring.delete_password(_KEYRING_SERVICE, username)
+                except Exception as exc:
+                    _logger.warning("Failed to rollback keyring password for %s: %s", username, exc)
+                raise
+
+            return UserService.user_to_dto(user)
+
+    @staticmethod
+    def delete_user(username: str) -> None:
+        """
+        Delete a user from the database by username.
+
+        Args:
+            username: Username to delete
+        """
+        UserService._ensure_user_schema()
+        with Session(engine) as session:
+            user = session.exec(select(User).where(User.username == username)).first()
+
+            if not user:
+                raise ValueError("User not found.")
+
+            session.delete(user)
+            session.commit()
+
+        try:
+            keyring.delete_password(_KEYRING_SERVICE, username)
+        except Exception as exc:
+            _logger.warning("Failed to delete keyring password for %s: %s", username, exc)
 
     @staticmethod
     def get_all_users() -> list[UserDTO]:
@@ -72,6 +210,7 @@ class UserService:
         Returns:
             List of all UserDTO objects
         """
+        UserService._ensure_user_schema()
         with Session(engine) as session:
             statement = select(User)
             results = session.exec(statement).all()

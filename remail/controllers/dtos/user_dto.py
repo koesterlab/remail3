@@ -7,7 +7,7 @@ from remail.enums import Protocol, UserAccountCategory
 class UserDTO:
     id: int
     name: str
-    email: str
+    username: str
     host: str
     password: str
     category: UserAccountCategory

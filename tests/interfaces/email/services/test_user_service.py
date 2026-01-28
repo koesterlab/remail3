@@ -12,11 +12,11 @@ class TestUserService:
     """Test suite for UserService."""
 
     def test_get_user_by_email_found(self, test_engine):
-        """Test getting user by email when user exists."""
+        """Test getting user by username when user exists."""
         with Session(test_engine) as session:
             user = User(
                 name="found",
-                email="found@example.com",
+                username="found@example.com",
                 host="imap.example.com",
                 password="hash123",
                 protocol=Protocol.IMAP,
@@ -28,7 +28,7 @@ class TestUserService:
         found_user = UserService.get_user_by_email("found@example.com")
 
         assert found_user is not None
-        assert found_user.email == "found@example.com"
+        assert found_user.username == "found@example.com"
         assert found_user.id == user.id
 
     def test_get_user_by_email_not_found(self):
@@ -51,21 +51,21 @@ class TestUserService:
                 [
                     User(
                         name="user1",
-                        email="user1@example.com",
+                        username="user1@example.com",
                         host="imap.example.com",
                         password="hash1",
                         protocol=Protocol.IMAP,
                     ),
                     User(
                         name="user2",
-                        email="user2@example.com",
+                        username="user2@example.com",
                         host="imap.example.com",
                         password="hash2",
                         protocol=Protocol.IMAP,
                     ),
                     User(
                         name="user3",
-                        email="user3@example.com",
+                        username="user3@example.com",
                         host="imap.example.com",
                         password="hash3",
                         protocol=Protocol.IMAP,
@@ -77,8 +77,8 @@ class TestUserService:
         users = UserService.get_all_users()
 
         assert len(users) == 3
-        emails = {u.email for u in users}
-        assert emails == {"user1@example.com", "user2@example.com", "user3@example.com"}
+        usernames = {u.username for u in users}
+        assert usernames == {"user1@example.com", "user2@example.com", "user3@example.com"}
         assert all(u.host == "imap.example.com" for u in users)
         assert all(u.category == UserAccountCategory.PRIVATE for u in users)
 
@@ -86,7 +86,7 @@ class TestUserService:
         """Test user_to_dto raises when user has no id."""
         user = User(
             name="noid",
-            email="noid@example.com",
+            username="noid@example.com",
             host="imap.example.com",
             password="hash",
             protocol=Protocol.IMAP,
@@ -100,7 +100,7 @@ class TestUserService:
         with Session(test_engine) as session:
             user = User(
                 name="dto",
-                email="dto@example.com",
+                username="dto@example.com",
                 host="imap.example.com",
                 password="hash",
                 protocol=Protocol.IMAP,
@@ -113,9 +113,9 @@ class TestUserService:
 
         assert dto.id == user.id
         assert dto.name == "dto"
-        assert dto.email == "dto@example.com"
+        assert dto.username == "dto@example.com"
         assert dto.host == "imap.example.com"
-        assert dto.password == "hash"
+        assert dto.password != user.password
         assert dto.protocol == Protocol.IMAP
         assert dto.category == UserAccountCategory.PRIVATE
         assert dto.unread_conversations == 0
@@ -125,7 +125,7 @@ class TestUserService:
         with Session(test_engine) as session:
             user = User(
                 name="cnt",
-                email="cnt@example.com",
+                username="cnt@example.com",
                 host="imap.example.com",
                 password="hash",
                 protocol=Protocol.IMAP,

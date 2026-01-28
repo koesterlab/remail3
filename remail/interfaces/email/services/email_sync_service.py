@@ -10,6 +10,7 @@ from sqlmodel import Session, select
 
 from remail.database import engine
 from remail.enums import ContactType, ConversationType, RecipientKind
+from remail.interfaces.email.services.user_service import UserService
 from remail.models import (
     Contact,
     Conversation,
@@ -33,7 +34,7 @@ class EmailSyncService:
         self,
         protocol: ImapProtocol,
         email_parser: EmailParser,
-        user_email: str,
+        username: str,
     ):
         """
         Initialize email sync service.
@@ -41,12 +42,12 @@ class EmailSyncService:
         Args:
             protocol: IMAP protocol instance for fetching emails
             email_parser: Email parser for extracting email data
-            user_email: The email address of the current user
+            username: The username of the current user
         """
 
         self.protocol = protocol
         self.email_parser = email_parser
-        self.user_email = user_email
+        self.username = username
 
     def sync_emails(self, since: datetime | None = None) -> dict:
         """
@@ -118,7 +119,7 @@ class EmailSyncService:
 
     def _get_user(self, session: Session) -> User:
         """
-        Get existing user by email.
+        Get existing user by username.
 
         Args:
             session: Database session
@@ -130,10 +131,11 @@ class EmailSyncService:
             ValueError: If user does not exist
         """
 
-        user = session.exec(select(User).where(User.email == self.user_email)).first()
+        UserService._ensure_user_schema()
+        user = session.exec(select(User).where(User.username == self.username)).first()
 
         if not user:
-            raise ValueError(f"User with email '{self.user_email}' not found")
+            raise ValueError(f"User with username '{self.username}' not found")
 
         return user
 
@@ -178,16 +180,15 @@ class EmailSyncService:
         for _name, email in to_recipients + cc_recipients + bcc_recipients:
             all_participants.add(email)
 
-        all_participants.discard(self.user_email)
+        all_participants.discard(self.username)
 
         participant_contacts = [sender_contact]
         for name, email in to_recipients + cc_recipients + bcc_recipients:
-            if email != self.user_email and email != sender_contact.email_address:
+            if email != self.username and email != sender_contact.email_address:
                 contact = self._get_or_create_contact(session, {"name": name, "email": email})
                 participant_contacts.append(contact)
 
         conversation = self._get_or_create_conversation(session, participant_contacts, user)
-
         subject = getattr(raw_email, "subject", "") or ""
         thread = self._get_or_create_thread(session, subject, conversation, raw_email)
 
@@ -212,7 +213,7 @@ class EmailSyncService:
 
         attachments = getattr(raw_email, "attachments", []) or []
         for attachment in attachments:
-            attachment.email_id = db_email.id
+            attachment.email = db_email
             session.add(attachment)
 
         return db_email

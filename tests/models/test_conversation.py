@@ -85,14 +85,14 @@ class TestConversationModel:
         # Create users
         user1 = User(
             name="alice",
-            email="alice@example.com",
+            username="alice@example.com",
             host="imap.example.com",
             password="hash1",
             protocol=Protocol.IMAP,
         )
         user2 = User(
             name="bob",
-            email="bob@example.com",
+            username="bob@example.com",
             host="imap.example.com",
             password="hash2",
             protocol=Protocol.IMAP,

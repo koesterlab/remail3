@@ -11,13 +11,13 @@ from remail.controllers.dtos.user_dto import UserDTO
 from remail.enums import Protocol, UserAccountCategory
 
 
-def create_mock_user_dto(email: str) -> Mock:
+def create_mock_user_dto(username: str) -> Mock:
     """Helper to create mock UserDTO."""
     mock_dto = Mock(spec=UserDTO)
-    mock_dto.email = email
+    mock_dto.username = username
     mock_dto.host = "imap.example.com"
     mock_dto.id = 1
-    mock_dto.name = email.split("@")[0]
+    mock_dto.name = username.split("@")[0]
     mock_dto.category = UserAccountCategory.PRIVATE
     mock_dto.protocol = Protocol.IMAP
     mock_dto.unread_conversations = 0
@@ -197,7 +197,7 @@ class TestEmailAccoutsView(unittest.TestCase):
     def test_view_with_existing_users(self, mock_user_service):
         """Test view creation when users already exist."""
         mock_user = Mock()
-        mock_user.email = "test@example.com"
+        mock_user.username = "test@example.com"
         mock_user_service.get_all_users.return_value = [mock_user]
 
         page = Mock(spec=ft.Page)
@@ -215,7 +215,7 @@ class TestEmailAccoutsView(unittest.TestCase):
         self.assertFalse(start_text.visible)
         # Connected emails should be set
         self.assertEqual(len(app_state.connected_emails), 1)
-        self.assertEqual(app_state.connected_emails[0].email, "test@example.com")
+        self.assertEqual(app_state.connected_emails[0].username, "test@example.com")
 
     @patch("remail.client.views.settings.email_accounts_view.UserService")
     def test_add_account_click_shows_form(self, mock_user_service):
@@ -449,7 +449,7 @@ class TestEmailAccoutsView(unittest.TestCase):
 
         # Verify user was added
         mock_user_service.add_user.assert_called_once_with(
-            email="new@example.com",
+            username="new@example.com",
             password="password123",
             host="imap.example.com",
         )
@@ -460,8 +460,8 @@ class TestEmailAccoutsView(unittest.TestCase):
         mock_scheduler_instance.start.assert_called_once()
 
         # Verify email was added to connected_emails
-        user_emails = [user.email for user in app_state.connected_emails]
-        self.assertIn("new@example.com", user_emails)
+        user_usernames = [user.username for user in app_state.connected_emails]
+        self.assertIn("new@example.com", user_usernames)
         # Verify scheduler was added to app_state
         self.assertIn("new@example.com", app_state.email_schedulers)
 
@@ -515,8 +515,8 @@ class TestEmailAccoutsView(unittest.TestCase):
         snackbars = [s for s in page.overlay if isinstance(s, ft.SnackBar) and s.open]
         self.assertGreater(len(snackbars), 0)
         # Should still add to connected_emails
-        user_emails = [user.email for user in app_state.connected_emails]
-        self.assertIn("duplicate@example.com", user_emails)
+        user_usernames = [user.username for user in app_state.connected_emails]
+        self.assertIn("duplicate@example.com", user_usernames)
 
     @patch("remail.client.views.settings.email_accounts_view.Scheduler")
     @patch("remail.client.views.settings.email_accounts_view.EmailSyncService")
@@ -666,7 +666,7 @@ class TestEmailAccoutsView(unittest.TestCase):
     def test_remove_account_success(self, mock_user_service):
         """Test successful account removal."""
         mock_user = Mock()
-        mock_user.email = "remove@example.com"
+        mock_user.username = "remove@example.com"
         mock_user_service.get_all_users.return_value = [mock_user]
         mock_user_service.delete_user.return_value = True
 
@@ -720,14 +720,14 @@ class TestEmailAccoutsView(unittest.TestCase):
         # Verify user was deleted
         mock_user_service.delete_user.assert_called_once_with("remove@example.com")
         app_state.remove_email_scheduler.assert_called_once_with("remove@example.com")
-        user_emails = [user.email for user in app_state.connected_emails]
-        self.assertNotIn("remove@example.com", user_emails)
+        user_usernames = [user.username for user in app_state.connected_emails]
+        self.assertNotIn("remove@example.com", user_usernames)
 
     @patch("remail.client.views.settings.email_accounts_view.UserService")
     def test_remove_account_exception(self, mock_user_service):
         """Test account removal when exception occurs."""
         mock_user = Mock()
-        mock_user.email = "error@example.com"
+        mock_user.username = "error@example.com"
         mock_user_service.get_all_users.return_value = [mock_user]
         mock_user_service.delete_user.side_effect = Exception("Delete failed")
 
@@ -781,7 +781,7 @@ class TestEmailAccoutsView(unittest.TestCase):
     def test_remove_account_shows_start_text_when_empty(self, mock_user_service):
         """Test that start text is shown when last account is removed."""
         mock_user = Mock()
-        mock_user.email = "last@example.com"
+        mock_user.username = "last@example.com"
         mock_user_service.get_all_users.return_value = [mock_user]
         mock_user_service.delete_user.return_value = True
 
