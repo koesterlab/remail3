@@ -46,6 +46,12 @@ class DemoContactSpec:
     email: str
 
 
+def _require_id(value: int | None, *, what: str) -> int:
+    if value is None:
+        raise RuntimeError(f"Expected {what} to have an id, but it was None.")
+    return value
+
+
 def _now() -> datetime:
     return datetime.now()
 
@@ -53,16 +59,7 @@ def _now() -> datetime:
 def _clean_demo_data(session: Session) -> None:
     """
     Remove previously seeded demo data.
-
-    Strategy:
-    - Emails: message_id startswith DEMO_MESSAGE_PREFIX OR subject contains DEMO_TAG
-    - Threads: titles contain DEMO_TAG
-    - Conversations: custom_name contains DEMO_TAG
-    - Contacts: email_address endswith ".demo" OR name contains DEMO_TAG
-
-    This keeps your fixtures / real data intact.
     """
-    # Delete EmailReception rows linked to demo emails
     demo_email_ids = [
         e.id
         for e in session.exec(
@@ -78,7 +75,6 @@ def _clean_demo_data(session: Session) -> None:
             delete(EmailReception).where(col(EmailReception.email_id).in_(demo_email_ids))
         )
 
-    # Delete demo emails
     session.exec(
         delete(Email).where(
             (col(Email.message_id).startswith(DEMO_MESSAGE_PREFIX))
@@ -86,16 +82,16 @@ def _clean_demo_data(session: Session) -> None:
         )
     )
 
-    # Delete demo threads
     demo_thread_ids = [
         t.id
-        for t in session.exec(select(Thread).where(col(Thread.title).contains(DEMO_TAG))).all()
+        for t in session.exec(
+            select(Thread).where(col(Thread.title).contains(DEMO_TAG))
+        ).all()
         if t.id is not None
     ]
     if demo_thread_ids:
         session.exec(delete(Thread).where(col(Thread.id).in_(demo_thread_ids)))
 
-    # Delete demo user<->conversation links
     demo_conversation_ids = [
         c.id
         for c in session.exec(
@@ -114,9 +110,10 @@ def _clean_demo_data(session: Session) -> None:
                 col(ConversationContact.conversation_id).in_(demo_conversation_ids)
             )
         )
-        session.exec(delete(Conversation).where(col(Conversation.id).in_(demo_conversation_ids)))
+        session.exec(
+            delete(Conversation).where(col(Conversation.id).in_(demo_conversation_ids))
+        )
 
-    # Delete demo contacts
     session.exec(
         delete(Contact).where(
             (col(Contact.email_address).endswith(".demo"))
@@ -130,21 +127,22 @@ def _ensure_user(session: Session, user_id: int | None = None) -> User:
         user = session.exec(select(User).order_by(col(User.id).asc())).first()
         if not user:
             raise RuntimeError("No users found in DB. Run `pixi run init-db --fixtures` first.")
-        # mypy: User.id is often Optional[int] in SQLModel definitions
-        assert user.id is not None
+        _require_id(user.id, what="user")
         return user
 
     user = session.exec(select(User).where(User.id == user_id)).first()
     if not user:
         raise RuntimeError(f"User id={user_id} not found.")
-    assert user.id is not None
+    _require_id(user.id, what="user")
     return user
 
 
 def _upsert_contact(session: Session, spec: DemoContactSpec) -> Contact:
-    existing = session.exec(select(Contact).where(Contact.email_address == spec.email)).first()
+    existing = session.exec(
+        select(Contact).where(Contact.email_address == spec.email)
+    ).first()
     if existing:
-        assert existing.id is not None
+        _require_id(existing.id, what="contact")
         return existing
 
     c = Contact(
@@ -153,8 +151,8 @@ def _upsert_contact(session: Session, spec: DemoContactSpec) -> Contact:
         is_known=True,
     )
     session.add(c)
-    session.flush()  # assigns id
-    assert c.id is not None
+    session.flush()
+    _require_id(c.id, what="contact")
     return c
 
 
@@ -165,12 +163,13 @@ def _create_conversation_with_thread(
     conv = Conversation(custom_name=custom_name)
     session.add(conv)
     session.flush()
-    assert conv.id is not None
+    conv_id = _require_id(conv.id, what="conversation")
 
-    th = Thread(title=f"{custom_name} {DEMO_TAG}", conversation_id=conv.id)
+    th = Thread(title=f"{custom_name} {DEMO_TAG}", conversation_id=conv_id)
     session.add(th)
     session.flush()
-    assert th.id is not None
+    _require_id(th.id, what="thread")
+
     return conv, th
 
 
@@ -181,10 +180,14 @@ def _add_user_visibility(session: Session, user_id: int, conversation_id: int) -
             & (UserConversation.conversation_id == conversation_id)
         )
     ).first()
-    if link:
-        return
-
-    session.add(UserConversation(user_id=user_id, conversation_id=conversation_id, is_favorite=False))
+    if not link:
+        session.add(
+            UserConversation(
+                user_id=user_id,
+                conversation_id=conversation_id,
+                is_favorite=False,
+            )
+        )
 
 
 def _add_participant(session: Session, conversation_id: int, contact_id: int) -> None:
@@ -194,10 +197,13 @@ def _add_participant(session: Session, conversation_id: int, contact_id: int) ->
             & (ConversationContact.contact_id == contact_id)
         )
     ).first()
-    if link:
-        return
-
-    session.add(ConversationContact(conversation_id=conversation_id, contact_id=contact_id))
+    if not link:
+        session.add(
+            ConversationContact(
+                conversation_id=conversation_id,
+                contact_id=contact_id,
+            )
+        )
 
 
 def _add_email(
@@ -210,8 +216,8 @@ def _add_email(
     body: str,
     recipients: Iterable[int],
     message_id: str,
-) -> Email:
-    e = Email(
+) -> None:
+    email = Email(
         message_id=message_id,
         subject=subject,
         body=body,
@@ -219,22 +225,18 @@ def _add_email(
         sender_id=sender_id,
         thread_id=thread_id,
     )
-    session.add(e)
+    session.add(email)
     session.flush()
-    assert e.id is not None
+    email_id = _require_id(email.id, what="email")
 
-    # recipient mapping (IN / TO, depending on your enum)
-    # If your EmailReception.kind is an Enum, adjust accordingly.
     for rid in recipients:
         session.add(
             EmailReception(
-                kind="TO",  # keep simple; change to your allowed values if needed
-                email_id=e.id,
+                kind="TO",
+                email_id=email_id,
                 contact_id=rid,
             )
         )
-
-    return e
 
 
 def seed_demo_data(
@@ -244,7 +246,7 @@ def seed_demo_data(
         _clean_demo_data(session)
 
         user = _ensure_user(session, user_id=user_id)
-        assert user.id is not None
+        user_id_int = _require_id(user.id, what="user")
 
         demo_contacts = [
             DemoContactSpec(name=f"Alice {DEMO_TAG}", email="alice@remail.demo"),
@@ -254,70 +256,57 @@ def seed_demo_data(
         ]
         contacts = [_upsert_contact(session, spec) for spec in demo_contacts]
 
-        # Pick some senders
-        senders = [contacts[0], contacts[1], contacts[2], contacts[3]]
-
+        senders = contacts
         base = _now()
 
         for i in range(conversations):
             conv_name = f"Demo Conversation {i + 1} {DEMO_TAG}"
             conv, th = _create_conversation_with_thread(session, conv_name)
-            assert conv.id is not None
-            assert th.id is not None
+            conv_id = _require_id(conv.id, what="conversation")
+            th_id = _require_id(th.id, what="thread")
 
-            _add_user_visibility(session, user.id, conv.id)
+            _add_user_visibility(session, user_id_int, conv_id)
 
-            # add 2 participants to conversation
             p1 = contacts[i % len(contacts)]
             p2 = contacts[(i + 1) % len(contacts)]
-            assert p1.id is not None
-            assert p2.id is not None
-            _add_participant(session, conv.id, p1.id)
-            _add_participant(session, conv.id, p2.id)
+            p1_id = _require_id(p1.id, what="participant")
+            p2_id = _require_id(p2.id, what="participant")
 
-            # generate emails
+            _add_participant(session, conv_id, p1_id)
+            _add_participant(session, conv_id, p2_id)
+
             for j in range(emails_per_conversation):
                 sender = senders[(i + j) % len(senders)]
-                assert sender.id is not None
+                sender_id = _require_id(sender.id, what="sender")
 
                 sent_at = base - timedelta(hours=(i * 7 + j * 3), minutes=(j * 11))
-
                 subject = f"{DEMO_TAG} Update {i + 1}-{j + 1}: UI test email"
                 body = (
                     "This is a seeded demo email for UI testing.\n\n"
                     f"Conversation: {conv_name}\n"
-                    f"Thread id: {th.id}\n"
+                    f"Thread id: {th_id}\n"
                     f"Sent at: {sent_at.isoformat(sep=' ', timespec='minutes')}\n"
                 )
-                msg_id = f"{DEMO_MESSAGE_PREFIX}{user.id}-{i + 1}-{j + 1}"
+                msg_id = f"{DEMO_MESSAGE_PREFIX}{user_id_int}-{i + 1}-{j + 1}"
 
-                # recipients: the two participants (exclude None, exclude sender if you want)
-                recips = [rid for rid in (p1.id, p2.id) if rid is not None and rid != sender.id]
+                recipients = [rid for rid in (p1_id, p2_id) if rid != sender_id]
 
                 _add_email(
                     session,
-                    thread_id=th.id,
-                    sender_id=sender.id,
+                    thread_id=th_id,
+                    sender_id=sender_id,
                     sent_at=sent_at,
                     subject=subject,
                     body=body,
-                    recipients=recips,
+                    recipients=recipients,
                     message_id=msg_id,
                 )
 
         session.commit()
-
-        # quick summary
-        email_count = len(session.exec(select(Email)).all())
-        thread_count = len(session.exec(select(Thread)).all())
-        conv_count = len(session.exec(select(Conversation)).all())
-        print("✅ Seed done.")
-        print(f"User: id={user.id} email={user.email}")
-        print(f"Totals -> conversations={conv_count}, threads={thread_count}, emails={email_count}")
+        print(" Seed demo data completed.")
 
 
 def main() -> None:
-    # You can tweak these numbers for stress-testing UI lists.
     seed_demo_data(user_id=None, conversations=4, emails_per_conversation=6)
 
 
