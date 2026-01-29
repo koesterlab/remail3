@@ -129,6 +129,7 @@ class UserService:
         username: str,
         password: str,
         host: str,
+        email: str | None = None,
         name: str | None = None,
         protocol: Protocol = Protocol.IMAP,
     ) -> UserDTO:
@@ -139,6 +140,7 @@ class UserService:
             username: Username
             password: Account password
             host: IMAP/SMTP host
+            email: Public email address (defaults to username if not provided)
             name: Optional display name
             protocol: Email protocol (default: IMAP)
 
@@ -158,9 +160,13 @@ class UserService:
                 raise RuntimeError("Failed to store password securely.") from exc
 
             resolved_name = name or username
+            resolved_email = email or username
+            if not resolved_email:
+                raise ValueError("Email address is required.")
 
             user = User(
                 name=resolved_name,
+                email=resolved_email,
                 username=username,
                 host=host,
                 password=generate_password_hash(password),

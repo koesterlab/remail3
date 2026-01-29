@@ -35,8 +35,8 @@ class ImapProtocol(EmailProtocol):
 
     def __init__(
         self,
-        username: str,
-        password: str,
+        username: str | None,
+        password: str | None,
         host: str,
     ):
         """

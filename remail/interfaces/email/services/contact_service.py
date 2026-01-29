@@ -31,8 +31,9 @@ class ContactService:
 
     @session
     def create_contact(self, name: str, email: str, session: Session) -> Contact:
+        resolved_name = name or email
         new_contact = Contact(
-            name=name,
+            name=resolved_name,
             email_address=email,
         )
 
@@ -46,12 +47,15 @@ class ContactService:
         session: Session,
         name: str | None = None,
     ) -> Contact:
+        if not email:
+            raise ValueError("Contact email is required")
         contact = session.exec(select(Contact).where(Contact.email_address == email)).first()
         if contact:
             return contact
-        contact = Contact(name=name, email_address=email, is_known=False)
+        resolved_name = name or email
+        contact = Contact(name=resolved_name, email_address=email, is_known=False)
         session.add(contact)
         return contact
 
     def get_user_contact(self, user: User) -> Contact:
-        return cast(Contact, self.get_or_create_contact(user.email, name=user.name))
+        return cast(Contact, self.get_or_create_contact(user.email, name=user.name or user.email))

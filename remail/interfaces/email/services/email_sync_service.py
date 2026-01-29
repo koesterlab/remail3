@@ -11,6 +11,7 @@ from sqlmodel import Session, col, select
 
 from remail.database import engine
 from remail.interfaces.email import EmailProtocol, ImapProtocol
+from remail.interfaces.email.services.user_service import UserService
 from remail.models import (
     Conversation,
     Email,
@@ -30,7 +31,8 @@ class EmailSyncService:
         self,
         protocol: EmailProtocol,
         email_parser: EmailParser,
-        user_id: int,
+        user_id: int | None = None,
+        username: str | None = None,
     ):
         """
         Initialize email sync service.
@@ -38,9 +40,18 @@ class EmailSyncService:
         Args:
             protocol: IMAP protocol instance for fetching emails
             email_parser: Email parser for extracting email data
+            user_id: Database user id (preferred if available)
+            username: Username to resolve a user id when user_id is not provided
         """
 
         self.engine = engine
+        if user_id is None:
+            if not username:
+                raise ValueError("user_id or username is required for syncing")
+            user = UserService.get_user_by_username(username)
+            if not user or user.id is None:
+                raise ValueError(f"User not found for username: {username}")
+            user_id = user.id
         self.user_id = user_id
         self.protocol = protocol
         self.email_parser = email_parser
