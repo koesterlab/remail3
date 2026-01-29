@@ -9,7 +9,7 @@ import pytest
 from remail import errors as ee
 from remail.controllers.email_controller import EmailController
 from remail.enums import RecipientKind
-from remail.models import Contact, Email
+from remail.models import Contact, Email, Thread
 
 
 @pytest.fixture
@@ -112,18 +112,22 @@ class TestSendEmail:
 
         with patch("remail.controllers.email_controller.ThreadService") as thread_service:
             thread_service.return_value.get_thread_by_id.return_value = thread_stub
-
-            result = controller.send_email(
-                subject="Test Subject",
-                body="Test Body",
-                thread_id=123,
-            )
+            with patch.object(
+                controller, "_create_email_model", return_value=SimpleNamespace()
+            ) as create_email:
+                with patch.object(controller, "_serialize_email", return_value={}):
+                    result = controller.send_email(
+                        subject="Test Subject",
+                        body="Test Body",
+                        thread_id=123,
+                    )
 
         assert result["status"] == "success"
         assert result["message"] == "Email sent successfully"
         assert "email" in result
 
         mock_protocol.send_email.assert_called_once()
+        create_email.assert_called_once()
 
     def test_send_email_uses_thread_contacts(self, controller, mock_protocol):
         """Test sending email uses recipients from thread contacts."""
@@ -139,25 +143,19 @@ class TestSendEmail:
 
         with patch("remail.controllers.email_controller.ThreadService") as thread_service:
             thread_service.return_value.get_thread_by_id.return_value = thread_stub
-
-            result = controller.send_email(
-                subject="Test",
-                body="Body",
-                thread_id=42,
-            )
+            with patch.object(
+                controller, "_create_email_model", return_value=SimpleNamespace()
+            ) as create_email:
+                with patch.object(controller, "_serialize_email", return_value={}):
+                    result = controller.send_email(
+                        subject="Test",
+                        body="Body",
+                        thread_id=42,
+                    )
 
         assert result["status"] == "success"
 
-        call_args = mock_protocol.send_email.call_args
-        email_arg = call_args[0][0]
-
-        assert email_arg.subject == "Test"
-        assert email_arg.body == "Body"
-        assert len(email_arg.recipients) == 2
-
-        kinds = {rec.kind for rec in email_arg.recipients}
-
-        assert kinds == {RecipientKind.TO}
+        assert create_email.call_args.kwargs["to"] == ["to1@example.com", "to2@example.com"]
 
     def test_send_email_with_attachments(self, controller, mock_protocol):
         """Test sending email with attachments."""
@@ -168,22 +166,19 @@ class TestSendEmail:
 
         with patch("remail.controllers.email_controller.ThreadService") as thread_service:
             thread_service.return_value.get_thread_by_id.return_value = thread_stub
-
-            result = controller.send_email(
-                subject="Test",
-                body="Body",
-                attachments=["file1.pdf", "file2.jpg"],
-                thread_id=5,
-            )
+            with patch.object(
+                controller, "_create_email_model", return_value=SimpleNamespace()
+            ) as create_email:
+                with patch.object(controller, "_serialize_email", return_value={}):
+                    result = controller.send_email(
+                        subject="Test",
+                        body="Body",
+                        attachments=["file1.pdf", "file2.jpg"],
+                        thread_id=5,
+                    )
 
         assert result["status"] == "success"
-
-        call_args = mock_protocol.send_email.call_args
-        email_arg = call_args[0][0]
-
-        assert len(email_arg.attachments) == 2
-        assert email_arg.attachments[0].filename == "file1.pdf"
-        assert email_arg.attachments[1].filename == "file2.jpg"
+        assert create_email.call_args.kwargs["attachments"] == ["file1.pdf", "file2.jpg"]
 
     def test_send_email_not_logged_in(self, controller, mock_protocol):
         """Test sending email when not logged in."""
@@ -277,21 +272,22 @@ class TestSendEmailNewThread:
             with patch("remail.controllers.email_controller.ThreadService") as thread_service:
                 conv_service.return_value.get_conversation_by_id.return_value = conversation_data
                 thread_service.return_value.create_thread.return_value = thread_stub
-
-                result = controller.send_email_new_thread(
-                    subject="Subject",
-                    body="Body",
-                    conversation_id=9,
-                    attachments=["file.txt"],
-                )
+                with patch.object(
+                    controller, "_create_email_model", return_value=SimpleNamespace()
+                ) as create_email:
+                    with patch.object(controller, "_serialize_email", return_value={}):
+                        result = controller.send_email_new_thread(
+                            subject="Subject",
+                            body="Body",
+                            conversation_id=9,
+                            attachments=["file.txt"],
+                        )
 
         assert result["status"] == "success"
+        assert create_email.call_args.kwargs["to"] == ["to1@example.com", "to2@example.com"]
+        assert create_email.call_args.kwargs["attachments"] == ["file.txt"]
         assert result["thread_id"] == 55
         assert result["conversation_id"] == 9
-
-        email_arg = mock_protocol.send_email.call_args[0][0]
-        assert len(email_arg.recipients) == 2
-        assert email_arg.attachments[0].filename == "file.txt"
 
     def test_send_email_new_thread_invalid_conversation(self, controller, mock_protocol):
         """Test send_email_new_thread with invalid conversation."""
@@ -336,21 +332,22 @@ class TestSendEmailNewConversation:
                             conversation_stub
                         )
                         thread_service.return_value.create_thread.return_value = thread_stub
-
-                        result = controller.send_email_new_conversation(
-                            contact_ids=[1, 2],
-                            subject="Hello",
-                            body="Body",
-                            attachments=["doc.pdf"],
-                        )
+                        with patch.object(
+                            controller, "_create_email_model", return_value=SimpleNamespace()
+                        ) as create_email:
+                            with patch.object(controller, "_serialize_email", return_value={}):
+                                result = controller.send_email_new_conversation(
+                                    contact_ids=[1, 2],
+                                    subject="Hello",
+                                    body="Body",
+                                    attachments=["doc.pdf"],
+                                )
 
         assert result["status"] == "success"
+        assert create_email.call_args.kwargs["to"] == ["one@example.com", "two@example.com"]
+        assert create_email.call_args.kwargs["attachments"] == ["doc.pdf"]
         assert result["thread_id"] == 88
         assert result["conversation_id"] == 77
-
-        email_arg = mock_protocol.send_email.call_args[0][0]
-        assert len(email_arg.recipients) == 2
-        assert email_arg.attachments[0].filename == "doc.pdf"
 
     def test_send_email_new_conversation_invalid_contact(self, controller, mock_protocol):
         """Test send_email_new_conversation with a missing contact."""
@@ -396,8 +393,8 @@ class TestEmailModelCreation:
             thread_id=1,
         )
 
-        assert email.subject == "Test"
         assert email.body == "Body"
+        assert email.thread_id == 1
         assert email.sender.email_address == "user@example.com"
         assert len(email.recipients) == 1
         assert email.recipients[0].kind == RecipientKind.TO
@@ -428,33 +425,39 @@ class TestEmailSerialization:
         """Test serializing email with no recipients."""
 
         sender = Contact(id=1, name="Sender", email_address="sender@example.com")
+        thread = Thread(title="Thread Title", conversation_id=1)
         email = Email(
             id=1,
-            subject="Test",
             body="Body",
             sent_at=datetime(2025, 11, 13, tzinfo=UTC),
+            sender_id=1,
+            thread_id=1,
             sender=sender,
         )
+        email.thread = thread
         email.recipients = []
         email.attachments = []
 
         result = controller._serialize_email(email)
 
         assert result["id"] == 1
-        assert result["subject"] == "Test"
+        assert result["subject"] == "Thread Title"
         assert result["recipients"] == []
         assert result["attachments"] == []
 
     def test_serialize_email_with_no_sender(self, controller):
         """Test serializing email with no sender."""
 
+        thread = Thread(title="Thread Title", conversation_id=1)
         email = Email(
             id=1,
-            subject="Test",
             body="Body",
             sent_at=datetime(2025, 11, 13, tzinfo=UTC),
+            sender_id=1,
+            thread_id=1,
         )
         email.sender = None
+        email.thread = thread
         email.recipients = []
         email.attachments = []
 

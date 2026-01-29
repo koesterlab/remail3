@@ -18,7 +18,9 @@ class TestThreadPreview(unittest.TestCase):
             unread_count=3,
             last_message_datetime=datetime(2025, 12, 3, 12, 0),
         )
-        self.conversation = ConversationDTO([], [self.topic], False, None)
+        self.conversation = ConversationDTO(
+            id=1, contacts=[], threads=[self.topic], is_favorite=False, custom_name=None
+        )
         self.clicked = {"called": False, "topic": None}
         self.state = MainAppState()
 
@@ -30,14 +32,14 @@ class TestThreadPreview(unittest.TestCase):
         self.state.set(MainAppStateProperties.ACTIVE_THREAD, None)
         preview = ThreadPreview(self.state, self.topic, self.conversation)
         # Prüfen, dass content Row enthält
-        self.assertIsInstance(preview.content, ft.Row)
-        self.assertEqual(preview.padding, 12)
+        self.assertIsInstance(preview.content, ft.Column)
+        self.assertEqual(preview.padding, ft.padding.all(12))
 
     def test_texts_display(self):
         self.state.set(MainAppStateProperties.ACTIVE_THREAD, None)
         preview = ThreadPreview(self.state, self.topic, self.conversation)
-        column = preview.content.controls[0]
-        row_title = column.controls[0].controls[0]
+        column = preview.content
+        row_title = column.controls[0]
         row_last_message = column.controls[1].controls[0]
 
         self.assertIn(str(self.topic.unread_count), row_title.value)

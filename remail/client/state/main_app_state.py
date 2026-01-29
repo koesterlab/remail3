@@ -1,10 +1,12 @@
+from asyncio import Future
 from collections.abc import Callable
 from enum import Enum
 from typing import Union
 
 from remail.client.state.observable_state import ObservableState
-from remail.controllers import ConversationsController
+from remail.controllers.account_controller import AccountController
 from remail.controllers.dtos.conversations import ConversationDTO, ThreadPreviewDTO
+from remail.controllers.dtos.user_dto import UserDTO
 from remail.controllers.thread_controller import ThreadController
 
 
@@ -26,8 +28,18 @@ class MainAppState(ObservableState[MainAppStateProperties]):
             ConversationDTO | ThreadPreviewDTO | None, Callable[[bool], None]
         ] = {}
 
-        self.conversations_controller = ConversationsController()
         self.thread_controller = ThreadController()
+        self.account_controllers: dict[str, AccountController] = {}
+        self.sync_threads: list[Future] = []
+
+    def get_active_email_account(self) -> AccountController:
+        mail: UserDTO | None = self.get(MainAppStateProperties.ACTIVE_USER)
+        if mail is None:
+            raise Exception("Account Controller was requested without active email account")
+        controller = self.account_controllers.get(mail.email)
+        if controller is None:
+            raise Exception("Account Controller was requested but not found for mail " + mail.email)
+        return controller
 
     def toggle_selection(self, item: Union["ConversationDTO", "ThreadPreviewDTO"]) -> None:
         already_selected = item in self.__selected

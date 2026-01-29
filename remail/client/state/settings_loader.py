@@ -2,12 +2,9 @@
 
 import flet as ft
 
-from remail.client.scheduler import Scheduler
 from remail.client.state.app_state import AppState
 from remail.controllers import SettingsController
-from remail.controllers.email_controller import EmailController
 from remail.enums import FontFamily, FontSize, Language, ThemeMode, Timezone
-from remail.interfaces.email.services.email_sync_service import EmailSyncService
 from remail.interfaces.email.services.user_service import UserService
 
 
@@ -45,38 +42,3 @@ def load_settings_into_state(app_state: AppState, page: ft.Page) -> None:
 
     saved_users = UserService.get_all_users()
     app_state.connected_emails = saved_users
-
-    for user in saved_users:
-        try:
-            # Get host from database, password from keyring
-            user_orm = UserService.get_user_by_username(user.username)
-            if not user_orm:
-                continue
-
-            password = UserService.get_user_password(user.username)
-            if not password:
-                print(f"Missing stored password for {user.username}; skipping sync.")
-                continue
-
-            email_controller = EmailController(
-                username=user.username,
-                password=password,
-                host=user_orm.host,
-            )
-
-            sync_service = EmailSyncService(
-                protocol=email_controller.protocol,
-                email_parser=email_controller.protocol.email_parser,
-                username=user.username,
-            )
-
-            scheduler = Scheduler(
-                task=sync_service.sync_emails,
-                sync_interval=60,
-            )
-
-            app_state.add_email_scheduler(user.username, scheduler)
-            scheduler.start()
-
-        except Exception as e:
-            print(f"Failed to load email account {user.username}: {e}")

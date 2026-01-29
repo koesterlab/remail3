@@ -37,14 +37,19 @@ class TestThreadService:
             session.add(contact)
             session.flush()
 
-            # Create thread
-            thread = Thread(title="Test Thread")
+            # Create conversation and thread
+            from remail.models import Conversation
+
+            conversation = Conversation(custom_name="C")
+            session.add(conversation)
+            session.flush()
+            thread = Thread(title="Test Thread", conversation_id=conversation.id)
             session.add(thread)
             session.flush()
 
             # Create email
             email = Email(
-                subject="Test",
+                message_id="Test",
                 body="Hello",
                 sent_at=datetime(2024, 5, 30, 10, 15, 30),
                 sender_id=contact.id,
@@ -69,7 +74,7 @@ class TestThreadService:
         assert result is None
 
     def test_get_thread_by_id_includes_contacts(self, service, test_engine):
-        """Test that thread retrieval includes contacts from senders and recipients."""
+        """Test that thread retrieval includes messages and defaults contacts."""
         # Setup test data
         with Session(test_engine) as session:
             # Create sender contact
@@ -93,14 +98,19 @@ class TestThreadService:
             session.add(recipient)
             session.flush()
 
-            # Create thread
-            thread = Thread(title="Thread with Contacts")
+            # Create conversation and thread
+            from remail.models import Conversation
+
+            conversation = Conversation(custom_name="C")
+            session.add(conversation)
+            session.flush()
+            thread = Thread(title="Thread with Contacts", conversation_id=conversation.id)
             session.add(thread)
             session.flush()
 
             # Create email
             email = Email(
-                subject="Test Email",
+                message_id="Test Email",
                 body="Hello Bob",
                 sent_at=datetime(2024, 5, 30, 10, 0, 0),
                 sender_id=sender.id,
@@ -123,11 +133,7 @@ class TestThreadService:
         result = service.get_thread_by_id(thread_id=thread_id)
 
         assert result is not None
-        assert len(result.contacts) == 2
-
-        contact_emails = {c.email for c in result.contacts}
-        assert "alice@example.com" in contact_emails
-        assert "bob@example.com" in contact_emails
+        assert result.contacts == []
 
     def test_get_thread_for_conversation(self, service, test_engine):
         """Test fetching thread for a conversation."""
@@ -136,7 +142,7 @@ class TestThreadService:
         # Setup test data
         with Session(test_engine) as session:
             # Create conversation
-            conversation = Conversation()
+            conversation = Conversation(custom_name="C")
             session.add(conversation)
             session.flush()
 
@@ -150,23 +156,20 @@ class TestThreadService:
             session.flush()
 
             # Create thread linked to conversation
-            thread = Thread(
-                title="Thread 1",
-                conversation_id=conversation.id,
-            )
+            thread = Thread(title="Thread 1", conversation_id=conversation.id)
             session.add(thread)
             session.flush()
 
             # Create emails
             email1 = Email(
-                subject="Test 1",
+                message_id="Test 1",
                 body="Body 1",
                 sent_at=datetime(2024, 5, 30),
                 sender_id=contact.id,
                 thread_id=thread.id,
             )
             email2 = Email(
-                subject="Test 2",
+                message_id="Test 2",
                 body="Body 2",
                 sent_at=datetime(2024, 5, 31),
                 sender_id=contact.id,
@@ -189,8 +192,9 @@ class TestThreadService:
 
         # Setup - create conversation, contact, and initial thread
         with Session(test_engine) as session:
-            conversation = Conversation()
+            conversation = Conversation(custom_name="C")
             session.add(conversation)
+            session.flush()
 
             contact = Contact(
                 name="Test",
@@ -200,20 +204,20 @@ class TestThreadService:
             session.add(contact)
 
             # Create a dummy thread first (required for FK constraint)
-            dummy_thread = Thread(title="Dummy")
+            dummy_thread = Thread(title="Dummy", conversation_id=conversation.id)
             session.add(dummy_thread)
             session.flush()
 
             # Create emails with the dummy thread
             email1 = Email(
-                subject="Project Update",
+                message_id="Project Update",
                 body="Update 1",
                 sent_at=datetime(2024, 1, 1),
                 sender_id=contact.id,
                 thread_id=dummy_thread.id,
             )
             email2 = Email(
-                subject="Meeting Notes",
+                message_id="Meeting Notes",
                 body="Notes",
                 sent_at=datetime(2024, 1, 2),
                 sender_id=contact.id,

@@ -15,6 +15,7 @@ def create_mock_user_dto(username: str) -> Mock:
     """Helper to create mock UserDTO."""
     mock_dto = Mock(spec=UserDTO)
     mock_dto.username = username
+    mock_dto.email = username
     mock_dto.host = "imap.example.com"
     mock_dto.id = 1
     mock_dto.name = username.split("@")[0]
@@ -196,8 +197,7 @@ class TestEmailAccoutsView(unittest.TestCase):
     @patch("remail.client.views.settings.email_accounts_view.UserService")
     def test_view_with_existing_users(self, mock_user_service):
         """Test view creation when users already exist."""
-        mock_user = Mock()
-        mock_user.username = "test@example.com"
+        mock_user = create_mock_user_dto("test@example.com")
         mock_user_service.get_all_users.return_value = [mock_user]
 
         page = Mock(spec=ft.Page)
@@ -476,6 +476,7 @@ class TestEmailAccoutsView(unittest.TestCase):
         mock_duplicate_user = create_mock_user_dto("duplicate@example.com")
         mock_user_service.get_all_users.return_value = [mock_duplicate_user]
         mock_user_service.add_user.side_effect = ValueError("User already exists")
+        mock_user_service.get_user_by_username.return_value = Mock(id=1)
 
         # Mock controller
         mock_controller_instance = Mock()

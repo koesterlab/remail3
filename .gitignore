@@ -4,6 +4,7 @@
 *.gguf
 __pycache__
 /llm/db
+database1.db
 database.db
 database.db.wal
 MemStorage.txt

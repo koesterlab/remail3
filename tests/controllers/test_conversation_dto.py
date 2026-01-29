@@ -74,13 +74,14 @@ class TestConversationDTO:
         )
 
         conversation = ConversationDTO(
-            customName="Meeting",
+            id=1,
+            custom_name="Meeting",
             contacts=[contact1, contact2],
             threads=[],
             is_favorite=True,
         )
 
-        assert conversation.customName == "Meeting"
+        assert conversation.custom_name == "Meeting"
         assert len(conversation.contacts) == 2
         assert conversation.is_favorite is True
         assert conversation.threads == []
@@ -106,13 +107,14 @@ class TestConversationDTO:
         )
 
         conversation = ConversationDTO(
-            customName="Test Subject",
+            id=1,
+            custom_name="Test Subject",
             contacts=[contact],
             threads=[thread],
             is_favorite=True,
         )
 
-        assert conversation.customName == "Test Subject"
+        assert conversation.custom_name == "Test Subject"
         assert conversation.is_favorite is True
         assert len(conversation.contacts) == 1
         assert len(conversation.threads) == 1
@@ -121,7 +123,8 @@ class TestConversationDTO:
     def test_conversation_dto_empty_contacts(self):
         """Test ConversationDTO with empty contacts list."""
         conversation = ConversationDTO(
-            customName="Empty Contacts",
+            id=1,
+            custom_name="Empty Contacts",
             contacts=[],
             threads=[],
             is_favorite=False,
@@ -142,11 +145,12 @@ class TestConversationDTO:
         )
 
         conversation = ConversationDTO(
-            customName=None,
+            id=1,
+            custom_name=None,
             contacts=[contact],
             threads=[],
             is_favorite=False,
         )
 
-        assert conversation.customName is None
+        assert conversation.custom_name is None
         assert len(conversation.contacts) == 1

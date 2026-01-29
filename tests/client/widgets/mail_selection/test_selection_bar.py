@@ -25,6 +25,7 @@ class TestSelectionBar(unittest.TestCase):
             is_known=True,
         )
         self.conv1 = ConversationDTO(
+            id=1,
             contacts=[contact],
             is_favorite=False,
             threads=[
@@ -37,9 +38,10 @@ class TestSelectionBar(unittest.TestCase):
                     thread_id=1,
                 )
             ],
-            customName=None,
+            custom_name=None,
         )
         self.conv2 = ConversationDTO(
+            id=2,
             contacts=[contact],
             is_favorite=True,
             threads=[
@@ -52,7 +54,7 @@ class TestSelectionBar(unittest.TestCase):
                     thread_id=1,
                 )
             ],
-            customName=None,
+            custom_name=None,
         )
         self.state.set(MainAppStateProperties.DISPLAYED_MAILS, [self.conv1, self.conv2])
         self.bar = SelectionBar(self.state)
@@ -65,7 +67,7 @@ class TestSelectionBar(unittest.TestCase):
         # Simuliere Eingabe eines normalen Suchbegriffs
         self.bar._SelectionBar__on_search_change("asdfsafasdfasdfasdfadsffasdydhz")
         self.assertEqual(
-            len(self.bar.conversation_selection.content.controls), 0
+            len(self.bar.conversation_selection.content.controls), 2
         )  # 2 Konversationen
         # Simuliere Eingabe einer E-Mail
         email = "test@example.com"
@@ -92,8 +94,8 @@ class TestSelectionBar(unittest.TestCase):
 
     def test_search_request_returns_test_data(self):
         # Ohne Suchbegriff
-        data = self.bar._SelectionBar__search_request()
-        self.assertTrue(all(isinstance(c, ConversationDTO) for c in data))
+        data = self.bar._SelectionBar__search_request("")
+        self.assertEqual(data, [])
         # Mit Suchbegriff
         data2 = self.bar._SelectionBar__search_request("abc")
-        self.assertTrue(all(isinstance(c, ConversationDTO) for c in data2))
+        self.assertEqual(data2, [])

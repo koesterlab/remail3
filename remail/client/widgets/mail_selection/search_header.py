@@ -70,7 +70,7 @@ class SearchHeader(ft.Container):
                 if isinstance(e, ConversationDTO)
             ]
             thread = ThreadPreviewDTO(-1, "", 0, 0, "", datetime.datetime.now())
-            conversation = ConversationDTO(contacts, [thread], False, None)
+            conversation = ConversationDTO(-1, contacts, [thread], False, None)
             state.set(MainAppStateProperties.ACTIVE_CONVERSATION, conversation)
             state.set(MainAppStateProperties.ACTIVE_THREAD, thread)
             state.clear_selected()
@@ -97,9 +97,11 @@ class SearchHeader(ft.Container):
             else:
                 bottom_row.controls = [delete_button, archiv_button, group_button]
                 bottom_row.alignment = ft.MainAxisAlignment.SPACE_BETWEEN
-            bottom_row.update()
+            if bottom_row.page:
+                bottom_row.update()
 
         state.listen_selection(None, on_selection_change)
+        on_selection_change(None)
 
         # ----- Layout -----
         content = ft.Column(

@@ -1,16 +1,23 @@
 from datetime import UTC, datetime, timedelta
 
-import pytest
-from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
 from remail.enums import RecipientKind
-from remail.models import Contact, Email, EmailReception, Thread
+from remail.models import Contact, Conversation, Email, EmailReception, Thread
+
+
+def _create_conversation(session: Session) -> Conversation:
+    conversation = Conversation(custom_name="C")
+    session.add(conversation)
+    session.commit()
+    session.refresh(conversation)
+    return conversation
 
 
 def test_thread_create(session: Session):
     """Test creating a basic thread."""
-    thread = Thread()
+    conversation = _create_conversation(session)
+    thread = Thread(conversation_id=conversation.id)
     session.add(thread)
     session.commit()
     session.refresh(thread)
@@ -20,8 +27,9 @@ def test_thread_create(session: Session):
 
 def test_thread_auto_increment(session: Session):
     """Test that thread IDs auto-increment."""
-    t1 = Thread()
-    t2 = Thread()
+    conversation = _create_conversation(session)
+    t1 = Thread(conversation_id=conversation.id)
+    t2 = Thread(conversation_id=conversation.id)
     session.add(t1)
     session.add(t2)
     session.commit()
@@ -37,12 +45,13 @@ def test_thread_with_single_message(session: Session):
     session.add(sender)
     session.commit()
 
-    thread = Thread()
+    conversation = _create_conversation(session)
+    thread = Thread(conversation_id=conversation.id)
     session.add(thread)
     session.commit()
 
     email = Email(
-        subject="Test Email",
+        message_id="Test Email",
         body="Test Body",
         sent_at=datetime.now(UTC),
         sender_id=sender.id,
@@ -53,7 +62,7 @@ def test_thread_with_single_message(session: Session):
     session.refresh(thread)
 
     assert len(thread.messages) == 1
-    assert thread.messages[0].subject == "Test Email"
+    assert thread.messages[0].message_id == "Test Email"
 
 
 def test_thread_with_multiple_messages(session: Session):
@@ -62,26 +71,27 @@ def test_thread_with_multiple_messages(session: Session):
     session.add(sender)
     session.commit()
 
-    thread = Thread()
+    conversation = _create_conversation(session)
+    thread = Thread(conversation_id=conversation.id)
     session.add(thread)
     session.commit()
 
     e1 = Email(
-        subject="First",
+        message_id="First",
         body="Body1",
         sent_at=datetime.now(UTC),
         sender_id=sender.id,
         thread_id=thread.id,
     )
     e2 = Email(
-        subject="Second",
+        message_id="Second",
         body="Body2",
         sent_at=datetime.now(UTC),
         sender_id=sender.id,
         thread_id=thread.id,
     )
     e3 = Email(
-        subject="Third",
+        message_id="Third",
         body="Body3",
         sent_at=datetime.now(UTC),
         sender_id=sender.id,
@@ -92,7 +102,7 @@ def test_thread_with_multiple_messages(session: Session):
     session.refresh(thread)
 
     assert len(thread.messages) == 3
-    assert {e.subject for e in thread.messages} == {"First", "Second", "Third"}
+    assert {e.message_id for e in thread.messages} == {"First", "Second", "Third"}
 
 
 def test_thread_messages_ordering_by_sent_at(session: Session):
@@ -101,27 +111,28 @@ def test_thread_messages_ordering_by_sent_at(session: Session):
     session.add(sender)
     session.commit()
 
-    thread = Thread()
+    conversation = _create_conversation(session)
+    thread = Thread(conversation_id=conversation.id)
     session.add(thread)
     session.commit()
 
     now = datetime.now(UTC)
     e1 = Email(
-        subject="Oldest",
+        message_id="Oldest",
         body="B",
         sent_at=now - timedelta(days=2),
         sender_id=sender.id,
         thread_id=thread.id,
     )
     e2 = Email(
-        subject="Middle",
+        message_id="Middle",
         body="B",
         sent_at=now - timedelta(days=1),
         sender_id=sender.id,
         thread_id=thread.id,
     )
     e3 = Email(
-        subject="Newest",
+        message_id="Newest",
         body="B",
         sent_at=now,
         sender_id=sender.id,
@@ -135,7 +146,7 @@ def test_thread_messages_ordering_by_sent_at(session: Session):
         select(Email).where(Email.thread_id == thread.id).order_by(Email.sent_at)
     ).all()
 
-    assert [m.subject for m in messages] == ["Oldest", "Middle", "Newest"]
+    assert [m.message_id for m in messages] == ["Oldest", "Middle", "Newest"]
 
 
 def test_thread_relationship_back_to_emails(session: Session):
@@ -144,12 +155,13 @@ def test_thread_relationship_back_to_emails(session: Session):
     session.add(sender)
     session.commit()
 
-    thread = Thread()
+    conversation = _create_conversation(session)
+    thread = Thread(conversation_id=conversation.id)
     session.add(thread)
     session.commit()
 
     email = Email(
-        subject="Test",
+        message_id="Test",
         body="B",
         sent_at=datetime.now(UTC),
         sender_id=sender.id,
@@ -174,19 +186,20 @@ def test_thread_with_multiple_senders(session: Session):
     session.add_all([s1, s2])
     session.commit()
 
-    thread = Thread()
+    conversation = _create_conversation(session)
+    thread = Thread(conversation_id=conversation.id)
     session.add(thread)
     session.commit()
 
     e1 = Email(
-        subject="Question",
+        message_id="Question",
         body="What's the status?",
         sent_at=datetime.now(UTC),
         sender_id=s1.id,
         thread_id=thread.id,
     )
     e2 = Email(
-        subject="Re: Question",
+        message_id="Re: Question",
         body="It's done!",
         sent_at=datetime.now(UTC),
         sender_id=s2.id,
@@ -200,18 +213,19 @@ def test_thread_with_multiple_senders(session: Session):
     assert senders == {"s1@example.com", "s2@example.com"}
 
 
-def test_thread_delete_with_emails_fails(session: Session):
-    """Test that deleting a thread with emails fails due to NOT NULL constraint."""
+def test_thread_delete_with_emails_clears_thread_id(session: Session):
+    """Test that deleting a thread detaches emails."""
     sender = Contact(name="S", email_address="s@example.com")
     session.add(sender)
     session.commit()
 
-    thread = Thread()
+    conversation = _create_conversation(session)
+    thread = Thread(conversation_id=conversation.id)
     session.add(thread)
     session.commit()
 
     email = Email(
-        subject="Test",
+        message_id="Test",
         body="B",
         sent_at=datetime.now(UTC),
         sender_id=sender.id,
@@ -220,16 +234,20 @@ def test_thread_delete_with_emails_fails(session: Session):
     session.add(email)
     session.commit()
 
-    # Delete the thread should fail because email.thread_id is NOT NULL
+    # Delete the thread should detach emails since thread_id is nullable
     session.delete(thread)
-    with pytest.raises(IntegrityError):
-        session.commit()
+    session.commit()
+
+    remaining = session.exec(select(Email).where(Email.id == email.id)).first()
+    assert remaining is not None
+    assert remaining.thread_id is None
 
 
 def test_thread_query_by_id(session: Session):
     """Test querying threads by ID."""
-    t1 = Thread()
-    t2 = Thread()
+    conversation = _create_conversation(session)
+    t1 = Thread(conversation_id=conversation.id)
+    t2 = Thread(conversation_id=conversation.id)
     session.add_all([t1, t2])
     session.commit()
 
@@ -245,14 +263,15 @@ def test_thread_count_messages(session: Session):
     session.add(sender)
     session.commit()
 
-    thread = Thread()
+    conversation = _create_conversation(session)
+    thread = Thread(conversation_id=conversation.id)
     session.add(thread)
     session.commit()
 
     # Add 5 messages
     for i in range(5):
         email = Email(
-            subject=f"Message {i}",
+            message_id=f"Message {i}",
             body="B",
             sent_at=datetime.now(UTC),
             sender_id=sender.id,
@@ -273,12 +292,13 @@ def test_thread_with_recipients(session: Session):
     session.add_all([sender, r1, r2])
     session.commit()
 
-    thread = Thread()
+    conversation = _create_conversation(session)
+    thread = Thread(conversation_id=conversation.id)
     session.add(thread)
     session.commit()
 
     email = Email(
-        subject="Group Email",
+        message_id="Group Email",
         body="B",
         sent_at=datetime.now(UTC),
         sender_id=sender.id,
@@ -301,7 +321,8 @@ def test_thread_with_recipients(session: Session):
 
 def test_thread_empty_messages(session: Session):
     """Test that a thread can exist without messages."""
-    thread = Thread()
+    conversation = _create_conversation(session)
+    thread = Thread(conversation_id=conversation.id)
     session.add(thread)
     session.commit()
     session.refresh(thread)
@@ -315,20 +336,21 @@ def test_thread_get_latest_message(session: Session):
     session.add(sender)
     session.commit()
 
-    thread = Thread()
+    conversation = _create_conversation(session)
+    thread = Thread(conversation_id=conversation.id)
     session.add(thread)
     session.commit()
 
     now = datetime.now(UTC)
     e1 = Email(
-        subject="Old",
+        message_id="Old",
         body="B",
         sent_at=now - timedelta(hours=2),
         sender_id=sender.id,
         thread_id=thread.id,
     )
     e2 = Email(
-        subject="Recent",
+        message_id="Recent",
         body="B",
         sent_at=now,
         sender_id=sender.id,
@@ -343,7 +365,7 @@ def test_thread_get_latest_message(session: Session):
     ).first()
 
     assert latest is not None
-    assert latest.subject == "Recent"
+    assert latest.message_id == "Recent"
 
 
 def test_thread_query_threads_with_message_count(session: Session):
@@ -353,14 +375,15 @@ def test_thread_query_threads_with_message_count(session: Session):
     session.commit()
 
     # Create thread with 3 messages
-    t1 = Thread()
+    conversation1 = _create_conversation(session)
+    t1 = Thread(conversation_id=conversation1.id)
     session.add(t1)
     session.commit()
 
     for i in range(3):
         session.add(
             Email(
-                subject=f"T1-{i}",
+                message_id=f"T1-{i}",
                 body="B",
                 sent_at=datetime.now(UTC),
                 sender_id=sender.id,
@@ -369,13 +392,14 @@ def test_thread_query_threads_with_message_count(session: Session):
         )
 
     # Create thread with 1 message
-    t2 = Thread()
+    conversation2 = _create_conversation(session)
+    t2 = Thread(conversation_id=conversation2.id)
     session.add(t2)
     session.commit()
 
     session.add(
         Email(
-            subject="T2-0",
+            message_id="T2-0",
             body="B",
             sent_at=datetime.now(UTC),
             sender_id=sender.id,
@@ -395,7 +419,8 @@ def test_thread_query_threads_with_message_count(session: Session):
 
 def test_thread_update_not_applicable(session: Session):
     """Test that threads don't have updatable fields beyond ID."""
-    thread = Thread()
+    conversation = _create_conversation(session)
+    thread = Thread(conversation_id=conversation.id)
     session.add(thread)
     session.commit()
     session.refresh(thread)

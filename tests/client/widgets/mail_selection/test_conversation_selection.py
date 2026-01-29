@@ -54,6 +54,7 @@ class TestConversationSelection(unittest.TestCase):
             is_known=True,
         )
         conv = ConversationDTO(
+            id=1,
             contacts=[contact],
             is_favorite=False,
             threads=[
@@ -66,7 +67,7 @@ class TestConversationSelection(unittest.TestCase):
                     thread_id=1,
                 )
             ],
-            customName=None,
+            custom_name=None,
         )
         self.selection.set_content([conv])
         self.assertEqual(len(self.selection.content.controls), 1)
@@ -93,6 +94,7 @@ class TestConversationSelection(unittest.TestCase):
             is_known=True,
         )
         conv = ConversationDTO(
+            id=2,
             contacts=[contact1, contact2],
             is_favorite=False,
             threads=[
@@ -105,7 +107,7 @@ class TestConversationSelection(unittest.TestCase):
                     thread_id=1,
                 )
             ],
-            customName=None,
+            custom_name=None,
         )
         self.selection.set_content([conv])
         self.assertEqual(len(self.selection.content.controls), 1)

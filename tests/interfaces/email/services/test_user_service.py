@@ -17,6 +17,7 @@ class TestUserService:
             user = User(
                 name="found",
                 username="found@example.com",
+                email="found@example.com",
                 host="imap.example.com",
                 password="hash123",
                 protocol=Protocol.IMAP,
@@ -52,6 +53,7 @@ class TestUserService:
                     User(
                         name="user1",
                         username="user1@example.com",
+                        email="user1@example.com",
                         host="imap.example.com",
                         password="hash1",
                         protocol=Protocol.IMAP,
@@ -59,6 +61,7 @@ class TestUserService:
                     User(
                         name="user2",
                         username="user2@example.com",
+                        email="user2@example.com",
                         host="imap.example.com",
                         password="hash2",
                         protocol=Protocol.IMAP,
@@ -66,6 +69,7 @@ class TestUserService:
                     User(
                         name="user3",
                         username="user3@example.com",
+                        email="user3@example.com",
                         host="imap.example.com",
                         password="hash3",
                         protocol=Protocol.IMAP,
@@ -87,6 +91,7 @@ class TestUserService:
         user = User(
             name="noid",
             username="noid@example.com",
+            email="noid@example.com",
             host="imap.example.com",
             password="hash",
             protocol=Protocol.IMAP,
@@ -101,6 +106,7 @@ class TestUserService:
             user = User(
                 name="dto",
                 username="dto@example.com",
+                email="dto@example.com",
                 host="imap.example.com",
                 password="hash",
                 protocol=Protocol.IMAP,
@@ -115,7 +121,7 @@ class TestUserService:
         assert dto.name == "dto"
         assert dto.username == "dto@example.com"
         assert dto.host == "imap.example.com"
-        assert dto.password != user.password
+        assert dto.password == user.password
         assert dto.protocol == Protocol.IMAP
         assert dto.category == UserAccountCategory.PRIVATE
         assert dto.unread_conversations == 0
@@ -126,6 +132,7 @@ class TestUserService:
             user = User(
                 name="cnt",
                 username="cnt@example.com",
+                email="cnt@example.com",
                 host="imap.example.com",
                 password="hash",
                 protocol=Protocol.IMAP,

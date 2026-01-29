@@ -4,10 +4,9 @@
 import os
 from pathlib import Path
 
-from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel import SQLModel, create_engine
 
 import remail.models  # noqa: F401
-from remail.fixtures import load_conversation_fixtures
 
 
 def init_database(db_path: str = "database.db", load_fixtures: bool = False) -> None:
@@ -35,28 +34,6 @@ def init_database(db_path: str = "database.db", load_fixtures: bool = False) -> 
     print(f"\n{'=' * 80}")
     print("✅ Database initialized successfully!")
     print(f"{'=' * 80}\n")
-
-    print("Created tables:")
-
-    for table in SQLModel.metadata.sorted_tables:
-        print(f"  - {table.name}")
-
-    print(f"\nDatabase location: {db_file}")
-
-    # Load fixtures if requested
-    if load_fixtures:
-        print("\n" + "=" * 80)
-        print("Loading Fixtures")
-        print("=" * 80 + "\n")
-
-        with Session(engine) as session:
-            try:
-                load_conversation_fixtures(session)
-                print("✅ All fixtures loaded successfully!\n")
-            except Exception as e:
-                print(f"❌ Error loading fixtures: {e}\n")
-                session.rollback()
-                raise
 
 
 if __name__ == "__main__":
