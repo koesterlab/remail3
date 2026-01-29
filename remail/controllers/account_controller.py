@@ -1,6 +1,8 @@
 import datetime
+import logging
 from collections.abc import Callable, Iterable
 
+from remail import errors as ee
 from remail.controllers import EmailController
 from remail.controllers.dtos.conversations import ContactDTO, ConversationDTO, ThreadPreviewDTO
 from remail.controllers.dtos.user_dto import UserDTO
@@ -19,6 +21,8 @@ from remail.utils.session_management import session
 class AccountController:
     """Class for base operations for existing users"""
 
+    _logger = logging.getLogger(__name__)
+
     @staticmethod
     def all_client_accounts() -> list["AccountController"]:
         users = UserService().get_all_users()
@@ -28,8 +32,11 @@ class AccountController:
     def __init__(self, account_id: int):
         self.user_id = account_id
         self.user: UserDTO = UserService.get_user_by_id(account_id)
+        password = UserService.get_user_password(self.user.username)
+        if password is None:
+            self._logger.warning("No stored password for %s", self.user.username)
         self.protocol: ImapProtocol = ImapProtocol(
-            username=self.user.username, password=self.user.password, host=self.user.host
+            username=self.user.username, password=password, host=self.user.host
         )  # todo implement exchange option
         self.sync_service = EmailSyncService(
             protocol=self.protocol, email_parser=EmailParser(), user_id=self.user.id
@@ -38,6 +45,7 @@ class AccountController:
         self.user_service = UserService()
         self.conversation_service = ConversationService()
         self.callback: Callable[[Iterable[ConversationDTO]], None] = lambda _: None
+        self.error_callback: Callable[[str], None] = lambda _: None
 
     @session
     def get_conversations(self) -> Iterable[ConversationDTO]:
@@ -58,19 +66,32 @@ class AccountController:
         """Registers a callback that is called every time when a Conversation is updated or new with the conversation"""
         self.callback = callback
 
+    def set_callback_email_errors(self, callback: Callable[[str], None]) -> None:
+        """Registers a callback that is called when background sync fails."""
+        self.error_callback = callback
+
     def _notify_callback(self):
         changed = self.sync_service.check_for_changed_conversations()
         if len(changed) > 0:
             self.callback(changed)
 
+    def _notify_error(self, msg: str) -> None:
+        self.error_callback(msg)
+
     async def start_listening(self):
         """Starts background task to wait for email changes in imap idle mode. Calls callback if something changes"""
-        print("Starting sync service")
-        self.callback(self.get_conversations())
-        print("First sync over")
+        try:
+            print("Starting sync service")
+            self.callback(self.get_conversations())
+            print("First sync over")
 
-        async for _ in self.sync_service.wait_for_mail_changes_async():
-            self._notify_callback()
+            async for _ in self.sync_service.wait_for_mail_changes_async():
+                self._notify_callback()
+        except ee.InvalidLoginData:
+            self._notify_error("Invalid login credentials")
+        except Exception as exc:
+            self._logger.exception("Background sync stopped for %s", self.user.email)
+            self._notify_error(f"Sync stopped: {exc}")
 
     def get_email_address(self) -> str:
         return self.user.email

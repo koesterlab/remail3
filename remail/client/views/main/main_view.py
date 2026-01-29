@@ -8,7 +8,7 @@ from remail.client.widgets.mail_selection import SelectionBar
 from remail.controllers.account_controller import AccountController
 from remail.controllers.dtos.conversations import ConversationDTO, ThreadPreviewDTO
 from remail.controllers.dtos.user_dto import UserDTO
-from remail.enums import MainView
+from remail.enums import MainView, SettingsSubView
 
 from ...state.main_app_state import MainAppState, MainAppStateProperties
 from ...widgets.thread.thread_list import ThreadList
@@ -27,6 +27,7 @@ def create_main_view(page: ft.Page, global_state: AppState):
     def navigate_to_settings(e):
         """Navigate to settings page."""
         if global_state.router:
+            global_state.settings_start_sub_view = SettingsSubView.EMAIL_ACCOUNTS
             page.clean()
             settings_view = global_state.router.load_view(MainView.SETTINGS)
             page.add(settings_view)
@@ -38,19 +39,36 @@ def create_main_view(page: ft.Page, global_state: AppState):
         on_click=navigate_to_settings,
     )
 
-    dashboard = ft.Column(
-        [
-            ft.Container(
-                content=ft.Row(
-                    [
-                        ft.Text("Dashboard (vertrau ist fast fertig)", size=20),
-                        settings_button,
-                    ],
-                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+    dashboard_header = ft.Container(
+        content=ft.Row(
+            [
+                ft.Text("Dashboard (vertrau ist fast fertig)", size=20),
+                settings_button,
+            ],
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+        ),
+        padding=10,
+    )
+
+    dashboard = ft.Column([dashboard_header], expand=True)
+
+    empty_accounts_view = ft.Container(
+        ft.Column(
+            [
+                ft.Text("No email accounts connected yet", size=18, weight=ft.FontWeight.BOLD),
+                ft.Text("Add an account in Settings to start syncing your inbox."),
+                ft.ElevatedButton(
+                    "Open Settings",
+                    icon=ft.Icons.SETTINGS,
+                    on_click=navigate_to_settings,
                 ),
-                padding=10,
-            ),
-        ],
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=12,
+            expand=True,
+        ),
+        padding=20,
         expand=True,
     )
     right_view = ft.Container(
@@ -128,20 +146,25 @@ def create_main_view(page: ft.Page, global_state: AppState):
 
     # register new accounts and start listening
     accounts = AccountController.all_client_accounts()
-    for acc in accounts:
-        main_state.account_controllers[acc.get_email_address()] = acc
-        acc.set_callback_email_changes(
-            lambda updates, acc_=acc: on_emails_synced(acc_.get_user(), updates)
-        )
+    if not accounts:
+        dashboard.controls.append(empty_accounts_view)
+        right_view.content = dashboard
+        main_state.set(MainAppStateProperties.ACTIVE_USER, None)
+    else:
+        for acc in accounts:
+            main_state.account_controllers[acc.get_email_address()] = acc
+            acc.set_callback_email_changes(
+                lambda updates, acc_=acc: on_emails_synced(acc_.get_user(), updates)
+            )
+            acc.set_callback_email_errors(
+                lambda msg, acc_=acc: on_email_sync_error(acc_.get_user(), msg)
+            )
 
-        async def x():
-            print("Du Hurensohn")
+            page.run_thread(
+                lambda acc_=acc: asyncio.run(acc_.start_listening())
+            )  # running sync task in flets own async system
 
-        page.run_thread(
-            lambda acc_=acc: asyncio.run(acc_.start_listening())
-        )  # running sync task in flets own async system
-
-    main_state.set(MainAppStateProperties.ACTIVE_USER, accounts[0].get_user())
+        main_state.set(MainAppStateProperties.ACTIVE_USER, accounts[0].get_user())
     main_state.register_observer(MainAppStateProperties.ACTIVE_CHATBOT, on_chatbot_state_change)
     main_state.register_observer(MainAppStateProperties.ACTIVE_THREAD, on_thread_change)
 

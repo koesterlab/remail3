@@ -129,6 +129,7 @@ class UserService:
         username: str,
         password: str,
         host: str,
+        email: str,
         name: str | None = None,
         protocol: Protocol = Protocol.IMAP,
     ) -> UserDTO:
@@ -139,6 +140,7 @@ class UserService:
             username: Username
             password: Account password
             host: IMAP/SMTP host
+            email: Public email address
             name: Optional display name
             protocol: Email protocol (default: IMAP)
 
@@ -161,6 +163,7 @@ class UserService:
 
             user = User(
                 name=resolved_name,
+                email=email,
                 username=username,
                 host=host,
                 password=generate_password_hash(password),
