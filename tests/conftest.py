@@ -33,6 +33,7 @@ def patch_db_engine(test_engine, monkeypatch):
         thread_service,
         user_service,
     )
+    from remail.interfaces.llm import chat_service
 
     monkeypatch.setattr(db, "engine", test_engine)
     monkeypatch.setattr(database, "engine", test_engine)
@@ -42,6 +43,7 @@ def patch_db_engine(test_engine, monkeypatch):
     monkeypatch.setattr(settings_service, "engine", test_engine)
     monkeypatch.setattr(thread_service, "engine", test_engine)
     monkeypatch.setattr(user_service, "engine", test_engine)
+    monkeypatch.setattr(chat_service, "engine", test_engine)
     monkeypatch.setattr(session_management, "engine", test_engine)
     # Prevent leaked @session context between tests when a session is provided.
     session_management._current_session.set(None)

@@ -10,6 +10,7 @@ from remail.enums import Protocol
 from .user_conversation import UserConversation  # noqa: F401
 
 if TYPE_CHECKING:
+    from .chat_session import ChatSession
     from .conversation import Conversation
 
 
@@ -34,3 +35,5 @@ class User(SQLModel, table=True):
         back_populates="users",
         link_model=UserConversation,
     )
+
+    chat_sessions: list["ChatSession"] = Relationship(back_populates="user")
