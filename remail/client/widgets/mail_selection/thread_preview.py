@@ -1,3 +1,5 @@
+from datetime import UTC
+
 import flet as ft
 
 from remail.client.state import MainAppState, MainAppStateProperties
@@ -14,46 +16,38 @@ class ThreadPreview(ft.Container):
             state.set(MainAppStateProperties.ACTIVE_THREAD, thread)
 
         super().__init__(
-            content=ft.Row(
+            content=ft.Column(
                 [
-                    ft.Column(
-                        [
-                            ft.Row(
-                                [
-                                    ft.Text(
-                                        (
-                                            "(" + str(thread.unread_count) + ") "
-                                            if thread.unread_count > 0
-                                            else ""
-                                        )
-                                        + thread.title,
-                                        weight=ft.FontWeight.BOLD
-                                        if thread.unread_count > 0
-                                        else ft.FontWeight.NORMAL,
-                                        color=ft.Colors.ON_SURFACE,
-                                    ),
-                                ],
-                                alignment=ft.MainAxisAlignment.START,
+                    ft.Text(
+                        ("(" + str(thread.unread_count) + ") " if thread.unread_count > 0 else "")
+                        + thread.title,
+                        max_lines=1,
+                        weight=ft.FontWeight.BOLD
+                        if thread.unread_count > 0
+                        else ft.FontWeight.NORMAL,
+                        color=ft.Colors.ON_SURFACE,
+                    ),
+                    ft.Row(
+                        controls=[
+                            ft.Text(
+                                thread.last_message,
+                                size=12,
+                                max_lines=1,
+                                expand=True,
+                                color=ft.Colors.ON_SURFACE_VARIANT,
                             ),
-                            ft.Row(
-                                [
-                                    ft.Text(
-                                        thread.last_message,
-                                        size=12,
-                                        color=ft.Colors.ON_SURFACE_VARIANT,
-                                    )
-                                ],
-                                alignment=ft.MainAxisAlignment.START,
-                                spacing=6,
+                            ft.Text(
+                                thread.last_message_datetime.replace(tzinfo=UTC).strftime(
+                                    "%d.%m.%Y"
+                                ),  # todo: variable time zone
+                                size=12,
+                                color=ft.Colors.ON_SURFACE_VARIANT,
                             ),
                         ],
-                        spacing=3,
-                        alignment=ft.MainAxisAlignment.START,
+                        alignment=ft.MainAxisAlignment.END,
                     ),
-                ],
-                spacing=12,
-                alignment=ft.MainAxisAlignment.START,
+                ]
             ),
             on_click=lambda _: on_click(),
-            padding=12,
+            padding=ft.padding.all(12),
         )

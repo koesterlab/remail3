@@ -111,15 +111,11 @@ class ThreadSelection(ft.Container):
         self.conversation = content
         if len(content.contacts) == 1:
             contact = content.contacts[0]
-            self.__primary_text.value = contact.first_name + " " + contact.last_name
+            self.__primary_text.value = content.get_member_string(extended=True)
             self.__secondary_text.value = contact.email
         else:
             self.__primary_text.value = (
-                content.customName
-                if content.customName
-                else ", ".join(
-                    contact.first_name[0] + ". " + contact.last_name for contact in content.contacts
-                )
+                content.custom_name if content.custom_name else content.get_member_string()
             )
             self.__secondary_text.value = str(len(content.contacts)) + " Members"
         # todo: make more efficient on reload

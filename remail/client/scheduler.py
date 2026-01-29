@@ -48,7 +48,7 @@ class Scheduler:
         Creates a background thread with its own event loop to run
         tasks without blocking the main UI thread.
         """
-
+        print("Starting scheduler")
         if self._running:
             return
 
@@ -62,7 +62,7 @@ class Scheduler:
 
         Gracefully stops the background task and thread.
         """
-
+        print("Stopping Scheduler")
         if not self._running:
             return
 

@@ -3,7 +3,18 @@ from datetime import UTC, datetime
 from sqlmodel import Session, select
 
 from remail.enums import RecipientKind
-from remail.models import Contact, Email, EmailReception, Thread
+from remail.models import Contact, Conversation, Email, EmailReception, Thread
+
+
+def _create_thread(session: Session) -> Thread:
+    conversation = Conversation(custom_name="C")
+    session.add(conversation)
+    session.commit()
+    thread = Thread(conversation_id=conversation.id)
+    session.add(thread)
+    session.commit()
+    session.refresh(thread)
+    return thread
 
 
 def test_contact_create(session: Session):
@@ -34,22 +45,28 @@ def test_contact_relationship_sent_emails(session: Session):
     session.commit()
     session.refresh(sender)
 
-    thread = Thread()
-    session.add(thread)
-    session.commit()
+    thread = _create_thread(session)
 
     e1 = Email(
-        subject="S1", body="B1", sent_at=datetime.now(UTC), sender_id=sender.id, thread_id=thread.id
+        message_id="S1",
+        body="B1",
+        sent_at=datetime.now(UTC),
+        sender_id=sender.id,
+        thread_id=thread.id,
     )
     e2 = Email(
-        subject="S2", body="B2", sent_at=datetime.now(UTC), sender_id=sender.id, thread_id=thread.id
+        message_id="S2",
+        body="B2",
+        sent_at=datetime.now(UTC),
+        sender_id=sender.id,
+        thread_id=thread.id,
     )
     session.add(e1)
     session.add(e2)
     session.commit()
     session.refresh(sender)
 
-    assert {e.subject for e in sender.sent_emails} == {"S1", "S2"}
+    assert {e.message_id for e in sender.sent_emails} == {"S1", "S2"}
 
 
 def test_contact_relationship_receptions(session: Session):
@@ -59,12 +76,14 @@ def test_contact_relationship_receptions(session: Session):
     session.add(recipient)
     session.commit()
 
-    thread = Thread()
-    session.add(thread)
-    session.commit()
+    thread = _create_thread(session)
 
     email = Email(
-        subject="Hi", body="B", sent_at=datetime.now(UTC), sender_id=sender.id, thread_id=thread.id
+        message_id="Hi",
+        body="B",
+        sent_at=datetime.now(UTC),
+        sender_id=sender.id,
+        thread_id=thread.id,
     )
     session.add(email)
     session.commit()
@@ -76,7 +95,7 @@ def test_contact_relationship_receptions(session: Session):
     session.refresh(recipient)
 
     assert len(recipient.receptions) == 1
-    assert recipient.receptions[0].email.subject == "Hi"
+    assert recipient.receptions[0].email.message_id == "Hi"
     assert recipient.receptions[0].kind == RecipientKind.TO
 
 

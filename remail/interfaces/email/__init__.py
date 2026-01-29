@@ -23,6 +23,10 @@ __all__ = [
     "UnknownError",
 ]
 
+from remail.interfaces.email.protocols.base import EmailProtocol
+from remail.interfaces.email.protocols.imap import ImapProtocol
+from remail.interfaces.email.services.attachment_service import save_attachment
+
 _LAZY_IMPORTS = {
     "EmailProtocol": "remail.interfaces.email.protocols.base",
     "ImapProtocol": "remail.interfaces.email.protocols.imap",

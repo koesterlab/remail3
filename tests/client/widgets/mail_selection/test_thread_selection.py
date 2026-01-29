@@ -47,10 +47,11 @@ class TestThreadSelection(unittest.TestCase):
             thread_id=2,
         )
         self.conversation = ConversationDTO(
+            id=1,
             contacts=[self.contact],
             threads=[self.thread1, self.thread2],
             is_favorite=False,
-            customName=None,
+            custom_name=None,
         )
 
     def test_threadselection_is_container(self) -> None:
@@ -71,9 +72,10 @@ class TestThreadSelection(unittest.TestCase):
         """set_content should set primary text with initials and secondary with member count."""
         contacts = [self.contact, self.contact2]
         conversation = ConversationDTO(
+            id=2,
             contacts=contacts,
             threads=[self.thread1, self.thread2],
-            customName="",
+            custom_name="",
             is_favorite=False,
         )
         widget = ThreadSelection(self.state, self.on_click_back)

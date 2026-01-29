@@ -5,7 +5,18 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
 from remail.enums import RecipientKind
-from remail.models import Contact, Email, EmailReception, Thread
+from remail.models import Contact, Conversation, Email, EmailReception, Thread
+
+
+def _create_thread(session: Session) -> Thread:
+    conversation = Conversation(custom_name="C")
+    session.add(conversation)
+    session.commit()
+    thread = Thread(conversation_id=conversation.id)
+    session.add(thread)
+    session.commit()
+    session.refresh(thread)
+    return thread
 
 
 def test_email_reception_create(session: Session):
@@ -15,12 +26,14 @@ def test_email_reception_create(session: Session):
     session.add(r)
     session.commit()
 
-    thread = Thread()
-    session.add(thread)
-    session.commit()
+    thread = _create_thread(session)
 
     e = Email(
-        subject="Hello", body="B", sent_at=datetime.now(UTC), sender_id=s.id, thread_id=thread.id
+        message_id="Hello",
+        body="B",
+        sent_at=datetime.now(UTC),
+        sender_id=s.id,
+        thread_id=thread.id,
     )
     session.add(e)
     session.commit()
@@ -41,12 +54,14 @@ def test_email_reception_composite_primary_key(session: Session):
     session.add_all([s, r])
     session.commit()
 
-    thread = Thread()
-    session.add(thread)
-    session.commit()
+    thread = _create_thread(session)
 
     e = Email(
-        subject="Hello2", body="B", sent_at=datetime.now(UTC), sender_id=s.id, thread_id=thread.id
+        message_id="Hello2",
+        body="B",
+        sent_at=datetime.now(UTC),
+        sender_id=s.id,
+        thread_id=thread.id,
     )
     session.add(e)
     session.commit()
@@ -74,12 +89,14 @@ def test_email_reception_kind_variants(session: Session):
     session.add_all([s, r1, r2, r3])
     session.commit()
 
-    thread = Thread()
-    session.add(thread)
-    session.commit()
+    thread = _create_thread(session)
 
     e = Email(
-        subject="Kinds", body="B", sent_at=datetime.now(UTC), sender_id=s.id, thread_id=thread.id
+        message_id="Kinds",
+        body="B",
+        sent_at=datetime.now(UTC),
+        sender_id=s.id,
+        thread_id=thread.id,
     )
     session.add(e)
     session.commit()
@@ -105,12 +122,14 @@ def test_email_reception_relationships(session: Session):
     session.add_all([s, r])
     session.commit()
 
-    thread = Thread()
-    session.add(thread)
-    session.commit()
+    thread = _create_thread(session)
 
     e = Email(
-        subject="Rel", body="B", sent_at=datetime.now(UTC), sender_id=s.id, thread_id=thread.id
+        message_id="Rel",
+        body="B",
+        sent_at=datetime.now(UTC),
+        sender_id=s.id,
+        thread_id=thread.id,
     )
     session.add(e)
     session.commit()
@@ -121,7 +140,7 @@ def test_email_reception_relationships(session: Session):
     session.commit()
     session.refresh(rec)
 
-    assert rec.email.subject == "Rel"
+    assert rec.email.message_id == "Rel"
     assert rec.contact.email_address == "r@example.com"
 
 
@@ -132,11 +151,15 @@ def test_email_reception_multiple_recipients_query_by_kind(session: Session):
     session.add_all([s, r1, r2])
     session.commit()
 
-    thread = Thread()
-    session.add(thread)
-    session.commit()
+    thread = _create_thread(session)
 
-    e = Email(subject="Q", body="B", sent_at=datetime.now(UTC), sender_id=s.id, thread_id=thread.id)
+    e = Email(
+        message_id="Q",
+        body="B",
+        sent_at=datetime.now(UTC),
+        sender_id=s.id,
+        thread_id=thread.id,
+    )
     session.add(e)
     session.commit()
     session.refresh(e)

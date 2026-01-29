@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -18,7 +18,7 @@ def imap_mock():
 def folder_service_mock(imap_mock, monkeypatch):
     fs = MagicMock(spec=proto_mod.FolderService)
 
-    fs.get_user_folders.return_value = ["INBOX", "Work"]
+    fs.get_all_folders.return_value = ["INBOX", "Work"]
 
     class DummyCtx:
         def __init__(self, *a, **k):
@@ -47,11 +47,7 @@ def folder_service_mock(imap_mock, monkeypatch):
 @pytest.fixture
 def email_parser_mock(monkeypatch):
     ep = MagicMock(spec=proto_mod.EmailParser)
-    ep.parse_email_message.side_effect = lambda em: f"parsed:{getattr(em, 'id', 'msg')}"
-
-    monkeypatch.setattr(
-        proto_mod.EmailParser, "safe_msg_datetime", staticmethod(lambda em: getattr(em, "dt", None))
-    )
+    ep.extract_msg_date.side_effect = lambda em: getattr(em, "dt", None)
 
     return ep
 
@@ -115,9 +111,9 @@ def test_fetch_emails_across_folders_and_filter_by_since(
         [],
     ]
 
-    now = datetime(2025, 1, 2, 13, 0, tzinfo=UTC)
-    earlier = datetime(2025, 1, 2, 11, 0, tzinfo=UTC)
-    later = datetime(2025, 1, 2, 15, 0, tzinfo=UTC)
+    now = datetime.now()
+    earlier = now - timedelta(hours=2)
+    later = now + timedelta(hours=2)
 
     imap_mock.fetch.side_effect = [{1: {b"RFC822": b"A"}, 2: {b"RFC822": b"B"}}]
 
@@ -130,8 +126,7 @@ def test_fetch_emails_across_folders_and_filter_by_since(
     imap_mock.fetch.assert_called_once()
 
     assert imap_mock.search.call_count == 2
-    assert out == ["parsed:B"]
-    assert email_parser_mock.parse_email_message.call_count == 1
+    assert out == [(2, msgs[1])]
 
 
 def test_fetch_emails_specific_folder(
@@ -140,15 +135,14 @@ def test_fetch_emails_specific_folder(
     imap_mock.search.return_value = [10]
     imap_mock.fetch.return_value = {10: {b"RFC822": b"M"}}
 
-    monkeypatch.setattr(
-        proto_mod.py_email, "message_from_bytes", MagicMock(side_effect=[FakeMsg("M", None)])
-    )
+    msg = FakeMsg("M", None)
+    monkeypatch.setattr(proto_mod.py_email, "message_from_bytes", MagicMock(side_effect=[msg]))
 
     protocol._logged_in = True
     out = protocol.fetch_emails(folder="INBOX", since=None, flags=None)
 
     folder_service_mock.selected_folder.assert_called_once_with("INBOX")
-    assert out == ["parsed:M"]
+    assert out == [(10, msg)]
 
 
 def test_fetch_emails_requires_login(protocol: ImapProtocol):
@@ -176,39 +170,39 @@ def test_send_email_happy_path(protocol: ImapProtocol, smtp_sender_mock, monkeyp
 
     with (
         patch.object(
-            proto_mod.RecipientService,
-            "split_recipients",
-            return_value=(["a@x.com"], ["c@x.com"], ["b@x.com"]),
-        ) as split_mock,
-        patch.object(
             proto_mod.MessageBuilder, "build_message", return_value=SimpleNamespace(msg=True)
         ) as build_mock,
         patch.object(proto_mod.MessageBuilder, "attach_files") as attach_mock,
     ):
-        mail = DummyEmail(
-            "S",
-            "B",
-            recipients=[1],
+        contact = SimpleNamespace(first_name="A", last_name="One", email_address="a@x.com")
+        conversation = SimpleNamespace(contacts=[contact])
+        thread = SimpleNamespace(title="S", conversation=conversation)
+        mail = SimpleNamespace(
+            thread=thread,
+            body="B",
             attachments=[DummyAttachment("f1.txt"), DummyAttachment("f2.pdf")],
         )
 
         protocol.send_email(mail)
         smtp_sender_mock.validate_send_state.assert_called_once_with(True)
-        split_mock.assert_called_once()
         build_mock.assert_called_once_with(
-            subject="S", body="B", from_addr="user@example.com", to=["a@x.com"], cc=["c@x.com"]
+            subject="S", body="B", from_addr="user@example.com", to=["A One <a@x.com>"], cc=[]
         )
         attach_mock.assert_called_once()
-        smtp_sender_mock.send.assert_called_once_with(
-            SimpleNamespace(msg=True), ["a@x.com", "c@x.com", "b@x.com"]
-        )
+        smtp_sender_mock.send.assert_called_once_with(SimpleNamespace(msg=True), ["a@x.com"])
 
 
-def test_send_email_no_recipients_raises(protocol: ImapProtocol, smtp_sender_mock):
+def test_send_email_no_recipients_sends_empty_envelope(protocol: ImapProtocol, smtp_sender_mock):
     protocol._logged_in = True
 
-    with patch.object(proto_mod.RecipientService, "split_recipients", return_value=([], [], [])):
-        with pytest.raises(ValueError, match="No recipients provided"):
-            protocol.send_email(DummyEmail("S", "B", recipients=[]))
+    with patch.object(
+        proto_mod.MessageBuilder, "build_message", return_value=SimpleNamespace(msg=True)
+    ):
+        conversation = SimpleNamespace(contacts=[])
+        thread = SimpleNamespace(title="S", conversation=conversation)
+        mail = SimpleNamespace(thread=thread, body="B", attachments=[])
+        protocol.send_email(mail)
 
     smtp_sender_mock.validate_send_state.assert_called_once_with(True)
+    assert smtp_sender_mock.send.call_count == 1
+    assert smtp_sender_mock.send.call_args[0][1] == []

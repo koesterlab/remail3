@@ -1,12 +1,20 @@
 from datetime import datetime
 from email.header import decode_header, make_header
-from email.utils import parsedate_to_datetime
+from email.message import Message
+from email.utils import getaddresses, parsedate_to_datetime
 from typing import cast
 
 from pytz import timezone
+from sqlmodel import Session, select
 
+from remail.enums import ContactType, ConversationType, RecipientKind
 from remail.interfaces.email.services.attachment_service import save_attachment
-from remail.models import Attachment, Email
+from remail.interfaces.email.services.contact_service import ContactService
+from remail.models import Contact, Conversation, Email, EmailReception, User
+from remail.utils.session_management import session
+
+from . import ConversationService
+from .thread_service import ThreadService
 
 UTC = timezone("UTC")
 
@@ -16,10 +24,230 @@ class EmailParser:
 
     def __init__(self):
         """Initialize email parser."""
-        pass
+        self.contact_service = ContactService()
+        self.conversation_service = ConversationService()
+        self.thread_service = ThreadService()
+
+    @session
+    def process_email(self, raw_email: Message, user: User, uid: int, session: Session) -> Email:
+        """
+        Process a raw email and save to database.
+
+        Args:
+            raw_email: Raw email object from parser
+            user: Current user
+            uid: imap_uid of mail
+            session: DB session
+        Returns:
+            Saved Email instance
+        """
+
+        # Extract sender info
+        [sender_contact] = self._extract_participant(raw_email, "From")
+
+        # Extract recipients
+        to_recipients = self._extract_participant(raw_email, "To")
+        cc_recipients = self._extract_participant(raw_email, "CC")
+        bcc_recipients = self._extract_participant(raw_email, "BCC")
+
+        # Get all participant contacts (excluding the user themselves)
+        all_participants = set([sender_contact] + to_recipients + cc_recipients + bcc_recipients)
+
+        # Remove user's own email from participants if present
+        all_participants.discard(self.contact_service.get_user_contact(user))
+
+        # Find or create conversation based on participants
+        conversation = self._get_or_create_conversation(list(all_participants), user)
+        print(conversation.contacts)
+        # Create the email record
+        sent_at = self.extract_msg_date(raw_email)
+        body = self._get_body(raw_email)
+        message_id = raw_email.get("Message-ID", None)
+
+        db_email = Email(
+            message_id=message_id,
+            body=body,
+            sent_at=sent_at,
+            sender_id=sender_contact.id,  # type: ignore
+            thread=None,  # type: ignore
+            imap_uid=uid,
+        )
+        session.add(db_email)
+
+        self.thread_service.organize_email_into_thread(
+            email=db_email, conversation=conversation, subject=raw_email.get("Subject", "unknown")
+        )
+
+        # Create EmailReception records for all recipients
+        self._create_email_receptions(db_email, to_recipients, cc_recipients, bcc_recipients)
+
+        # Handle attachments if present
+        attachments = getattr(raw_email, "attachments", []) or []
+        for attachment in attachments:
+            attachment.email_id = db_email.id
+            session.add(attachment)
+
+        return db_email
+
+    def _extract_participant(self, raw_email: Message, key: str) -> list[Contact]:
+        """
+        Extract email account information from raw email header.
+
+        Args:
+            raw_email: Raw email object
+            key: header key where to search for user(s)
+
+        Returns:
+            Contact objects from the database that was found or new created
+        """
+        raw_value = raw_email.get(key)
+        if not raw_value:
+            return []
+        addr = getaddresses([raw_value])
+        if not addr:
+            return []
+
+        return [
+            self.contact_service.get_or_create_contact(e[1], name=e[0] if e else None) for e in addr
+        ]
+
+    def _get_or_create_contact(self, session: Session, contact_data: dict) -> Contact:
+        """
+        Get existing contact or create new one.
+
+        Args:
+            session: Database session
+            contact_data: Dict with name and email keys
+
+        Returns:
+            Contact instance
+        """
+        email_address = contact_data.get("email", "").lower().strip()
+        name = contact_data.get("name", "") or email_address.split("@")[0]
+
+        # Try to find existing contact
+        contact = session.exec(
+            select(Contact).where(Contact.email_address == email_address)
+        ).first()
+
+        if contact:
+            return contact
+
+        # Parse name into first/last name
+        first_name, last_name = self._parse_name(name)
+
+        # Create new contact
+        contact = Contact(
+            name=name,
+            email_address=email_address,
+            first_name=first_name,
+            last_name=last_name,
+            contact_type=ContactType.PRIVATE,
+            is_known=False,  # Discovered contacts start as unknown
+        )
+
+        session.add(contact)
+        session.flush()
+
+        return contact
 
     @staticmethod
-    def safe_msg_datetime(em) -> datetime | None:
+    def _parse_name(full_name: str) -> tuple[str, str]:
+        """
+        Parse a full name into first and last name.
+
+        Args:
+            full_name: Full name string
+
+        Returns:
+            Tuple of (first_name, last_name)
+        """
+        parts = full_name.strip().split()
+
+        if len(parts) == 0:
+            return "", ""
+
+        elif len(parts) == 1:
+            return parts[0], ""
+
+        else:
+            return parts[0], " ".join(parts[1:])
+
+    def _get_or_create_conversation(self, contacts: list[Contact], user: User) -> Conversation:
+        """
+        Find existing conversation with the same contacts or create new one.
+
+        Args:
+            contacts: List of participant contacts
+            user: Current user
+
+        Returns:
+            Conversation instance
+        """
+        conversation = self.conversation_service.get_conversation_by_members(contacts)
+        if not conversation:
+            conversation = self.conversation_service.create_conversation(
+                conversation_type=ConversationType.CONVERSATION
+                if len(contacts) == 1
+                else ConversationType.GROUP,
+                contacts=contacts,
+                custom_name=None,
+                user=user,
+            )
+        return cast(Conversation, conversation)
+
+    def _get_body(self, em: Message) -> str:
+        body_text: str = ""
+        html_parts: list[str] = []
+        attachments: list[str] = []
+        message_id = em.get("Message-Id") or "unknown"
+
+        if em.is_multipart():
+            for part in em.walk():
+                dispo = (part.get_content_disposition() or "").lower()
+                ctype = (part.get_content_type() or "").lower()
+                charset = part.get_content_charset() or "utf-8"
+
+                if dispo == "attachment":
+                    filename = str(make_header(decode_header(part.get_filename() or "")))
+                    payload = part.get_payload(decode=True)
+
+                    if isinstance(payload, bytes):
+                        attachments.append(save_attachment(filename, payload, message_id))
+
+                    continue
+
+                if ctype == "text/html":
+                    payload = part.get_payload(decode=True)
+
+                    if isinstance(payload, bytes):
+                        html_parts.append(payload.decode(charset, errors="replace"))
+
+                    continue
+
+                if ctype == "text/plain" and dispo != "attachment" and not body_text:
+                    payload = part.get_payload(decode=True)
+
+                    if isinstance(payload, bytes):
+                        body_text = payload.decode(charset, errors="replace")
+
+                    continue
+        else:
+            charset = em.get_content_charset() or "utf-8"
+            payload = em.get_payload(decode=True)
+
+            if em.get_content_type() == "text/html":
+                if isinstance(payload, bytes):
+                    html_parts.append(payload.decode(charset, errors="replace"))
+            else:
+                if isinstance(payload, bytes):
+                    body_text = payload.decode(charset, errors="replace")
+                else:
+                    body_text = ""
+        return body_text
+
+    @staticmethod
+    def extract_msg_date(em: Message) -> datetime | None:
         """
         Safely extract datetime from email message.
 
@@ -35,106 +263,43 @@ class EmailParser:
 
             if hdr:
                 dt = parsedate_to_datetime(hdr)
-
-                return cast(datetime, dt.astimezone(UTC))
+                dt = dt.astimezone(UTC)
+                dt = dt.replace(tzinfo=None)  # isnt stored in the database
+                return dt
 
         except Exception:
             return None
 
         return None
 
-    @staticmethod
-    def decode_header(value: str | None) -> str:
+    @session
+    def _create_email_receptions(
+        self,
+        email: Email,
+        to_recipients: list[Contact],
+        cc_recipients: list[Contact],
+        bcc_recipients: list[Contact],
+        session: Session,
+    ) -> None:
         """
-        Decode email header value.
+        Create EmailReception records for all recipients.
 
         Args:
-            value: Raw header value
-
-        Returns:
-            Decoded string
+            session: Database session
+            email: Email instance
+            to_recipients: List of TO recipient (name, email) tuples
+            cc_recipients: List of CC recipient (name, email) tuples
+            bcc_recipients: List of BCC recipient (name, email) tuples
         """
-
-        if not value:
-            return ""
-
-        try:
-            return str(make_header(decode_header(value)))
-
-        except Exception:
-            return value
-
-    def parse_email_message(self, em) -> Email:
-        """
-        Parse an email message into an Email object.
-
-        Args:
-            em: Raw email message object
-
-        Returns:
-            Email object
-        """
-        subject = self.decode_header(em.get("Subject"))
-        dt = self.safe_msg_datetime(em)
-        body_text: str = ""
-        html_parts: list[str] = []
-        attachments: list[str] = []
-
-        if em.is_multipart():
-            for part in em.walk():
-                dispo = (part.get_content_disposition() or "").lower()
-                ctype = (part.get_content_type() or "").lower()
-                charset = part.get_content_charset() or "utf-8"
-
-                if dispo == "attachment":
-                    filename = self.decode_header(part.get_filename() or "")
-                    payload = part.get_payload(decode=True)
-
-                    if payload:
-                        attachments.append(save_attachment(filename, payload, em.get("Message-Id")))
-
-                    continue
-
-                if ctype == "text/html":
-                    payload = part.get_payload(decode=True)
-
-                    if payload:
-                        html_parts.append(payload.decode(charset, errors="replace"))
-
-                    continue
-
-                if ctype == "text/plain" and dispo != "attachment" and not body_text:
-                    payload = part.get_payload(decode=True)
-
-                    if payload:
-                        body_text = payload.decode(charset, errors="replace")
-
-                    continue
-
-        else:
-            charset = em.get_content_charset() or "utf-8"
-            payload = em.get_payload(decode=True)
-
-            if em.get_content_type() == "text/html":
-                if payload:
-                    html_parts.append(payload.decode(charset, errors="replace"))
-
-            else:
-                body_text = payload.decode(charset, errors="replace") if payload else ""
-
-        email = Email(
-            message_id=em.get("Message-Id"),
-            sender=None,  # Will be handled later with contacts
-            subject=subject or "",
-            body=body_text,
-            recipients=[],  # Empty for now, contacts will be added later
-            date=dt,
-        )
-
-        # Add attachments
-        if attachments:
-            email.attachments = [
-                Attachment(filename=filename, email=email) for filename in attachments
-            ]
-
-        return email
+        for category, contacts in (
+            (RecipientKind.TO, to_recipients),
+            (RecipientKind.CC, cc_recipients),
+            (RecipientKind.BCC, bcc_recipients),
+        ):
+            for contact in contacts:
+                reception = EmailReception(
+                    kind=category,
+                    email_id=email.id,  # type: ignore
+                    contact_id=contact.id,  # type: ignore
+                )
+                session.add(reception)

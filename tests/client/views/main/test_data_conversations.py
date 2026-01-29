@@ -86,10 +86,11 @@ def create_test_data():  # chatgpt
 
         conversations.append(
             ConversationDTO(
+                id=i + 1,
                 contacts=contacts,
                 threads=threads,
                 is_favorite=random.choice([True, False]),
-                customName=None if num_contacts == 1 else f"Gruppe {i + 1}",
+                custom_name=None if num_contacts == 1 else f"Gruppe {i + 1}",
             )
         )
     return conversations
@@ -98,6 +99,7 @@ def create_test_data():  # chatgpt
 def create_search_result_test_data(term: str):
     return [
         ConversationDTO(
+            id=1,
             contacts=[
                 ContactDTO(
                     id=1,
@@ -119,9 +121,10 @@ def create_search_result_test_data(term: str):
                 )
             ],
             is_favorite=random.choice([True, False]),
-            customName=None,
+            custom_name=None,
         ),
         ConversationDTO(
+            id=2,
             contacts=[
                 ContactDTO(
                     id=1,
@@ -143,6 +146,6 @@ def create_search_result_test_data(term: str):
                 )
             ],
             is_favorite=random.choice([True, False]),
-            customName=None,
+            custom_name=None,
         ),
     ]

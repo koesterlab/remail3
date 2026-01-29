@@ -21,7 +21,7 @@ class TestConversationPreview(unittest.TestCase):
             is_known=True,
         )
         self.conversation = ConversationDTO(
-            contacts=[self.contact], threads=[], is_favorite=True, customName=None
+            id=1, contacts=[self.contact], threads=[], is_favorite=True, custom_name=None
         )
         self.state = MainAppState()
         self.state.set(MainAppStateProperties.DISPLAYED_MAILS, [])

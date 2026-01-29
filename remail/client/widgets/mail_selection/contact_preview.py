@@ -17,7 +17,7 @@ class ContactPreview(ConversationPreview):
             state,
             conversation,
             full_name if contact.is_known else contact.email,
-            full_name if not contact.is_known else contact.email,
+            conversation.threads[0].last_message,
             contact.is_known,
             on_click,
         )

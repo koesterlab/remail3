@@ -3,7 +3,18 @@ from datetime import UTC, datetime, timedelta
 from sqlmodel import Session, select
 
 from remail.enums import RecipientKind
-from remail.models import Attachment, Contact, Email, EmailReception, Thread
+from remail.models import Attachment, Contact, Conversation, Email, EmailReception, Thread
+
+
+def _create_thread(session: Session, title: str | None = None) -> Thread:
+    conversation = Conversation(custom_name="C")
+    session.add(conversation)
+    session.commit()
+    thread = Thread(title=title or "", conversation_id=conversation.id)
+    session.add(thread)
+    session.commit()
+    session.refresh(thread)
+    return thread
 
 
 def test_email_create(session: Session):
@@ -11,12 +22,10 @@ def test_email_create(session: Session):
     session.add(sender)
     session.commit()
 
-    thread = Thread()
-    session.add(thread)
-    session.commit()
+    thread = _create_thread(session)
 
     e = Email(
-        subject="Hello",
+        message_id="Hello",
         body="Body",
         sent_at=datetime.now(UTC),
         sender_id=sender.id,
@@ -36,15 +45,13 @@ def test_email_auto_increment(session: Session):
     session.add(s)
     session.commit()
 
-    thread = Thread()
-    session.add(thread)
-    session.commit()
+    thread = _create_thread(session)
 
     e1 = Email(
-        subject="1", body="B", sent_at=datetime.now(UTC), sender_id=s.id, thread_id=thread.id
+        message_id="1", body="B", sent_at=datetime.now(UTC), sender_id=s.id, thread_id=thread.id
     )
     e2 = Email(
-        subject="2", body="B", sent_at=datetime.now(UTC), sender_id=s.id, thread_id=thread.id
+        message_id="2", body="B", sent_at=datetime.now(UTC), sender_id=s.id, thread_id=thread.id
     )
     session.add(e1)
     session.add(e2)
@@ -60,12 +67,10 @@ def test_email_relationship_to_sender(session: Session):
     session.add(s)
     session.commit()
 
-    thread = Thread()
-    session.add(thread)
-    session.commit()
+    thread = _create_thread(session)
 
     e = Email(
-        subject="Hi", body="B", sent_at=datetime.now(UTC), sender_id=s.id, thread_id=thread.id
+        message_id="Hi", body="B", sent_at=datetime.now(UTC), sender_id=s.id, thread_id=thread.id
     )
     session.add(e)
     session.commit()
@@ -81,11 +86,11 @@ def test_email_with_attachments(session: Session):
     session.add(s)
     session.commit()
 
-    thread = Thread()
-    session.add(thread)
-    session.commit()
+    thread = _create_thread(session)
 
-    e = Email(subject="A", body="B", sent_at=datetime.now(UTC), sender_id=s.id, thread_id=thread.id)
+    e = Email(
+        message_id="A", body="B", sent_at=datetime.now(UTC), sender_id=s.id, thread_id=thread.id
+    )
     session.add(e)
     session.commit()
     session.refresh(e)
@@ -109,11 +114,11 @@ def test_email_with_recipients(session: Session):
     session.add(r2)
     session.commit()
 
-    thread = Thread()
-    session.add(thread)
-    session.commit()
+    thread = _create_thread(session)
 
-    e = Email(subject="X", body="B", sent_at=datetime.now(UTC), sender_id=s.id, thread_id=thread.id)
+    e = Email(
+        message_id="X", body="B", sent_at=datetime.now(UTC), sender_id=s.id, thread_id=thread.id
+    )
     session.add(e)
     session.commit()
     session.refresh(e)
@@ -134,12 +139,10 @@ def test_email_cascade_delete_attachments(session: Session):
     session.add(s)
     session.commit()
 
-    thread = Thread()
-    session.add(thread)
-    session.commit()
+    thread = _create_thread(session)
 
     e = Email(
-        subject="Cas", body="B", sent_at=datetime.now(UTC), sender_id=s.id, thread_id=thread.id
+        message_id="Cas", body="B", sent_at=datetime.now(UTC), sender_id=s.id, thread_id=thread.id
     )
     session.add(e)
     session.commit()
@@ -161,12 +164,10 @@ def test_email_cascade_delete_recipients(session: Session):
     session.add(r)
     session.commit()
 
-    thread = Thread()
-    session.add(thread)
-    session.commit()
+    thread = _create_thread(session)
 
     e = Email(
-        subject="Cas2", body="B", sent_at=datetime.now(UTC), sender_id=s.id, thread_id=thread.id
+        message_id="Cas2", body="B", sent_at=datetime.now(UTC), sender_id=s.id, thread_id=thread.id
     )
     session.add(e)
     session.commit()
@@ -188,37 +189,35 @@ def test_email_cascade_delete_recipients(session: Session):
     )
 
 
-def test_email_query_by_subject_sender_and_date(session: Session):
+def test_email_query_by_message_id_sender_and_date(session: Session):
     s = Contact(name="S", email_address="s@example.com")
     session.add(s)
     session.commit()
 
-    thread = Thread()
-    session.add(thread)
-    session.commit()
+    thread = _create_thread(session)
 
     now = datetime.now(UTC)
     e1 = Email(
-        subject="Alpha",
+        message_id="Alpha",
         body="B",
         sent_at=now - timedelta(days=1),
         sender_id=s.id,
         thread_id=thread.id,
     )
-    e2 = Email(subject="Beta", body="B", sent_at=now, sender_id=s.id, thread_id=thread.id)
+    e2 = Email(message_id="Beta", body="B", sent_at=now, sender_id=s.id, thread_id=thread.id)
     session.add(e1)
     session.add(e2)
     session.commit()
 
-    got = session.exec(select(Email).where(Email.subject == "Alpha")).first()
+    got = session.exec(select(Email).where(Email.message_id == "Alpha")).first()
     assert got and got.id == e1.id
 
     got2 = session.exec(select(Email).where(Email.sender_id == s.id)).all()
-    assert {e.subject for e in got2} == {"Alpha", "Beta"}
+    assert {e.message_id for e in got2} == {"Alpha", "Beta"}
 
     got3 = session.exec(select(Email).where(Email.sent_at >= now - timedelta(hours=12))).all()
 
-    assert [e.subject for e in got3] == ["Beta"]
+    assert [e.message_id for e in got3] == ["Beta"]
 
 
 def test_email_update(session: Session):
@@ -226,12 +225,10 @@ def test_email_update(session: Session):
     session.add(s)
     session.commit()
 
-    thread = Thread()
-    session.add(thread)
-    session.commit()
+    thread = _create_thread(session)
 
     e = Email(
-        subject="Old",
+        message_id="Old",
         body="Old body",
         sent_at=datetime.now(UTC),
         sender_id=s.id,
@@ -241,10 +238,10 @@ def test_email_update(session: Session):
     session.commit()
     session.refresh(e)
 
-    e.subject = "New"
+    e.message_id = "New"
     e.body = "New body"
     session.add(e)
     session.commit()
     session.refresh(e)
 
-    assert e.subject == "New" and e.body == "New body"
+    assert e.message_id == "New" and e.body == "New body"

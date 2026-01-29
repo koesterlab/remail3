@@ -54,12 +54,12 @@ def test_get_user_folders_includes_trash_when_requested(
     "since,flags,expected_prefix",
     [
         (None, None, ["ALL"]),
-        (datetime(2025, 1, 2, 15, 30, 0), None, ["SINCE", datetime(2025, 1, 2).date()]),
+        (datetime(2025, 1, 2, 15, 30, 0), None, ["SINCE", "02-Jan-2025"]),
         (None, ["UNSEEN"], ["UNSEEN"]),
         (
             datetime(2025, 1, 2, 23, 59, 59),
             ["SEEN"],
-            ["SINCE", datetime(2025, 1, 2).date(), "SEEN"],
+            ["SINCE", "02-Jan-2025", "SEEN"],
         ),
     ],
 )

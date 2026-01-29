@@ -358,7 +358,7 @@ class EmailController:
 
         return {
             "id": email.id,
-            "subject": email.subject,
+            "subject": email.thread.title,
             "body": email.body,
             "sent_at": email.sent_at.isoformat() if email.sent_at else None,
             "sender": {

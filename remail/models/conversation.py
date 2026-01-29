@@ -1,6 +1,6 @@
 """Conversation model for grouping contacts."""
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import sqlalchemy
 from sqlmodel import Field, Relationship, SQLModel
@@ -9,6 +9,7 @@ from remail.enums import ConversationType
 
 # Import at runtime for SQLAlchemy
 from .conversation_contact import ConversationContact  # noqa: F401
+from .thread import Thread
 from .user_conversation import UserConversation  # noqa: F401
 
 if TYPE_CHECKING:
@@ -24,9 +25,11 @@ class Conversation(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     custom_name: str | None = None
+    is_favorite: bool = Field(default=False, nullable=False)
+    conversation_type: ConversationType = Field(nullable=False, default=ConversationType.GROUP)
     type: ConversationType = Field(
         default=ConversationType.CONVERSATION,
-        sa_column=sqlalchemy.Column(sqlalchemy.Enum(ConversationType), nullable=False),
+        sa_column=sqlalchemy.Column(sqlalchemy.Enum(ConversationType), nullable=True),
     )
 
     # Many-to-many relationship with contacts (participants in the conversation)
@@ -39,5 +42,7 @@ class Conversation(SQLModel, table=True):
         back_populates="conversations",
         link_model=UserConversation,
     )
-    # One-to-one relationship with thread
-    thread: Optional["Thread"] = Relationship(back_populates="conversation")
+    # one-to-many
+    threads: list["Thread"] = Relationship(
+        back_populates="conversation",
+    )

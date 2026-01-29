@@ -17,16 +17,17 @@ class User(SQLModel, table=True):
     __tablename__ = "users"
 
     id: int | None = Field(default=None, primary_key=True)
-    name: str
-    username: str = Field(
+    name: str = Field(default="John Doe")  # Real name (e.g. John Smith)
+    host: str = Field(default="--unspecified-host--")  # hostname
+    username: str = Field(default="--unspecified-username--")  # imap / smtp username
+    email: str = Field(  # public email address (not always the same as username!!!!)
         sa_column=sqlalchemy.Column(sqlalchemy.String, unique=True, index=True, nullable=False)
     )
-    host: str = Field(sa_column=sqlalchemy.Column(sqlalchemy.String, nullable=False))
-    password: str
+    password: str = Field(default="--unspecified-password--")  # imap / smtp password
     protocol: Protocol = Field(
         sa_column=sqlalchemy.Column(sqlalchemy.Enum(Protocol), nullable=False)
     )
-    last_refresh: datetime | None = None
+    last_refresh: datetime = Field(default=datetime.min)
 
     # Many-to-many relationship with conversations
     conversations: list["Conversation"] = Relationship(

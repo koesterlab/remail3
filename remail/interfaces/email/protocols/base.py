@@ -1,7 +1,10 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
+from email.message import Message
+from typing import TYPE_CHECKING
 
-from remail.models import Email
+if TYPE_CHECKING:
+    from remail.models import Email
 
 
 class EmailProtocol(ABC):
@@ -21,24 +24,22 @@ class EmailProtocol(ABC):
         pass
 
     @abstractmethod
-    def fetch_emails(
-        self,
-        folder: str | None = None,
-        since: datetime | None = None,
-        flags: list[str] | None = None,
-    ) -> list[Email]:
+    def logout(self) -> None:
+        """Log out the user."""
+
+        pass
+
+    @abstractmethod
+    def fetch_emails(self, since: datetime | None = None) -> list[tuple[int, Message]]:
         """
         Retrieve emails from server.
 
         Args:
-            folder: Optional mailbox name. If None, fetch from all user folders.
             since: If provided, only return emails after this datetime.
-                Must include timezone information.
-            flags: Optional IMAP search terms (e.g., ["UNSEEN"], ["SEEN"],
-                ["DELETED"], ["HEADER", "From", "x@y"]).
+                  Must include timezone information.
 
         Returns:
-            List of Email objects
+            List of (uid, email message) tuples
         """
 
         pass
@@ -46,5 +47,9 @@ class EmailProtocol(ABC):
     @abstractmethod
     def send_email(self, email: "Email") -> None:
         """Send the given email."""
+        pass
 
+    @abstractmethod
+    def clone(self) -> "EmailProtocol":
+        """Clones the instance"""
         pass
