@@ -8,6 +8,7 @@ from remail.controllers.account_controller import AccountController
 from remail.controllers.dtos.conversations import ConversationDTO, ThreadPreviewDTO
 from remail.controllers.dtos.user_dto import UserDTO
 from remail.controllers.thread_controller import ThreadController
+from remail.enums import SettingsSubView
 
 
 class MainAppStateProperties(Enum):
@@ -31,6 +32,7 @@ class MainAppState(ObservableState[MainAppStateProperties]):
         self.thread_controller = ThreadController()
         self.account_controllers: dict[str, AccountController] = {}
         self.sync_threads: list[Future] = []
+        self.navigate_to_settings: Callable[[SettingsSubView], None] = lambda _: None
 
     def get_active_email_account(self) -> AccountController:
         mail: UserDTO | None = self.get(MainAppStateProperties.ACTIVE_USER)

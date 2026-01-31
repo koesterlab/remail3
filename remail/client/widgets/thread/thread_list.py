@@ -83,7 +83,7 @@ class ThreadList(ft.Container):
             bgcolor=ft.Colors.SURFACE,
         )
 
-        # ---------- “Discussing email” 卡片 ---------- #
+        # ---------- “Discussing email”  ---------- #
         # title = str(thread.get("title", "")) or ""
         #
         # if messages_raw:

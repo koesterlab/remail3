@@ -5,23 +5,23 @@ from remail.client.state import MainAppState
 
 
 # Dummy DTOs
-class ConversationDTO:
+class _ConversationDTO:
     def __init__(self, i):
         self.i = i
 
     def __eq__(self, o):
-        return isinstance(o, ConversationDTO) and o.i == self.i
+        return isinstance(o, _ConversationDTO) and o.i == self.i
 
     def __hash__(self):
         return hash(self.i)
 
 
-class ThreadPreviewDTO:
+class _ThreadPreviewDTO:
     def __init__(self, i):
         self.i = i
 
     def __eq__(self, o):
-        return isinstance(o, ThreadPreviewDTO) and o.i == self.i
+        return isinstance(o, _ThreadPreviewDTO) and o.i == self.i
 
     def __hash__(self):
         return hash(self.i)
@@ -30,8 +30,8 @@ class ThreadPreviewDTO:
 class TestMainAppState(unittest.TestCase):
     def setUp(self):
         self.state = MainAppState()
-        self.item1 = ConversationDTO(1)
-        self.item2 = ThreadPreviewDTO(2)
+        self.item1 = _ConversationDTO(1)
+        self.item2 = _ThreadPreviewDTO(2)
 
     def test_toggle_selection_adds_and_removes(self):
         self.assertEqual(len(self.state._MainAppState__selected), 0)
