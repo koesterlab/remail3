@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from datetime import datetime
 from email.header import decode_header
 from typing import TYPE_CHECKING
@@ -10,8 +11,11 @@ from typing import TYPE_CHECKING
 from sqlalchemy import and_, func
 from sqlmodel import Session, col, desc, select
 
+from remail.controllers.dtos.conversations import ContactDTO, ConversationDTO, ThreadPreviewDTO
 from remail.controllers.dtos.threads import ThreadDTO
+from remail.controllers.dtos.user_dto import UserDTO
 from remail.database import engine
+from remail.interfaces.email.services.user_service import UserService
 from remail.models import Attachment, Contact, Conversation, Email, EmailReception, Thread
 from remail.utils.session_management import session
 
@@ -238,36 +242,6 @@ class ThreadService:
 
     # chatgpt end
 
-    def _build_thread_dto(
-        self, session: Session, thread: Thread, messages: list[Email]
-    ) -> ThreadDTO:
-        """
-        Build a complete thread DTO with all messages.
-
-        Args:
-            session: Database session
-            thread: Thread model instance
-            messages: List of Email model instances
-
-        Returns:
-            ThreadDTO with thread data and messages
-        """
-
-        from remail.controllers.dtos.threads import ThreadDTO
-
-        if thread.id is None:
-            raise ValueError("Thread ID cannot be None")
-
-        # Collect all contacts from the thread (senders + recipients)
-        contacts = self._collect_thread_contacts(session, messages)
-
-        return ThreadDTO(
-            id=thread.id,
-            title=thread.title,
-            messages=[self._build_message_dto(session, msg) for msg in messages],
-            contacts=contacts,
-        )
-
     def _collect_thread_contacts(self, session: Session, messages: list[Email]) -> list:
         """
         Collect all unique contacts involved in a thread.
@@ -349,6 +323,27 @@ class ThreadService:
             "last_message_datetime": (last_message.sent_at if last_message else datetime.now()),
         }
 
+    @session
+    def _build_thread_preview_dto(self, thread: Thread):
+        unread_count = 0
+        total_count = 0
+        latest_message = None
+        for message in thread.messages:
+            if not message.read:
+                unread_count += 1
+            if not latest_message or message.sent_at > latest_message.sent_at:
+                latest_message = message
+            total_count += 1
+
+        return ThreadPreviewDTO(
+            thread_id=thread.id if thread.id is not None else -1,
+            title=thread.title,
+            total_count=total_count,
+            unread_count=unread_count,
+            last_message=latest_message.body if latest_message else "",
+            last_message_datetime=latest_message.sent_at if latest_message else datetime.min,
+        )
+
     def _build_message_dto(self, session: Session, email: Email) -> MessageDTO:
         """
         Build a message DTO for thread view.
@@ -392,3 +387,32 @@ class ThreadService:
             ),
             sent_at=email.sent_at,
         )
+
+    @session
+    def get_most_important_threads(
+        self,
+        session: Session,
+        count: int = 5,
+    ) -> list[tuple[ThreadDTO, ConversationDTO, UserDTO]]:
+        """
+        Calculates the most urgent threads from the database for all accounts
+        Currently by time, later by ai
+
+        returns: (thread_id, ConversationDTO, UserDTO)
+        """
+        # todo ai valuing of mails
+        threads: Iterable[Thread] = session.exec(
+            select(Thread)
+            .order_by(
+                Thread.last_message_time.desc(),  # type: ignore
+            )
+            .limit(count)
+        )
+        return [
+            (
+                ThreadDTO.from_model(t),
+                ConversationDTO.from_model(t.conversation, t.conversation.users[0]),
+                UserService.user_to_dto(t.conversation.users[0]),
+            )
+            for t in threads
+        ]
