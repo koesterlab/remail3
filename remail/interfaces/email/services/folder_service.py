@@ -39,6 +39,30 @@ class FolderService:
             if not (set(flags) & excluded)
         ]
 
+    def get_all_folders(self) -> list[str]:
+        """
+        Get list of folders in the mail account.
+
+        Returns:
+            List of folder names
+        """
+
+        return [name for flags, _, name in self.imap_client.list_folders()]
+
+    def get_trash_folder(self) -> str | None:
+        """
+        Find the trash folder.
+
+        Returns:
+            Trash folder name or None if not found
+        """
+
+        for flags, _, name in self.imap_client.list_folders():
+            if b"\\Trash" in set(flags):
+                return str(name)
+
+        return None
+
     @staticmethod
     def build_search_criteria(since: datetime | None, flags: list[str] | None) -> list:
         """
@@ -53,9 +77,8 @@ class FolderService:
         """
 
         crit: list = []
-
         if since:
-            crit += ["SINCE", since.date()]  # IMAP SINCE is date-based
+            crit += ["SINCE", since.strftime("%d-%b-%Y")]  # IMAP SINCE is date-based
 
         if flags:
             crit += flags

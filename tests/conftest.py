@@ -24,6 +24,7 @@ def patch_db_engine(test_engine, monkeypatch):
     """Patch all database engine references to use the test engine."""
     import remail.database as database
     import remail.database.db as db
+    import remail.utils.session_management as session_management
     from remail.interfaces.email.services import (
         contact_service,
         conversation_service,
@@ -41,7 +42,11 @@ def patch_db_engine(test_engine, monkeypatch):
     monkeypatch.setattr(settings_service, "engine", test_engine)
     monkeypatch.setattr(thread_service, "engine", test_engine)
     monkeypatch.setattr(user_service, "engine", test_engine)
+    monkeypatch.setattr(session_management, "engine", test_engine)
+    # Prevent leaked @session context between tests when a session is provided.
+    session_management._current_session.set(None)
     yield
+    session_management._current_session.set(None)
 
 
 # Single-test isolated session bound to the shared test engine

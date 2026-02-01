@@ -1,7 +1,7 @@
 """Application state management."""
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from remail.client.views.view_router import ViewRouter
 from remail.controllers.dtos.user_dto import UserDTO
@@ -33,6 +33,7 @@ class AppState:
         email_notifications: Whether email notifications are enabled
         quiet_hours: Whether quiet hours mode is enabled
         current_views: Dictionary mapping main views to their current sub-views
+        settings_start_sub_view: Optional override for initial Settings sub-view
         connected_emails: List of connected user DTOs
         email_schedulers: Dictionary mapping usernames to their schedulers
     """
@@ -46,9 +47,10 @@ class AppState:
     email_notifications: bool = True
     quiet_hours: bool = False
     current_views: dict[MainView, SettingsSubView | None] = field(default_factory=dict)
+    settings_start_sub_view: SettingsSubView | None = None
     router: ViewRouter | None = None
     connected_emails: list[UserDTO] = field(default_factory=list)
-    email_schedulers: dict[str, Any] = field(default_factory=dict)
+    email_schedulers: dict = field(default_factory=dict)
 
     def add_email_scheduler(self, username: str, scheduler: "Scheduler") -> None:
         """Add an email scheduler for an account.

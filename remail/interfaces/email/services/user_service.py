@@ -8,8 +8,9 @@ from werkzeug.security import generate_password_hash
 
 from remail.controllers.dtos.user_dto import UserDTO
 from remail.database.db import engine
-from remail.enums import Protocol, UserAccountCategory
+from remail.enums import Protocol
 from remail.models.user import User
+from remail.utils.session_management import session
 
 _KEYRING_SERVICE = "remail"
 _REDACTED_VALUE = "<redacted>"
@@ -30,6 +31,7 @@ class UserService:
                 conn.exec_driver_sql("ALTER TABLE users RENAME COLUMN email TO username")
 
     @staticmethod
+    @session
     def count_unread(user: User) -> int:
         """
         Count unread conversations for a user.
@@ -56,16 +58,15 @@ class UserService:
         if user.id is None:
             raise ValueError("User must have an ID")
 
-        return UserDTO(
-            id=user.id,
-            name=user.name,
-            username=user.username,
-            host=user.host,
-            password=_REDACTED_VALUE,
-            category=UserAccountCategory.PRIVATE,  # User model doesn't have category
-            protocol=user.protocol,
-            unread_conversations=UserService.count_unread(user),
-        )
+        return UserDTO.get_from_model(user, UserService.count_unread(user))
+
+    @staticmethod
+    @session
+    def get_user_by_id(user_id: int, session: Session) -> UserDTO | None:
+        user = session.get(User, user_id)
+        if not user:
+            return None
+        return UserService.user_to_dto(user)
 
     @staticmethod
     def get_user_by_username(username: str) -> User | None:
@@ -128,6 +129,7 @@ class UserService:
         username: str,
         password: str,
         host: str,
+        email: str | None = None,
         name: str | None = None,
         protocol: Protocol = Protocol.IMAP,
     ) -> UserDTO:
@@ -138,6 +140,7 @@ class UserService:
             username: Username
             password: Account password
             host: IMAP/SMTP host
+            email: Public email address (defaults to username if not provided)
             name: Optional display name
             protocol: Email protocol (default: IMAP)
 
@@ -157,9 +160,13 @@ class UserService:
                 raise RuntimeError("Failed to store password securely.") from exc
 
             resolved_name = name or username
+            resolved_email = email or username
+            if not resolved_email:
+                raise ValueError("Email address is required.")
 
             user = User(
                 name=resolved_name,
+                email=resolved_email,
                 username=username,
                 host=host,
                 password=generate_password_hash(password),

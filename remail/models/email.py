@@ -16,12 +16,14 @@ class Email(SQLModel, table=True):
     __tablename__ = "emails"
 
     id: int | None = Field(default=None, primary_key=True)
+    imap_uid: int | None = Field(default=None)
     message_id: str | None = Field(default=None, unique=True, index=True)
-    subject: str
     body: str
     sent_at: datetime
     sender_id: int = Field(foreign_key="contacts.id", nullable=False)
-    thread_id: int = Field(foreign_key="threads.id", nullable=False)
+    thread_id: int = Field(foreign_key="threads.id", nullable=True)
+    deleted: bool = Field(default=False, nullable=False)
+    read: bool = Field(default=False, nullable=False)
 
     sender: Contact = Relationship(back_populates="sent_emails")
     thread: Thread = Relationship(back_populates="messages")

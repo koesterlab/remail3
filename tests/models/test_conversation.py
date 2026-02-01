@@ -86,6 +86,7 @@ class TestConversationModel:
         user1 = User(
             name="alice",
             username="alice@example.com",
+            email="alice@example.com",
             host="imap.example.com",
             password="hash1",
             protocol=Protocol.IMAP,
@@ -93,6 +94,7 @@ class TestConversationModel:
         user2 = User(
             name="bob",
             username="bob@example.com",
+            email="bob@example.com",
             host="imap.example.com",
             password="hash2",
             protocol=Protocol.IMAP,

@@ -20,6 +20,7 @@ class TestUserConversationModel:
         user = User(
             name="testuser",
             username="test@example.com",
+            email="test@example.com",
             host="imap.example.com",
             password="hash123",
             protocol=Protocol.IMAP,
@@ -34,24 +35,22 @@ class TestUserConversationModel:
         session.add(conversation)
         session.commit()
 
-        # Create link with is_favorite
-        user_conv = UserConversation(
-            user_id=user.id, conversation_id=conversation.id, is_favorite=True
-        )
+        # Create link
+        user_conv = UserConversation(user_id=user.id, conversation_id=conversation.id)
         session.add(user_conv)
         session.commit()
 
         # Verify link
         assert user_conv.user_id == user.id
         assert user_conv.conversation_id == conversation.id
-        assert user_conv.is_favorite is True
 
-    def test_user_conversation_default_is_favorite(self, session: Session):
-        """Test that is_favorite defaults to False."""
+    def test_user_conversation_link_creation(self, session: Session):
+        """Test that a user-conversation link can be created."""
         # Create user and conversation
         user = User(
             name="testuser",
             username="test@example.com",
+            email="test@example.com",
             host="imap.example.com",
             password="hash123",
             protocol=Protocol.IMAP,
@@ -63,14 +62,14 @@ class TestUserConversationModel:
         session.add_all([user, conversation])
         session.commit()
 
-        # Create link without specifying is_favorite
+        # Create link
         user_conv = UserConversation(user_id=user.id, conversation_id=conversation.id)
         session.add(user_conv)
         session.commit()
         session.refresh(user_conv)
 
-        # Verify default value
-        assert user_conv.is_favorite is False
+        assert user_conv.user_id == user.id
+        assert user_conv.conversation_id == conversation.id
 
     def test_user_conversation_composite_key(self, session: Session):
         """Test that user_id and conversation_id form a composite primary key."""
@@ -78,6 +77,7 @@ class TestUserConversationModel:
         user = User(
             name="testuser",
             username="test@example.com",
+            email="test@example.com",
             host="imap.example.com",
             password="hash123",
             protocol=Protocol.IMAP,
@@ -90,9 +90,7 @@ class TestUserConversationModel:
         session.commit()
 
         # Create first link
-        user_conv1 = UserConversation(
-            user_id=user.id, conversation_id=conversation.id, is_favorite=True
-        )
+        user_conv1 = UserConversation(user_id=user.id, conversation_id=conversation.id)
         session.add(user_conv1)
         session.commit()
 
@@ -104,7 +102,7 @@ class TestUserConversationModel:
         session.expunge(user_conv1)
 
         # Try to create duplicate link (should fail)
-        user_conv2 = UserConversation(user_id=user_id, conversation_id=conv_id, is_favorite=False)
+        user_conv2 = UserConversation(user_id=user_id, conversation_id=conv_id)
         session.add(user_conv2)
 
         with pytest.raises(IntegrityError):  # Should raise integrity error
@@ -112,43 +110,27 @@ class TestUserConversationModel:
 
         session.rollback()
 
-    def test_update_is_favorite(self, session: Session):
-        """Test updating the is_favorite field."""
-        # Create user and conversation
+    def test_update_link_no_extra_fields(self, session: Session):
+        """Test that link objects only contain defined fields."""
         user = User(
             name="testuser",
             username="test@example.com",
+            email="test@example.com",
             host="imap.example.com",
             password="hash123",
             protocol=Protocol.IMAP,
         )
-        conversation = Conversation(
-            custom_name="Test",
-            type=ConversationType.CONVERSATION,
-        )
+        conversation = Conversation(custom_name="Test", type=ConversationType.CONVERSATION)
         session.add_all([user, conversation])
         session.commit()
 
-        # Create link with is_favorite=False
-        user_conv = UserConversation(
-            user_id=user.id, conversation_id=conversation.id, is_favorite=False
-        )
+        user_conv = UserConversation(user_id=user.id, conversation_id=conversation.id)
         session.add(user_conv)
         session.commit()
-
-        # Update to favorite
-        user_conv.is_favorite = True
-        session.commit()
         session.refresh(user_conv)
 
-        assert user_conv.is_favorite is True
-
-        # Update back to not favorite
-        user_conv.is_favorite = False
-        session.commit()
-        session.refresh(user_conv)
-
-        assert user_conv.is_favorite is False
+        assert user_conv.user_id == user.id
+        assert user_conv.conversation_id == conversation.id
 
     def test_multiple_users_per_conversation(self, session: Session):
         """Test that multiple users can have access to the same conversation."""
@@ -163,6 +145,7 @@ class TestUserConversationModel:
         user1 = User(
             name="alice",
             username="alice@example.com",
+            email="alice@example.com",
             host="imap.example.com",
             password="hash1",
             protocol=Protocol.IMAP,
@@ -170,6 +153,7 @@ class TestUserConversationModel:
         user2 = User(
             name="bob",
             username="bob@example.com",
+            email="bob@example.com",
             host="imap.example.com",
             password="hash2",
             protocol=Protocol.IMAP,
@@ -177,6 +161,7 @@ class TestUserConversationModel:
         user3 = User(
             name="charlie",
             username="charlie@example.com",
+            email="charlie@example.com",
             host="imap.example.com",
             password="hash3",
             protocol=Protocol.IMAP,
@@ -185,15 +170,9 @@ class TestUserConversationModel:
         session.commit()
 
         # Link all users to conversation with different favorite preferences
-        user_conv1 = UserConversation(
-            user_id=user1.id, conversation_id=conversation.id, is_favorite=True
-        )
-        user_conv2 = UserConversation(
-            user_id=user2.id, conversation_id=conversation.id, is_favorite=False
-        )
-        user_conv3 = UserConversation(
-            user_id=user3.id, conversation_id=conversation.id, is_favorite=True
-        )
+        user_conv1 = UserConversation(user_id=user1.id, conversation_id=conversation.id)
+        user_conv2 = UserConversation(user_id=user2.id, conversation_id=conversation.id)
+        user_conv3 = UserConversation(user_id=user3.id, conversation_id=conversation.id)
         session.add_all([user_conv1, user_conv2, user_conv3])
         session.commit()
 
@@ -209,18 +188,13 @@ class TestUserConversationModel:
         assert user2.id in user_ids
         assert user3.id in user_ids
 
-        # Verify individual favorite preferences
-        favorites = {link.user_id: link.is_favorite for link in links}
-        assert favorites[user1.id] is True
-        assert favorites[user2.id] is False
-        assert favorites[user3.id] is True
-
     def test_multiple_conversations_per_user(self, session: Session):
         """Test that a user can have access to multiple conversations."""
         # Create user
         user = User(
             name="testuser",
             username="test@example.com",
+            email="test@example.com",
             host="imap.example.com",
             password="hash123",
             protocol=Protocol.IMAP,
@@ -244,9 +218,9 @@ class TestUserConversationModel:
         session.commit()
 
         # Link user to all conversations
-        user_conv1 = UserConversation(user_id=user.id, conversation_id=conv1.id, is_favorite=True)
-        user_conv2 = UserConversation(user_id=user.id, conversation_id=conv2.id, is_favorite=False)
-        user_conv3 = UserConversation(user_id=user.id, conversation_id=conv3.id, is_favorite=True)
+        user_conv1 = UserConversation(user_id=user.id, conversation_id=conv1.id)
+        user_conv2 = UserConversation(user_id=user.id, conversation_id=conv2.id)
+        user_conv3 = UserConversation(user_id=user.id, conversation_id=conv3.id)
         session.add_all([user_conv1, user_conv2, user_conv3])
         session.commit()
 
@@ -260,12 +234,13 @@ class TestUserConversationModel:
         assert conv2.id in conversation_ids
         assert conv3.id in conversation_ids
 
-    def test_query_favorite_conversations(self, session: Session):
-        """Test querying only favorite conversations for a user."""
+    def test_query_conversations_for_user(self, session: Session):
+        """Test querying conversations for a user."""
         # Create user
         user = User(
             name="testuser",
             username="test@example.com",
+            email="test@example.com",
             host="imap.example.com",
             password="hash123",
             protocol=Protocol.IMAP,
@@ -289,23 +264,20 @@ class TestUserConversationModel:
         session.commit()
 
         # Link conversations with different favorite settings
-        user_conv1 = UserConversation(user_id=user.id, conversation_id=conv1.id, is_favorite=True)
-        user_conv2 = UserConversation(user_id=user.id, conversation_id=conv2.id, is_favorite=False)
-        user_conv3 = UserConversation(user_id=user.id, conversation_id=conv3.id, is_favorite=True)
+        user_conv1 = UserConversation(user_id=user.id, conversation_id=conv1.id)
+        user_conv2 = UserConversation(user_id=user.id, conversation_id=conv2.id)
+        user_conv3 = UserConversation(user_id=user.id, conversation_id=conv3.id)
         session.add_all([user_conv1, user_conv2, user_conv3])
         session.commit()
 
-        # Query only favorites
-        statement = select(UserConversation).where(
-            UserConversation.user_id == user.id, UserConversation.is_favorite
-        )
-        favorite_links = session.exec(statement).all()
+        statement = select(UserConversation).where(UserConversation.user_id == user.id)
+        links = session.exec(statement).all()
 
-        assert len(favorite_links) == 2
-        favorite_conv_ids = {link.conversation_id for link in favorite_links}
-        assert conv1.id in favorite_conv_ids
-        assert conv3.id in favorite_conv_ids
-        assert conv2.id not in favorite_conv_ids
+        assert len(links) == 3
+        conv_ids = {link.conversation_id for link in links}
+        assert conv1.id in conv_ids
+        assert conv2.id in conv_ids
+        assert conv3.id in conv_ids
 
     def test_delete_user_conversation_link(self, session: Session):
         """Test deleting a user-conversation link."""
@@ -313,6 +285,7 @@ class TestUserConversationModel:
         user = User(
             name="testuser",
             username="test@example.com",
+            email="test@example.com",
             host="imap.example.com",
             password="hash123",
             protocol=Protocol.IMAP,
@@ -325,9 +298,7 @@ class TestUserConversationModel:
         session.commit()
 
         # Create link
-        user_conv = UserConversation(
-            user_id=user.id, conversation_id=conversation.id, is_favorite=True
-        )
+        user_conv = UserConversation(user_id=user.id, conversation_id=conversation.id)
         session.add(user_conv)
         session.commit()
 

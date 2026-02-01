@@ -23,6 +23,7 @@ def mock_thread_service():
     """Create a mock ThreadService."""
     with patch("remail.controllers.conversations_controller.ThreadService") as mock:
         service_instance = MagicMock()
+        service_instance.get_thread_for_conversation.return_value = None
         mock.return_value = service_instance
         yield service_instance
 
@@ -67,6 +68,7 @@ class TestConversationsController:
         # Mock service response matching actual service output
         service_data = [
             {
+                "id": 1,
                 "custom_name": "Test Conversation",
                 "type": "conversation",
                 "is_favorite": True,
@@ -88,7 +90,7 @@ class TestConversationsController:
 
         assert len(result) == 1
         assert isinstance(result[0], ConversationDTO)
-        assert result[0].customName == "Test Conversation"
+        assert result[0].custom_name == "Test Conversation"
         assert result[0].is_favorite is True
         assert result[0].threads == []
 
@@ -99,18 +101,21 @@ class TestConversationsController:
         # Mock service response with multiple conversations
         service_data = [
             {
+                "id": 1,
                 "custom_name": "First",
                 "type": "conversation",
                 "is_favorite": True,
                 "contacts": [],
             },
             {
+                "id": 2,
                 "custom_name": "Second",
                 "type": "group",
                 "is_favorite": False,
                 "contacts": [],
             },
             {
+                "id": 3,
                 "custom_name": "Third",
                 "type": "conversation",
                 "is_favorite": True,
@@ -123,9 +128,9 @@ class TestConversationsController:
 
         assert len(result) == 3
         assert all(isinstance(conv, ConversationDTO) for conv in result)
-        assert result[0].customName == "First"
-        assert result[1].customName == "Second"
-        assert result[2].customName == "Third"
+        assert result[0].custom_name == "First"
+        assert result[1].custom_name == "Second"
+        assert result[2].custom_name == "Third"
 
     def test_get_conversations_converts_contacts_to_dtos(
         self, controller, mock_conversation_service
@@ -134,6 +139,7 @@ class TestConversationsController:
         # Mock service response with contacts
         service_data = [
             {
+                "id": 1,
                 "custom_name": "Test",
                 "type": "conversation",
                 "is_favorite": False,
@@ -184,12 +190,14 @@ class TestConversationsController:
         """Test that conversation types are correctly converted."""
         service_data = [
             {
+                "id": 1,
                 "custom_name": "Regular",
                 "type": "conversation",
                 "is_favorite": False,
                 "contacts": [],
             },
             {
+                "id": 2,
                 "custom_name": "Group",
                 "type": "group",
                 "is_favorite": False,
@@ -201,8 +209,8 @@ class TestConversationsController:
         result = controller.get_conversations(user_id=1)
 
         # Note: New DTO doesn't have a 'type' field, only customName
-        assert result[0].customName == "Regular"
-        assert result[1].customName == "Group"
+        assert result[0].custom_name == "Regular"
+        assert result[1].custom_name == "Group"
 
     def test_get_conversations_preserves_favorite_status(
         self, controller, mock_conversation_service
@@ -210,12 +218,14 @@ class TestConversationsController:
         """Test that favorite status is preserved."""
         service_data = [
             {
+                "id": 1,
                 "custom_name": "Favorite",
                 "type": "conversation",
                 "is_favorite": True,
                 "contacts": [],
             },
             {
+                "id": 2,
                 "custom_name": "Not Favorite",
                 "type": "conversation",
                 "is_favorite": False,
@@ -233,6 +243,7 @@ class TestConversationsController:
         """Test get_conversations with a group conversation containing multiple contacts."""
         service_data = [
             {
+                "id": 1,
                 "custom_name": "Team Discussion",
                 "type": "group",
                 "is_favorite": True,

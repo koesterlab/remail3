@@ -12,6 +12,7 @@ def test_user_create(session: Session):
     u = User(
         name="Ada",
         username="ada@example.com",
+        email="ada@example.com",
         host="imap.example.com",
         password="secret",
         protocol=Protocol.IMAP,
@@ -29,6 +30,7 @@ def test_user_auto_increment(session: Session):
     u1 = User(
         name="A",
         username="a@example.com",
+        email="a@example.com",
         host="imap.example.com",
         password="x",
         protocol=Protocol.IMAP,
@@ -36,6 +38,7 @@ def test_user_auto_increment(session: Session):
     u2 = User(
         name="B",
         username="b@example.com",
+        email="b@example.com",
         host="imap.example.com",
         password="x",
         protocol=Protocol.IMAP,
@@ -54,6 +57,7 @@ def test_user_unique_emails(session: Session):
     u1 = User(
         name="C",
         username="dup@example.com",
+        email="dup@example.com",
         host="imap.example.com",
         password="x",
         protocol=Protocol.IMAP,
@@ -61,6 +65,7 @@ def test_user_unique_emails(session: Session):
     u2 = User(
         name="D",
         username="dup@example.com",
+        email="dup@example.com",
         host="imap.example.com",
         password="y",
         protocol=Protocol.EXCHANGE,
@@ -77,6 +82,7 @@ def test_user_protocol_persistence(session: Session):
     u = User(
         name="Proto",
         username="p@example.com",
+        email="p@example.com",
         host="imap.example.com",
         password="x",
         protocol=Protocol.IMAP,
@@ -98,6 +104,7 @@ def test_user_with_last_refresh(session: Session):
     u = User(
         name="Ref",
         username="ref@example.com",
+        email="ref@example.com",
         host="imap.example.com",
         password="x",
         protocol=Protocol.IMAP,
@@ -114,6 +121,7 @@ def test_user_update_last_refresh(session: Session):
     u = User(
         name="Upd",
         username="upd@example.com",
+        email="upd@example.com",
         host="imap.example.com",
         password="x",
         protocol=Protocol.IMAP,
@@ -135,6 +143,7 @@ def test_user_delete(session: Session):
     u = User(
         name="Del",
         username="del@example.com",
+        email="del@example.com",
         host="imap.example.com",
         password="x",
         protocol=Protocol.IMAP,
@@ -155,6 +164,7 @@ def test_user_query_by_email(session: Session):
     u = User(
         name="Q",
         username="q@example.com",
+        email="q@example.com",
         host="imap.example.com",
         password="x",
         protocol=Protocol.IMAP,
@@ -171,6 +181,7 @@ def test_user_query_by_protocol(session: Session):
     u1 = User(
         name="I",
         username="i@example.com",
+        email="i@example.com",
         host="imap.example.com",
         password="x",
         protocol=Protocol.IMAP,
@@ -178,6 +189,7 @@ def test_user_query_by_protocol(session: Session):
     u2 = User(
         name="E",
         username="e@example.com",
+        email="e@example.com",
         host="imap.example.com",
         password="x",
         protocol=Protocol.EXCHANGE,

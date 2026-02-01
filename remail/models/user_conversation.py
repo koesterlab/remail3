@@ -10,6 +10,3 @@ class UserConversation(SQLModel, table=True):
 
     user_id: int = Field(foreign_key="users.id", primary_key=True)
     conversation_id: int = Field(foreign_key="conversations.id", primary_key=True)
-    is_favorite: bool = Field(
-        default=False, description="User-defined preference for marking conversation as favorite"
-    )

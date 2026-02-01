@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 import flet as ft
 
@@ -128,13 +128,17 @@ def _load_todos_for_user(user_id: int, now: datetime, limit: int = 6) -> list[To
 
     todos: list[TodoDict] = []
     for email, sender in rows:
+        email_any = cast(Any, email)
+        subject = email_any.subject
+        sent_at = email_any.sent_at
+
         todos.append(
             {
                 "sender": sender.name,
-                "subject": email.subject,
+                "subject": subject,
                 "account_email": account_email,
                 "time_label": fmt_time_label(email.sent_at, now),
-                "badge": fmt_badge(email.sent_at, now),
+                "badge": fmt_badge(sent_at, now),
             }
         )
 
@@ -156,12 +160,15 @@ def _load_appointments_for_user(
 
     appointments: list[AppointmentDict] = []
     for email, sender in rows:
+        email_any = cast(Any, email)
+        subject = email_any.subject
+        sent_at = email_any.sent_at
         appointments.append(
             {
-                "title": email.subject,
+                "title": subject,
                 "location": f"From: {sender.name}",  # lightweight placeholder
                 "account_email": account_email,
-                "time_label": fmt_time_label(email.sent_at, now),
+                "time_label": fmt_time_label(sent_at, now),
             }
         )
 

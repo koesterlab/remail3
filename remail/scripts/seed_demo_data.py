@@ -1,27 +1,12 @@
 # remail/scripts/seed_demo_data.py
-"""
-Seed demo data into SQLite DB for UI testing.
 
-What it creates:
-- A few Contacts
-- A few Conversations
-- One Thread per Conversation
-- Multiple Emails per Thread (with realistic timestamps)
-- Links:
-  - UserConversation (user can see the conversation)
-  - ConversationContact (participants)
-  - EmailReception (recipient mapping)
-
-Design goals:
-- Deterministic enough for UI testing
-- Safe to re-run (it cleans previous DEMO data first)
-"""
 
 from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import Any, cast
 
 from sqlalchemy import delete
 from sqlmodel import Session, col, select
@@ -60,23 +45,28 @@ def _clean_demo_data(session: Session) -> None:
     """
     Remove previously seeded demo data.
     """
+    EmailAny = cast(Any, Email)
+    subject_col = EmailAny.subject
+    message_id_col = EmailAny.message_id
+
     demo_email_ids = [
         e.id
         for e in session.exec(
             select(Email).where(
-                (col(Email.message_id).startswith(DEMO_MESSAGE_PREFIX))
-                | (col(Email.subject).contains(DEMO_TAG))
+                (col(message_id_col).startswith(DEMO_MESSAGE_PREFIX))
+                | (col(subject_col).contains(DEMO_TAG))
             )
         ).all()
         if e.id is not None
     ]
+
     if demo_email_ids:
         session.exec(delete(EmailReception).where(col(EmailReception.email_id).in_(demo_email_ids)))
 
     session.exec(
         delete(Email).where(
-            (col(Email.message_id).startswith(DEMO_MESSAGE_PREFIX))
-            | (col(Email.subject).contains(DEMO_TAG))
+            (col(message_id_col).startswith(DEMO_MESSAGE_PREFIX))
+            | (col(subject_col).contains(DEMO_TAG))
         )
     )
 
@@ -85,6 +75,7 @@ def _clean_demo_data(session: Session) -> None:
         for t in session.exec(select(Thread).where(col(Thread.title).contains(DEMO_TAG))).all()
         if t.id is not None
     ]
+
     if demo_thread_ids:
         session.exec(delete(Thread).where(col(Thread.id).in_(demo_thread_ids)))
 
@@ -95,6 +86,7 @@ def _clean_demo_data(session: Session) -> None:
         ).all()
         if c.id is not None
     ]
+
     if demo_conversation_ids:
         session.exec(
             delete(UserConversation).where(
@@ -294,7 +286,7 @@ def seed_demo_data(
                 )
 
         session.commit()
-        print(" Seed demo data completed.")
+        print("Seed demo data completed.")
 
 
 def main() -> None:

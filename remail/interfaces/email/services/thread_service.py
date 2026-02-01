@@ -2,13 +2,22 @@
 
 from __future__ import annotations
 
+import re
+from collections.abc import Iterable
 from datetime import datetime
+from email.header import decode_header
 from typing import TYPE_CHECKING
 
+from sqlalchemy import and_, func
 from sqlmodel import Session, col, desc, select
 
+from remail.controllers.dtos.conversations import ContactDTO, ConversationDTO, ThreadPreviewDTO
+from remail.controllers.dtos.threads import ThreadDTO
+from remail.controllers.dtos.user_dto import UserDTO
 from remail.database import engine
-from remail.models import Attachment, Contact, Email, EmailReception, Thread
+from remail.interfaces.email.services.user_service import UserService
+from remail.models import Attachment, Contact, Conversation, Email, EmailReception, Thread
+from remail.utils.session_management import session
 
 if TYPE_CHECKING:
     from remail.controllers.dtos.threads import (
@@ -24,7 +33,8 @@ class ThreadService:
         """Initialize thread service."""
         self.engine = engine
 
-    def get_thread_by_id(self, thread_id: int) -> ThreadDTO | None:
+    @session
+    def get_thread_by_id(self, thread_id: int, session: Session) -> ThreadDTO | None:
         """
         Fetch a thread with all its messages.
 
@@ -35,17 +45,10 @@ class ThreadService:
             ThreadDTO with thread data including messages, or None if not found
         """
 
-        with Session(self.engine) as session:
-            thread = session.get(Thread, thread_id)
-
-            if not thread:
-                return None
-
-            messages = session.exec(
-                select(Email).where(Email.thread_id == thread_id).order_by(col(Email.sent_at))
-            ).all()
-
-            return self._build_thread_dto(session, thread, list(messages))
+        thread = session.get(Thread, thread_id)
+        if not thread:
+            return None
+        return ThreadDTO.from_model(thread)
 
     def create_thread(self, title: str, conversation_id: int) -> Thread:
         """
@@ -96,34 +99,148 @@ class ThreadService:
 
             return self._build_thread_preview_dict(thread, list(messages))
 
-    def _build_thread_dto(
-        self, session: Session, thread: Thread, messages: list[Email]
-    ) -> ThreadDTO:
+    @session
+    def organize_email_into_thread(
+        self, email: Email, subject: str, conversation: Conversation, session: Session
+    ) -> None:
         """
-        Build a complete thread DTO with all messages.
+        Organize emails into threads within a conversation.
+
+        Creates or updates a single thread for the conversation with all emails in chronological order.
 
         Args:
-            session: Database session
-            thread: Thread model instance
-            messages: List of Email model instances
-
-        Returns:
-            ThreadDTO with thread data and messages
+            email: Email to organize
+            conversation: Conversation to search/create thread in
         """
+        if conversation.id is None:
+            return
+        conversation_id = conversation.id
+        try:
+            subject = self.normalize_subject(subject)
+            existing_thread = session.exec(
+                select(Thread).where(
+                    and_(
+                        col(Thread.conversation_id) == conversation_id,
+                        func.lower(col(Thread.title)) == subject.lower(),
+                    )
+                )
+            ).first()
 
-        from remail.controllers.dtos.threads import ThreadDTO
+            if existing_thread:
+                if email.thread_id != existing_thread.id and existing_thread.id is not None:
+                    email.thread = existing_thread
+                    if not email.read:
+                        existing_thread.unread_count = existing_thread.unread_count + 1
+                    if existing_thread.last_message_time is None:
+                        existing_thread.last_message_time = email.sent_at
+                    else:
+                        existing_thread.last_message_time = max(
+                            existing_thread.last_message_time, email.sent_at
+                        )
+            else:
+                new_thread = Thread(
+                    title=subject,
+                    conversation_id=conversation.id,
+                    unread_count=0 if email.read else 1,
+                    last_message_time=email.sent_at,
+                )
 
-        if thread.id is None:
-            raise ValueError("Thread ID cannot be None")
+                session.add(new_thread)
+                email.thread = new_thread
+        except Exception as e:
+            print(e)
 
-        contacts = self._collect_thread_contacts(session, messages)
+    # from here with chatgpt
+    _PREFIXES = [
+        "re",
+        "fw",
+        "fwd",
+        "fwd:",
+        "fwd",
+        "rv",
+        "tr",
+        "antwort",
+        # deutsch
+        "aw",
+        # französisch
+        "re",
+        "tr",
+        "r\u00e9",  # Ré:
+        # spanisch / portugiesisch
+        "res",
+        "rsp",
+        "resposta",
+        "res:",
+        "res",
+        # italienisch
+        "ris",
+        "rif",
+        # niederländisch
+        "antw",
+        "doorsturen",
+        "dv",
+        # skandinavisch (se/fi/no/dk)
+        "sv",
+        "vs",
+        "vedr",
+        "ang",
+        "svar",
+        "vid",
+        "bs",
+        "vb",
+        # osteuropa
+        "odp",
+        "odp:",
+        "odp",
+        "odpoveď",
+        "odpověď",
+        "ats",
+        "atb",
+        # russisch
+        "\u043e\u0442\u0432",  # Отв:
+        "\u043f\u0435\u0440\u0435\u0441\u044b\u043b\u043a\u0430",  # Пересылка:
+        # türkisch
+        "yn:",
+        "cevap",
+        "ilet",
+        "ynt",
+        # arabisch (vereinfachte latinisierte Varianten)
+        "rad",
+        "twd",
+        # chinesisch + japanisch (vereinfacht, translit.)
+        "huifu",
+        "转发",
+        "回复",
+        "答复",
+        "転送",
+        "返信",
+    ]
 
-        return ThreadDTO(
-            id=thread.id,
-            title=thread.title,
-            messages=[self._build_message_dto(session, msg) for msg in messages],
-            contacts=contacts,
+    _PREFIX_REGEX = re.compile(
+        r"^(?:" + r"|".join([re.escape(p) for p in _PREFIXES]) + r")\s*:\s*", re.IGNORECASE
+    )
+
+    @classmethod
+    def normalize_subject(cls, subject: str) -> str:
+        """
+        Remove all Reply/Forward-Prefixes (RE:, AW:, Fwd:, ...),
+        """
+        if not subject:
+            return subject
+        subject = "".join(
+            part.decode(enc or "utf-8") if isinstance(part, bytes) else part
+            for part, enc in decode_header(subject)
         )
+        cleaned = subject.strip()
+        while True:
+            new = cls._PREFIX_REGEX.sub("", cleaned).lstrip()
+            if new == cleaned:
+                break
+            cleaned = new
+
+        return cleaned.strip() or "Unparsable Subject"
+
+    # chatgpt end
 
     def _collect_thread_contacts(self, session: Session, messages: list[Email]) -> list:
         """
@@ -206,6 +323,27 @@ class ThreadService:
             "last_message_datetime": (last_message.sent_at if last_message else datetime.now()),
         }
 
+    @session
+    def _build_thread_preview_dto(self, thread: Thread):
+        unread_count = 0
+        total_count = 0
+        latest_message = None
+        for message in thread.messages:
+            if not message.read:
+                unread_count += 1
+            if not latest_message or message.sent_at > latest_message.sent_at:
+                latest_message = message
+            total_count += 1
+
+        return ThreadPreviewDTO(
+            thread_id=thread.id if thread.id is not None else -1,
+            title=thread.title,
+            total_count=total_count,
+            unread_count=unread_count,
+            last_message=latest_message.body if latest_message else "",
+            last_message_datetime=latest_message.sent_at if latest_message else datetime.min,
+        )
+
     def _build_message_dto(self, session: Session, email: Email) -> MessageDTO:
         """
         Build a message DTO for thread view.
@@ -234,7 +372,7 @@ class ThreadService:
                 last_name=sender.last_name or "" if sender else "",
                 email=sender.email_address if sender else "",
             ),
-            subject=email.subject,
+            subject=email.thread.title,
             content=MessageContentDTO(
                 body=email.body,
                 attachments=[
@@ -249,3 +387,32 @@ class ThreadService:
             ),
             sent_at=email.sent_at,
         )
+
+    @session
+    def get_most_important_threads(
+        self,
+        session: Session,
+        count: int = 5,
+    ) -> list[tuple[ThreadDTO, ConversationDTO, UserDTO]]:
+        """
+        Calculates the most urgent threads from the database for all accounts
+        Currently by time, later by ai
+
+        returns: (thread_id, ConversationDTO, UserDTO)
+        """
+        # todo ai valuing of mails
+        threads: Iterable[Thread] = session.exec(
+            select(Thread)
+            .order_by(
+                Thread.last_message_time.desc(),  # type: ignore
+            )
+            .limit(count)
+        )
+        return [
+            (
+                ThreadDTO.from_model(t),
+                ConversationDTO.from_model(t.conversation, t.conversation.users[0]),
+                UserService.user_to_dto(t.conversation.users[0]),
+            )
+            for t in threads
+        ]

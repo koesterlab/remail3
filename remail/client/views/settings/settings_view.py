@@ -54,8 +54,11 @@ def create_settings_view(page: ft.Page, app_state: AppState) -> ft.Container:
 
         page.update()
 
-    # Set default view to APPEARANCE
-    app_state.set_current_view(MainView.SETTINGS, SettingsSubView.APPEARANCE)
+    initial_sub_view = app_state.settings_start_sub_view or SettingsSubView.APPEARANCE
+    app_state.settings_start_sub_view = None
+
+    # Set default view
+    app_state.set_current_view(MainView.SETTINGS, initial_sub_view)
 
     # Create navigation
     navigation = create_settings_navigation(app_state, load_view)
@@ -85,7 +88,7 @@ def create_settings_view(page: ft.Page, app_state: AppState) -> ft.Container:
     )
 
     # Load initial view
-    load_view(SettingsSubView.APPEARANCE)
+    load_view(initial_sub_view)
 
     return ft.Container(
         content=ft.Column(

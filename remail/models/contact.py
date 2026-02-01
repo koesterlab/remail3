@@ -27,7 +27,7 @@ class Contact(SQLModel, table=True):
         sa_column=sqlalchemy.Column(sqlalchemy.Enum(ContactType), nullable=False),
     )
     is_known: bool = Field(
-        default=True, description="Whether the contact is registered in our database"
+        default=False, description="Whether the contact is registered in our database"
     )
 
     receptions: list["EmailReception"] = Relationship(back_populates="contact")
@@ -36,3 +36,9 @@ class Contact(SQLModel, table=True):
         back_populates="contacts",
         link_model=ConversationContact,
     )
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, Contact) and other.email_address == self.email_address
+
+    def __hash__(self) -> int:
+        return hash(self.email_address)
