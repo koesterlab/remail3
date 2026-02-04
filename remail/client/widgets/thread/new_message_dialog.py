@@ -80,7 +80,7 @@ def create_new_message_dialog(state: MainAppState) -> ft.Container:
             controller.send_email_new_conversation(
                 [c.id for c in conversation.contacts], thread.title, message, None
             )
-        elif thread.id < 0:
+        elif thread.thread_id < 0:
             controller.send_email_new_thread(thread.title, message, conversation.id, None)
         else:
             controller.send_email(thread.title, message, None, thread.id)

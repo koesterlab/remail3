@@ -12,26 +12,19 @@ from pytz import timezone
 from remail import errors as ee
 from remail.errors.handlers import email_error_handler
 from remail.interfaces.email.protocols.base import EmailProtocol
-from remail.interfaces.email.services import (
-    EmailParser,
-    FolderService,
-    MessageBuilder,
-    SmtpSender,
-)
+from remail.interfaces.email.services import EmailParser, FolderService, MessageBuilder, SmtpSender
 from remail.models import Email
 
 UTC = timezone("UTC")
 
 
 class ImapException(Exception):
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Unable to connect to IMAP server: {self.args[0]}"
-
-    pass
 
 
 class ImapProtocol(EmailProtocol):
-    """IMAP/SMTP email protocol implementation."""
+    """IMAP/SMTP email protocol implementation (lazy IMAP connect)."""
 
     def __init__(
         self,
@@ -42,52 +35,69 @@ class ImapProtocol(EmailProtocol):
         """
         Initialize IMAP protocol.
 
-        Args:
-            username: Login username
-            password: User password
-            host: IMAP/SMTP server hostname
+        NOTE: This constructor does NOT connect to the IMAP server.
+        Connection is created lazily on first login() / fetch.
         """
         self.user_username: str | None = username
         self.user_password: str | None = password
         self.host = host
-        self._logged_in = False
-        try:
-            self.IMAP = IMAPClient(self.host, use_uid=True, ssl=True)
-        except Exception as e:
-            raise ImapException(e) from e
 
-        # Initialize services
-        self.folder_service = FolderService(self.IMAP)
+        self._logged_in = False
+        self._imap: IMAPClient | None = None
+        self.folder_service: FolderService | None = None
+
+        # Initialize services that don't require an IMAP connection
         self.email_parser = EmailParser()
         self.smtp_sender = SmtpSender(host, username, password)
 
+    def _ensure_imap_client(self) -> IMAPClient:
+        """Create IMAP client if needed (lazy connect)."""
+        if self._imap is not None:
+            return self._imap
+
+        try:
+            self._imap = IMAPClient(self.host, use_uid=True, ssl=True)
+        except Exception as e:
+            # wrap network/DNS errors so callers can show friendly messages
+            raise ImapException(e) from e
+
+        self.folder_service = FolderService(self._imap)
+        return self._imap
+
+    @property
+    def IMAP(self) -> IMAPClient:
+        """Backward-compatible accessor (some services expect self.IMAP)."""
+        return self._ensure_imap_client()
+
     @property
     def logged_in(self) -> bool:
-        """Return True if logged in."""
-
         return self._logged_in
 
     @email_error_handler
     def login(self) -> None:
         """Log in to IMAP server."""
-
         if self.logged_in:
             return
 
         if self.user_password is None or self.user_username is None:
             raise ee.InvalidLoginData() from None
 
+        imap = self._ensure_imap_client()
         try:
-            self.IMAP.login(self.user_username, self.user_password)
+            imap.login(self.user_username, self.user_password)
             self._logged_in = True
-
         except LoginError:
             raise ee.InvalidLoginData() from None
 
     def logout(self) -> None:
         if not self.logged_in:
             return
-        self.IMAP.logout()
+        if self._imap is None:
+            return
+        self._imap.logout()
+        self._logged_in = False
+        self._imap = None
+        self.folder_service = None
 
     @email_error_handler
     def fetch_emails(
@@ -105,22 +115,26 @@ class ImapProtocol(EmailProtocol):
             flags: IMAP search terms (e.g., ["UNSEEN"], ["SEEN"], ["DELETED"],
                 ["HEADER","From","x@y"]).
         """
-
         if not self.logged_in:
             raise ee.NotLoggedIn()
+
         if since:
             since = max(since, datetime.now() - timedelta(days=365))
+
+        if self.folder_service is None:
+            # Should not happen if logged_in True, but keep it safe.
+            self._ensure_imap_client()
+        assert self.folder_service is not None
+
         boxes = [folder] if folder else self.folder_service.get_all_folders()
         criteria = FolderService.build_search_criteria(since, flags)
-        out: list[tuple[int, Message[str, str]]] = []
+        out: list[tuple[int, Message]] = []
 
         for box in boxes:
             with self.folder_service.selected_folder(box):
                 uids = self.IMAP.search(criteria)
-
                 if not uids:
                     continue
-
                 fetched = self.IMAP.fetch(uids, ["RFC822"])
 
             for uid, data in fetched.items():
@@ -129,29 +143,25 @@ class ImapProtocol(EmailProtocol):
 
                     if since:
                         dt = self.email_parser.extract_msg_date(em)
-
                         if not isinstance(dt, datetime):
                             dt = getattr(em, "dt", None)
 
                         cutoff = since.astimezone(UTC)
-
                         if isinstance(dt, datetime):
                             try:
                                 if dt.tzinfo is None:
                                     from pytz import UTC as _UTC
 
                                     dt_utc = _UTC.localize(dt)
-
                                 else:
                                     dt_utc = dt.astimezone(UTC)
 
                                 if dt_utc < cutoff:
                                     continue
-
                             except Exception:  # nosec B112
                                 continue
 
-                    out.append((int(uid), em))  # self.email_parser.parse_email_message(em, uid))
+                    out.append((int(uid), em))
                 except Exception as e:
                     print(e)
 
@@ -159,7 +169,6 @@ class ImapProtocol(EmailProtocol):
 
     def send_email(self, mail: Email) -> None:
         """Send email via SMTP."""
-
         self.smtp_sender.validate_send_state(self.logged_in)
         thread = mail.thread
         conversation = thread.conversation
@@ -181,5 +190,5 @@ class ImapProtocol(EmailProtocol):
 
         self.smtp_sender.send(msg, envelope)
 
-    def clone(self):
+    def clone(self) -> ImapProtocol:
         return ImapProtocol(self.user_username, self.user_password, self.host)

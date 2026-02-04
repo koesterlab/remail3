@@ -1,17 +1,36 @@
 # remail/scripts/seed_demo_data.py
+"""
+Seed demo data into SQLite DB for UI testing.
 
+What it creates:
+- A few Contacts
+- A few Conversations
+- One Thread per Conversation
+- Multiple Emails per Thread (with realistic timestamps)
+- Links:
+  - UserConversation (user can see the conversation)
+  - ConversationContact (participants)
+  - EmailReception (recipient mapping)
+
+Design goals:
+- Deterministic enough for UI testing
+- Safe to re-run (it cleans previous DEMO data first)
+
+IMPORTANT (current schema):
+- Email has NO "subject" column. Use Thread.title / Conversation.custom_name + Email.body instead.
+"""
 
 from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, cast
 
 from sqlalchemy import delete
 from sqlmodel import Session, col, select
 
 from remail.database.db import engine
+from remail.enums import ContactType, ConversationType
 from remail.models.contact import Contact
 from remail.models.conversation import Conversation
 from remail.models.conversation_contact import ConversationContact
@@ -44,29 +63,28 @@ def _now() -> datetime:
 def _clean_demo_data(session: Session) -> None:
     """
     Remove previously seeded demo data.
-    """
-    EmailAny = cast(Any, Email)
-    subject_col = EmailAny.subject
-    message_id_col = EmailAny.message_id
 
+    Since Email has no "subject", use:
+    - message_id startswith DEMO_MESSAGE_PREFIX
+    - OR body contains DEMO_TAG
+    """
     demo_email_ids = [
         e.id
         for e in session.exec(
             select(Email).where(
-                (col(message_id_col).startswith(DEMO_MESSAGE_PREFIX))
-                | (col(subject_col).contains(DEMO_TAG))
+                (col(Email.message_id).startswith(DEMO_MESSAGE_PREFIX))
+                | (col(Email.body).contains(DEMO_TAG))
             )
         ).all()
         if e.id is not None
     ]
-
     if demo_email_ids:
         session.exec(delete(EmailReception).where(col(EmailReception.email_id).in_(demo_email_ids)))
 
     session.exec(
         delete(Email).where(
-            (col(message_id_col).startswith(DEMO_MESSAGE_PREFIX))
-            | (col(subject_col).contains(DEMO_TAG))
+            (col(Email.message_id).startswith(DEMO_MESSAGE_PREFIX))
+            | (col(Email.body).contains(DEMO_TAG))
         )
     )
 
@@ -75,7 +93,6 @@ def _clean_demo_data(session: Session) -> None:
         for t in session.exec(select(Thread).where(col(Thread.title).contains(DEMO_TAG))).all()
         if t.id is not None
     ]
-
     if demo_thread_ids:
         session.exec(delete(Thread).where(col(Thread.id).in_(demo_thread_ids)))
 
@@ -86,7 +103,6 @@ def _clean_demo_data(session: Session) -> None:
         ).all()
         if c.id is not None
     ]
-
     if demo_conversation_ids:
         session.exec(
             delete(UserConversation).where(
@@ -100,6 +116,7 @@ def _clean_demo_data(session: Session) -> None:
         )
         session.exec(delete(Conversation).where(col(Conversation.id).in_(demo_conversation_ids)))
 
+    # Remove demo contacts (by email suffix or tagged name)
     session.exec(
         delete(Contact).where(
             (col(Contact.email_address).endswith(".demo")) | (col(Contact.name).contains(DEMO_TAG))
@@ -108,18 +125,34 @@ def _clean_demo_data(session: Session) -> None:
 
 
 def _ensure_user(session: Session, user_id: int | None = None) -> User:
-    if user_id is None:
-        user = session.exec(select(User).order_by(col(User.id).asc())).first()
+    # explicit user id requested
+    if user_id is not None:
+        user = session.exec(select(User).where(User.id == user_id)).first()
         if not user:
-            raise RuntimeError("No users found in DB. Run `pixi run init-db --fixtures` first.")
+            raise RuntimeError(f"User id={user_id} not found.")
         _require_id(user.id, what="user")
         return user
 
-    user = session.exec(select(User).where(User.id == user_id)).first()
-    if not user:
-        raise RuntimeError(f"User id={user_id} not found.")
-    _require_id(user.id, what="user")
-    return user
+    # otherwise pick first user, or create one if none exist (fixtures missing)
+    user = session.exec(select(User).order_by(col(User.id).asc())).first()
+    if user:
+        _require_id(user.id, what="user")
+        return user
+
+    # create a demo user so seeding works even without fixtures
+    demo = User(
+        name="Demo User [DEMO]",
+        host="imap.example.demo",
+        username="demo",
+        email="demo@remail.demo",
+        password="demo",
+        protocol="IMAP",
+        last_refresh=_now(),
+    )
+    session.add(demo)
+    session.flush()
+    _require_id(demo.id, what="user")
+    return demo
 
 
 def _upsert_contact(session: Session, spec: DemoContactSpec) -> Contact:
@@ -131,6 +164,9 @@ def _upsert_contact(session: Session, spec: DemoContactSpec) -> Contact:
     c = Contact(
         name=spec.name,
         email_address=spec.email,
+        first_name=None,
+        last_name=None,
+        contact_type=ContactType.PRIVATE,
         is_known=True,
     )
     session.add(c)
@@ -143,12 +179,21 @@ def _create_conversation_with_thread(
     session: Session,
     custom_name: str,
 ) -> tuple[Conversation, Thread]:
-    conv = Conversation(custom_name=custom_name)
+    conv = Conversation(
+        custom_name=custom_name,
+        is_favorite=False,
+        conversation_type=ConversationType.CONVERSATION,
+    )
     session.add(conv)
     session.flush()
     conv_id = _require_id(conv.id, what="conversation")
 
-    th = Thread(title=f"{custom_name} {DEMO_TAG}", conversation_id=conv_id)
+    th = Thread(
+        title=f"{custom_name} {DEMO_TAG}",
+        conversation_id=conv_id,
+        unread_count=0,
+        last_message_time=None,
+    )
     session.add(th)
     session.flush()
     _require_id(th.id, what="thread")
@@ -164,13 +209,7 @@ def _add_user_visibility(session: Session, user_id: int, conversation_id: int) -
         )
     ).first()
     if not link:
-        session.add(
-            UserConversation(
-                user_id=user_id,
-                conversation_id=conversation_id,
-                is_favorite=False,
-            )
-        )
+        session.add(UserConversation(user_id=user_id, conversation_id=conversation_id))
 
 
 def _add_participant(session: Session, conversation_id: int, contact_id: int) -> None:
@@ -181,12 +220,7 @@ def _add_participant(session: Session, conversation_id: int, contact_id: int) ->
         )
     ).first()
     if not link:
-        session.add(
-            ConversationContact(
-                conversation_id=conversation_id,
-                contact_id=contact_id,
-            )
-        )
+        session.add(ConversationContact(conversation_id=conversation_id, contact_id=contact_id))
 
 
 def _add_email(
@@ -195,31 +229,36 @@ def _add_email(
     thread_id: int,
     sender_id: int,
     sent_at: datetime,
-    subject: str,
     body: str,
     recipients: Iterable[int],
     message_id: str,
+    read: bool = False,
 ) -> None:
     email = Email(
+        imap_uid=None,
         message_id=message_id,
-        subject=subject,
         body=body,
         sent_at=sent_at,
         sender_id=sender_id,
         thread_id=thread_id,
+        deleted=False,
+        read=read,
     )
     session.add(email)
     session.flush()
     email_id = _require_id(email.id, what="email")
 
+    # update thread metadata (unread_count + last_message_time)
+    thread = session.get(Thread, thread_id)
+    if thread is not None:
+        # last_message_time can be None
+        if thread.last_message_time is None or sent_at > thread.last_message_time:
+            thread.last_message_time = sent_at
+        if not read:
+            thread.unread_count += 1
+
     for rid in recipients:
-        session.add(
-            EmailReception(
-                kind="TO",
-                email_id=email_id,
-                contact_id=rid,
-            )
-        )
+        session.add(EmailReception(kind="TO", email_id=email_id, contact_id=rid))
 
 
 def seed_demo_data(
@@ -263,12 +302,14 @@ def seed_demo_data(
                 sender_id = _require_id(sender.id, what="sender")
 
                 sent_at = base - timedelta(hours=(i * 7 + j * 3), minutes=(j * 11))
-                subject = f"{DEMO_TAG} Update {i + 1}-{j + 1}: UI test email"
+
+                # No subject in Email: keep info in body + thread title
                 body = (
-                    "This is a seeded demo email for UI testing.\n\n"
+                    f"{DEMO_TAG} Seeded demo email for UI testing.\n\n"
                     f"Conversation: {conv_name}\n"
                     f"Thread id: {th_id}\n"
                     f"Sent at: {sent_at.isoformat(sep=' ', timespec='minutes')}\n"
+                    f"Msg: Update {i + 1}-{j + 1}\n"
                 )
                 msg_id = f"{DEMO_MESSAGE_PREFIX}{user_id_int}-{i + 1}-{j + 1}"
 
@@ -279,10 +320,10 @@ def seed_demo_data(
                     thread_id=th_id,
                     sender_id=sender_id,
                     sent_at=sent_at,
-                    subject=subject,
                     body=body,
                     recipients=recipients,
                     message_id=msg_id,
+                    read=False,
                 )
 
         session.commit()

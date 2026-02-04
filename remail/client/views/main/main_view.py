@@ -107,6 +107,16 @@ def create_main_view(page: ft.Page, global_state: AppState):
     )
 
     # ----------------------------
+    # Safe update helper
+    # ----------------------------
+    def _safe_update(ctrl: ft.Control) -> None:
+        try:
+            ctrl.update()
+        except AssertionError:
+            # Control not added to the page yet (can happen during initial build)
+            pass
+
+    # ----------------------------
     # Observers
     # ----------------------------
     def _active_user_id() -> int | None:
@@ -125,7 +135,7 @@ def create_main_view(page: ft.Page, global_state: AppState):
                 if uid is not None
                 else empty_accounts_view
             )
-        right_view.update()
+        _safe_update(right_view)
 
     def on_chatbot_state_change(is_active: bool) -> None:
         if is_active:
@@ -179,7 +189,7 @@ def create_main_view(page: ft.Page, global_state: AppState):
     if not accounts:
         main_state.set(MainAppStateProperties.ACTIVE_USER, None)
         right_view.content = empty_accounts_view
-        right_view.update()
+        # NOTE: no right_view.update() here (container not added to page yet)
     else:
         for acc in accounts:
             main_state.account_controllers[acc.get_email_address()] = acc
@@ -200,6 +210,6 @@ def create_main_view(page: ft.Page, global_state: AppState):
             if uid is not None
             else empty_accounts_view
         )
-        right_view.update()
+        # NOTE: no right_view.update() here (container not added to page yet)
 
     return container

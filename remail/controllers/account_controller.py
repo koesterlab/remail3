@@ -6,7 +6,7 @@ from remail import errors as ee
 from remail.controllers import EmailController
 from remail.controllers.dtos.conversations import ContactDTO, ConversationDTO, ThreadPreviewDTO
 from remail.controllers.dtos.user_dto import UserDTO
-from remail.interfaces.email import ImapProtocol
+from remail.interfaces.email.protocols.imap import ImapException, ImapProtocol
 from remail.interfaces.email.services import (
     ConversationService,
     EmailParser,
@@ -25,73 +25,116 @@ class AccountController:
 
     @staticmethod
     def all_client_accounts() -> list["AccountController"]:
-        users = UserService().get_all_users()
+        users = UserService.get_all_users()
+        # With lazy IMAP connect, AccountController() no longer fails just because host is bad.
         return [AccountController(dto.id) for dto in users]
 
     @session
     def __init__(self, account_id: int):
         self.user_id = account_id
         self.user: UserDTO = UserService.get_user_by_id(account_id)
+
         password = UserService.get_user_password(self.user.username)
         if password is None:
             self._logger.warning("No stored password for %s", self.user.username)
+
+        # IMPORTANT: ImapProtocol is now lazy-connect; it won't connect until login().
         self.protocol: ImapProtocol = ImapProtocol(
-            username=self.user.username, password=password, host=self.user.host
-        )  # todo implement exchange option
+            username=self.user.username,
+            password=password,
+            host=self.user.host,
+        )
+
         self.sync_service = EmailSyncService(
-            protocol=self.protocol, email_parser=EmailParser(), user_id=self.user.id
+            protocol=self.protocol,
+            email_parser=EmailParser(),
+            user_id=self.user.id,
         )
         self.thread_service = ThreadService()
         self.user_service = UserService()
         self.conversation_service = ConversationService()
+
         self.callback: Callable[[Iterable[ConversationDTO]], None] = lambda _: None
         self.error_callback: Callable[[str], None] = lambda _: None
 
     @session
     def get_conversations(self) -> Iterable[ConversationDTO]:
-        """Returns all conversations from the users inbox"""
-        # re-sync via imap
-        self.sync_service.sync_emails()
+        """Returns all conversations (sync via IMAP if possible, otherwise DB-only)."""
 
-        # notify callback if something has changed
-        self._notify_callback()
+        # Try sync; if it fails, fall back to DB state.
+        try:
+            self.sync_service.sync_emails()
+        except ee.InvalidLoginData:
+            self._logger.warning("Invalid login for %s; DB-only mode", self.user.email)
+            self._notify_error("Invalid login credentials")
+        except (ImapException, OSError) as exc:
+            self._logger.warning("IMAP unavailable for %s; DB-only mode: %s", self.user.email, exc)
+            self._notify_error(f"IMAP unavailable (DB-only): {exc}")
+        except Exception as exc:
+            # Don't kill UI for unexpected sync issues
+            self._logger.exception("Sync failed for %s; DB-only mode", self.user.email)
+            self._notify_error(f"Sync failed (DB-only): {exc}")
 
-        # return all conversation DTOs
+        # notify callback if something has changed (only meaningful if sync succeeded)
+        try:
+            self._notify_callback()
+        except Exception:
+            # Never break the UI because change detection failed
+            self._logger.debug("check_for_changed_conversations failed", exc_info=True)
+
+        # return all conversation DTOs from DB
         conversations_data = self.conversation_service.get_all_conversations(self.user.id)
         return [self._conversation_to_dto(e) for e in conversations_data]
+
+    def _notify_error(self, msg: str) -> None:
+        """Forward sync errors to UI layer."""
+        self.error_callback(msg)
 
     def set_callback_email_changes(
         self, callback: Callable[[Iterable[ConversationDTO]], None]
     ) -> None:
-        """Registers a callback that is called every time when a Conversation is updated or new with the conversation"""
+        """Called when conversation updates are detected."""
         self.callback = callback
 
     def set_callback_email_errors(self, callback: Callable[[str], None]) -> None:
-        """Registers a callback that is called when background sync fails."""
+        """Called when background sync fails."""
         self.error_callback = callback
 
-    def _notify_callback(self):
+    def _notify_callback(self) -> None:
         changed = self.sync_service.check_for_changed_conversations()
         if len(changed) > 0:
             self.callback(changed)
 
-    def _notify_error(self, msg: str) -> None:
-        self.error_callback(msg)
+    async def start_listening(self) -> None:
+        """Starts background task to wait for email changes in IMAP idle mode."""
+        self._logger.info("Starting sync service for %s", self.user.email)
 
-    async def start_listening(self):
-        """Starts background task to wait for email changes in imap idle mode. Calls callback if something changes"""
+        # Always try to render UI from DB at least once
         try:
-            print("Starting sync service")
             self.callback(self.get_conversations())
-            print("First sync over")
+        except Exception:
+            # UI should still not die even if callback/view layer fails
+            self._logger.exception("Initial conversation callback failed for %s", self.user.email)
 
+        # Now try to enter IMAP idle loop; if it fails, just stop listening silently.
+        try:
             async for _ in self.sync_service.wait_for_mail_changes_async():
-                self._notify_callback()
+                try:
+                    self._notify_callback()
+                except Exception:
+                    self._logger.debug("notify callback failed", exc_info=True)
+
         except ee.InvalidLoginData:
             self._notify_error("Invalid login credentials")
+            self._logger.warning("Invalid login for %s; stop IMAP listening", self.user.email)
+
+        except (ImapException, OSError) as exc:
+            self._notify_error(f"IMAP connection failed: {exc}")
+            self._logger.warning("IMAP connection failed for %s; stop listening", self.user.email)
+
         except Exception as exc:
-            self._logger.exception("Background sync stopped for %s", self.user.email)
             self._notify_error(f"Sync stopped: {exc}")
+            self._logger.exception("Background sync stopped for %s", self.user.email)
 
     def get_email_address(self) -> str:
         return self.user.email
@@ -99,7 +142,7 @@ class AccountController:
     def get_plain_name(self) -> str:
         return self.user.name
 
-    def get_user(self):
+    def get_user(self) -> UserDTO:
         return self.user
 
     def get_email_controller(self) -> EmailController:
@@ -111,17 +154,20 @@ class AccountController:
 
     @session
     def _conversation_to_dto(self, conversation: Conversation) -> ConversationDTO:
-        threads = []
+        threads: list[ThreadPreviewDTO] = []
+
         for thread in conversation.threads:
             unread_count = 0
             total_count = 0
             latest_message = None
+
             for message in thread.messages:
                 if not message.read:
                     unread_count += 1
                 if not latest_message or message.sent_at > latest_message.sent_at:
                     latest_message = message
                 total_count += 1
+
             threads.append(
                 ThreadPreviewDTO(
                     thread_id=thread.id if thread.id is not None else -1,
