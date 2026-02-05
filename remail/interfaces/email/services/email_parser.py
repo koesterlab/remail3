@@ -30,7 +30,7 @@ class EmailParser:
         self.thread_service = ThreadService()
 
     @session
-    def parse_mail(self, mail_data:dict, imap_uid: int, session:Session) -> tuple[bool, Email]:
+    def parse_mail(self, mail_data:dict, imap_uid: int, session:Session) -> tuple[bool, int]:
         """
         Parses the mail from raw imap data. Updates an existing entry or creates a new one (with thread and conversation if necessary)
 
@@ -39,14 +39,16 @@ class EmailParser:
             imap_uid: the imap uid of the mail (not included in the data!)
             session: DB Session with @session
         """
-        msg_id = message_from_bytes(mail_data[b"BODY[]"]).get("Message-ID").strip().lower()
+        msg_id = message_from_bytes(mail_data[b"BODY[]"]).get("Message-ID")
         if not msg_id:
             raise ValueError("Emails without message-id cannot be processed")
+        msg_id = msg_id.strip().lower()
         existing = session.exec(select(Email).where(Email.message_id == msg_id)).first()
         if existing:
-            return self._update_mail_data(existing, mail_data)
+            changed, mail = self._update_mail_data(existing, mail_data)
+            return changed, mail.id
         else:
-            return True, self.process_new_email(mail_data, imap_uid)
+            return True, self.process_new_email(mail_data, imap_uid).id
 
     @session
     def _update_mail_data(self, existing:Email, mail_data:dict) -> tuple[bool,Email]:

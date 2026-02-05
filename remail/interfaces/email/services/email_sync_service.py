@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 from sqlmodel import Session, col, select
 
 from remail.enums import Protocol
+from remail.interfaces.email.services import EmailParser
 from remail.interfaces.email import EmailProtocol, ImapProtocol
 from remail.models import (
     Email,
@@ -69,13 +70,13 @@ class EmailSyncService:
             try:
                 changed, mail = self.email_parser.parse_mail(data, uid)
                 if changed:
-                    self.changed_mails.append(mail.id)
+                    self.changed_mails.append(mail)
                     synced_count += 1
                 else:
                     skipped_count += 1
             except ValueError as v:
                 pass
-
+        self._save_connection_data()
         return {
             "status": "success",
             "message": f"Synced {synced_count} email(s), skipped {skipped_count} duplicate(s)",
@@ -83,17 +84,21 @@ class EmailSyncService:
             "skipped_count": skipped_count,
         }
 
-    async def wait_for_mail_changes_async(self) -> AsyncGenerator[None, None]:
+    @session
+    async def wait_for_mail_changes_async(self, session:Session) -> AsyncGenerator[None, None]:
         async for mails in self.protocol.wait_for_changes():
             changed = False
             for uid, data in mails.items():
                 changed_mail, mail = self.email_parser.parse_mail(data, uid)
                 if changed_mail:
                     changed = True
-                    self.changed_mails.append(mail.id)
+                    self.changed_mails.append(mail)
             if changed:
                 yield None
 
+    @session
+    def _save_connection_data(self, session:Session):
+        session.get(User, self.user_id).connection = self.protocol.serialize()
 
     @session
     def _email_exists(self, message_id: str, session: Session) -> bool:

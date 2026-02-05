@@ -6,7 +6,8 @@ from remail import errors as ee
 from remail.controllers import EmailController
 from remail.controllers.dtos.conversations import ContactDTO, ConversationDTO, ThreadPreviewDTO
 from remail.controllers.dtos.user_dto import UserDTO
-from remail.enums import ConversationType
+from remail.enums import ConversationType, Protocol
+from remail.interfaces.email import EmailProtocol
 from remail.interfaces.email.services import (
     ConversationService,
     EmailParser,
@@ -15,7 +16,7 @@ from remail.interfaces.email.services import (
 )
 from remail.interfaces.email.services.contact_service import ContactService
 from remail.interfaces.email.services.user_service import UserService
-from remail.models import Conversation
+from remail.models import Conversation, Thread
 from remail.utils.session_management import session
 
 
@@ -29,13 +30,16 @@ class AccountController:
         users = UserService().get_all_users()
         return [AccountController(dto.id) for dto in users]
 
+    @staticmethod
+    def create_new_account(clearname:str, email:str, connection:EmailProtocol, method: Protocol):
+        if not connection.test_connection():
+            raise ValueError("Creating account with invalid credentials")
+        UserService().add_user(email, clearname, method, connection)
+
     @session
     def __init__(self, account_id: int):
         self.user_id = account_id
         self.user: UserDTO = UserService.get_user_by_id(account_id)
-        password = UserService.get_user_password(self.user.username)
-        if password is None:
-            self._logger.warning("No stored password for %s", self.user.username)
         self.sync_service = EmailSyncService(user_id=self.user.id)
         self.thread_service = ThreadService()
         self.user_service = UserService()
@@ -67,10 +71,11 @@ class AccountController:
         """Registers a callback that is called when background sync fails."""
         self.error_callback = callback
 
+    @session
     def _notify_callback(self):
-        changed = self.sync_service.check_for_changed_threads()
+        changed: list[Thread] = self.sync_service.check_for_changed_threads()
         if len(changed) > 0:
-            self.callback(changed)
+            self.callback(ConversationDTO.from_model(c.conversation) for c in changed)
 
     def _notify_error(self, msg: str) -> None:
         self.error_callback(msg)

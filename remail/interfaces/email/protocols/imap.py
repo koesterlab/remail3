@@ -29,7 +29,7 @@ class ImapProtocol(EmailProtocol):
         smtp_password: str | None = None,
         smtp_host: str | None = None,
         smtp_port: int | None = 587,
-        smtp_method: AuthMethods | None = AuthMethods.ENCRYPTED_PASSWORD,
+        smtp_method: AuthMethods | None = AuthMethods.PASSWORD,
         smtp_security: ConnectionSecurity | None = ConnectionSecurity.SSL_TLS,
         serialized: str = None,
         fields_to_fetch: list[str] = (
@@ -226,6 +226,7 @@ class ImapProtocol(EmailProtocol):
         import json
         return json.dumps({
             "imap_username": self.imap_username,
+            "imap_password": self.imap_password,
             "imap_host": self.imap_host,
             "imap_port": self.imap_port,
             "imap_method": self.imap_method.name,
@@ -244,6 +245,7 @@ class ImapProtocol(EmailProtocol):
         import json
         data = json.loads(string)
         self.imap_username = data["imap_username"]
+        self.imap_password = data["imap_password"]
         self.imap_host = data["imap_host"]
         self.imap_port = data["imap_port"]
         self.imap_method = AuthMethods[data["imap_method"]]

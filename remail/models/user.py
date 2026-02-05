@@ -24,7 +24,6 @@ class User(SQLModel, table=True):
     protocol: Protocol = Field(
         sa_column=sqlalchemy.Column(sqlalchemy.Enum(Protocol), nullable=False)
     )
-    last_refresh: datetime = Field(default=datetime.min)
     connection: str = Field(default="{}")
 
     # Many-to-many relationship with conversations
