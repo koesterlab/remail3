@@ -10,9 +10,81 @@ from remail.interfaces.email.services.user_service import UserService
 def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Container:
     """Create the email accounts settings view."""
 
+    def show_snackbar(message, color):
+        snack_bar = ft.SnackBar(ft.Text(message), bgcolor=color)
+        page.overlay.append(snack_bar)
+        snack_bar.open = True
+        page.update()
+
+    def close_dialog(dlg):
+        dlg.open = False
+        page.update()
+
+    def on_smpt_settings(e):
+        dlg = ft.AlertDialog(
+            title=ft.Text("Advanced SMPT Settings"),
+            content=ft.Container(
+                content=ft.Column(
+                    [
+                        ft.TextField(label="Username", hint_text="Enter your smpt username"),
+                        ft.TextField(label="Password", hint_text="Enter your smpt password"),
+                        ft.TextField(label="Port", hint_text="587"),
+                    ],
+                    scroll=ft.ScrollMode.AUTO,
+                ),
+                width=280,
+                height=200,
+            ),
+            actions=[
+                ft.TextButton("Cancel", on_click=lambda e: close_dialog(dlg)),
+                ft.TextButton(
+                    "Save",
+                    on_click=lambda e: (
+                        show_snackbar("SMPT settings saved!", ft.Colors.GREEN_400),
+                        close_dialog(dlg),
+                    ),
+                ),
+            ],
+        )
+        page.overlay.append(dlg)
+        dlg.open = True
+        page.update()
+
+    def on_imap_settings(e):
+        dlg = ft.AlertDialog(
+            title=ft.Text("Advanced IMAP Settings"),
+            content=ft.Container(
+                content=ft.Column(
+                    [
+                        ft.TextField(label="Username", hint_text="Enter your imap username"),
+                        ft.TextField(label="Password", hint_text="Enter your imap password"),
+                        ft.TextField(label="Port", hint_text="993"),
+                    ],
+                    scroll=ft.ScrollMode.AUTO,
+                ),
+                width=280,
+                height=200,
+            ),
+            actions=[
+                ft.TextButton("Cancel", on_click=lambda e: close_dialog(dlg)),
+                ft.TextButton(
+                    "Save",
+                    on_click=lambda e: (
+                        show_snackbar("IMAP settings saved!", ft.Colors.GREEN_400),
+                        close_dialog(dlg),
+                    ),
+                ),
+            ],
+        )
+        page.overlay.append(dlg)
+        dlg.open = True
+        page.update()
+
     start_text = ft.Text("No accounts connected yet")
     input_panel = ft.Container()
-    username_input = ft.TextField(label="Username", hint_text="Enter your username", width=300)
+    email_input = ft.TextField(
+        label="Email address", hint_text="Enter your email address", width=300
+    )
     password_input = ft.TextField(
         label="Password",
         hint_text="Enter your password",
@@ -20,7 +92,28 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
         can_reveal_password=True,
         width=300,
     )
-    host_input = ft.TextField(label="Host", hint_text="Enter your host name", width=300)
+
+    imap_host_input = ft.TextField(
+        label="IMAP Host",
+        hint_text="Enter your imap host name",
+        width=300,
+        suffix=ft.IconButton(
+            icon=ft.Icons.SETTINGS,
+            tooltip="Settings",
+            on_click=on_imap_settings,
+        ),
+    )
+    # NO impletmentation in Backend check EmailController, class User, Database
+    smpt_host_input = ft.TextField(
+        label="SMPT Host",
+        hint_text="Enter your smpt host name",
+        width=300,
+        suffix=ft.IconButton(
+            icon=ft.Icons.SETTINGS,
+            tooltip="Settings",
+            on_click=on_smpt_settings,
+        ),
+    )
 
     if app_state.connected_emails:
         start_text.visible = False
@@ -43,9 +136,10 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
         input_panel.content = ft.Column(
             [
                 ft.Text("Add Email Account", size=16, weight=ft.FontWeight.BOLD),
-                username_input,
+                email_input,
                 password_input,
-                host_input,
+                imap_host_input,
+                smpt_host_input,
                 ft.Row(
                     [
                         ft.OutlinedButton("Connect", icon=ft.Icons.CHECK, on_click=connect_account),
@@ -61,32 +155,34 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
         page.update()
 
     def connect_account(e):
-        if not username_input.value or not password_input.value or not host_input.value:
+        if not email_input.value or not password_input.value or not imap_host_input.value:
             show_snackbar("Please fill in all fields", ft.Colors.RED_400)
 
             return
 
-        if username_input.value in [user.username for user in app_state.connected_emails]:
+        if email_input.value in [user.username for user in app_state.connected_emails]:
             show_snackbar("This account is already connected", ft.Colors.ORANGE_400)
 
             return
 
-        username = username_input.value
+        username = email_input.value
 
         try:
             show_snackbar("Connecting...", ft.Colors.BLUE_400)
 
             controller = EmailController(
-                username=username_input.value, password=password_input.value, host=host_input.value
+                username=email_input.value,
+                password=password_input.value,
+                host=imap_host_input.value,
             )
             result = controller.login()
 
             if result["status"] == "success":
                 try:
                     UserService.add_user(
-                        username=username_input.value,
+                        username=email_input.value,
                         password=password_input.value,
-                        host=host_input.value,
+                        host=imap_host_input.value,
                     )
 
                     show_snackbar("Connected and saved!", ft.Colors.GREEN_400)
@@ -149,9 +245,10 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
 
         create_connected_email_accounts.content.controls.insert(-2, new_account)
 
-        username_input.value = ""
+        email_input.value = ""
         password_input.value = ""
-        host_input.value = ""
+        imap_host_input.value = ""
+        smpt_host_input.value = ""
 
         input_panel.content = None
         add_button.visible = True
@@ -179,20 +276,13 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
         return handler
 
     def cancel_add(e):
-        username_input.value = ""
+        email_input.value = ""
         password_input.value = ""
-        host_input.value = ""
+        imap_host_input.value = ""
+        smpt_host_input.value = ""
 
         input_panel.content = None
         add_button.visible = True
-        page.update()
-
-    def show_snackbar(message, color):
-        snack_bar = ft.SnackBar(ft.Text(message), bgcolor=color)
-
-        page.overlay.append(snack_bar)
-
-        snack_bar.open = True
         page.update()
 
     add_button = ft.Container(
@@ -216,10 +306,12 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
                 input_panel,
             ],
             spacing=15,
+            scroll=ft.ScrollMode.AUTO,
         ),
         padding=20,
         border_radius=10,
         alignment=ft.alignment.center_left,
+        expand=True,
     )
 
     for user in app_state.connected_emails:

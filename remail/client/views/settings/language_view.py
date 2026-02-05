@@ -73,8 +73,10 @@ def create_language_view(page: ft.Page, app_state: AppState) -> ft.Container:
                 ),
             ],
             spacing=15,
+            scroll=ft.ScrollMode.AUTO,
         ),
         padding=20,
         border_radius=10,
         alignment=ft.alignment.center_left,
+        expand=True,
     )
