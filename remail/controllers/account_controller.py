@@ -6,13 +6,14 @@ from remail import errors as ee
 from remail.controllers import EmailController
 from remail.controllers.dtos.conversations import ContactDTO, ConversationDTO, ThreadPreviewDTO
 from remail.controllers.dtos.user_dto import UserDTO
-from remail.interfaces.email import ImapProtocol
+from remail.enums import ConversationType
 from remail.interfaces.email.services import (
     ConversationService,
     EmailParser,
     EmailSyncService,
     ThreadService,
 )
+from remail.interfaces.email.services.contact_service import ContactService
 from remail.interfaces.email.services.user_service import UserService
 from remail.models import Conversation
 from remail.utils.session_management import session
@@ -35,15 +36,11 @@ class AccountController:
         password = UserService.get_user_password(self.user.username)
         if password is None:
             self._logger.warning("No stored password for %s", self.user.username)
-        self.protocol: ImapProtocol = ImapProtocol(
-            username=self.user.username, password=password, host=self.user.host
-        )  # todo implement exchange option
-        self.sync_service = EmailSyncService(
-            protocol=self.protocol, email_parser=EmailParser(), user_id=self.user.id
-        )
+        self.sync_service = EmailSyncService(user_id=self.user.id)
         self.thread_service = ThreadService()
         self.user_service = UserService()
         self.conversation_service = ConversationService()
+        self.contact_service = ContactService()
         self.callback: Callable[[Iterable[ConversationDTO]], None] = lambda _: None
         self.error_callback: Callable[[str], None] = lambda _: None
 
@@ -71,7 +68,7 @@ class AccountController:
         self.error_callback = callback
 
     def _notify_callback(self):
-        changed = self.sync_service.check_for_changed_conversations()
+        changed = self.sync_service.check_for_changed_threads()
         if len(changed) > 0:
             self.callback(changed)
 
@@ -107,6 +104,17 @@ class AccountController:
             raise ValueError("Missing protocol credentials")
         return EmailController(
             self.protocol.user_username, self.protocol.user_password, self.protocol.host
+        )
+
+    @session
+    def create_conversation(self, contacts: list[ContactDTO]):
+        return ConversationDTO.from_model(
+            self.conversation_service.create_conversation(
+                conversation_type=ConversationType.GROUP,
+                contacts=[self.contact_service.get_contact_by_id(c.id) for c in contacts],
+                custom_name=None,
+                user=self.user_service.get_user_by_id(self.user_id),
+            )
         )
 
     @session

@@ -1,3 +1,5 @@
+from .auth_methods import AuthMethods
+from .connection_security import ConnectionSecurity
 from .contact_type import ContactType
 from .conversation_type import ConversationType
 from .font_family import FontFamily
@@ -24,4 +26,6 @@ __all__ = [
     "ThemeMode",
     "Timezone",
     "UserAccountCategory",
+    "ConnectionSecurity",
+    "AuthMethods"
 ]

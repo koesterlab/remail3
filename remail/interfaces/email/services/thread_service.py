@@ -34,7 +34,7 @@ class ThreadService:
         self.engine = engine
 
     @session
-    def get_thread_by_id(self, thread_id: int, session: Session) -> ThreadDTO | None:
+    def get_thread_by_id(self, thread_id: int, session: Session) -> Thread | None:
         """
         Fetch a thread with all its messages.
 
@@ -45,10 +45,7 @@ class ThreadService:
             ThreadDTO with thread data including messages, or None if not found
         """
 
-        thread = session.get(Thread, thread_id)
-        if not thread:
-            return None
-        return ThreadDTO.from_model(thread)
+        return session.get(Thread, thread_id)
 
     def create_thread(self, title: str, conversation_id: int) -> Thread:
         """

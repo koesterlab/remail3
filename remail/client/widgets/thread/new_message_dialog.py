@@ -75,15 +75,12 @@ def create_new_message_dialog(state: MainAppState) -> ft.Container:
         message = input_field.value
 
         # send
-        controller = EmailController.from_id(state.get(MainAppStateProperties.ACTIVE_USER).id)
         if conversation.id < 0:  # creating new conversation
-            controller.send_email_new_conversation(
-                [c.id for c in conversation.contacts], thread.title, message, None
-            )
+            conversation = state.get_active_email_account().create_conversation(conversation.contacts)
+            thread = state.thread_controller.create_thread(conversation, thread.title)
         elif thread.id < 0:
-            controller.send_email_new_thread(thread.title, message, conversation.id, None)
-        else:
-            controller.send_email(thread.title, message, None, thread.id)
+            thread = state.thread_controller.create_thread(conversation, thread.title)
+        state.thread_controller.send_message(thread, message, [])
 
         # clear
         state.set(MainAppStateProperties.DRAFT, "")
