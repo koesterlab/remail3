@@ -3,6 +3,7 @@
 import logging
 
 import keyring
+from sqlalchemy.sql.functions import func
 from sqlmodel import Session, select
 from werkzeug.security import generate_password_hash
 
@@ -10,6 +11,7 @@ from remail.controllers.dtos.user_dto import UserDTO
 from remail.database.db import engine
 from remail.enums import Protocol
 from remail.interfaces.email import EmailProtocol
+from remail.models import UserConversation, Thread
 from remail.models.user import User
 from remail.utils.session_management import session
 
@@ -23,7 +25,7 @@ class UserService:
 
     @staticmethod
     @session
-    def count_unread(user: User) -> int:
+    def count_unread(user: User, session:Session) -> int:
         """
         Count unread conversations for a user.
 
@@ -33,8 +35,8 @@ class UserService:
         Returns:
             Number of unread conversations (placeholder, implement later)
         """
-        # TODO: Implement actual unread count from UserConversation
-        return 0
+        user = session.get(User, user.id)
+        return len([t for c in user.conversations for t in c.threads if t.unread_count > 0])
 
     @staticmethod
     def user_to_dto(user: User) -> UserDTO:
@@ -53,65 +55,14 @@ class UserService:
 
     @staticmethod
     @session
-    def get_user_by_id(user_id: int, session: Session) -> UserDTO | None:
-        user = session.get(User, user_id)
-        if not user:
-            return None
-        return UserService.user_to_dto(user)
+    def get_user_by_id(user_id: int, session: Session) -> User | None:
+        return session.get(User, user_id)
 
     @staticmethod
-    def get_user_by_username(username: str) -> User | None:
-        """
-        Get user by username.
-
-        Args:
-            username: Username to search for
-
-        Returns:
-            User object if found, None otherwise
-        """
-        with Session(engine) as session:
-            statement = select(User).where(User.username == username)
-            return session.exec(statement).first()
-
-    @staticmethod
-    def get_user_by_email(email: str) -> User | None:
+    @session
+    def get_user_by_email(email: str, session:Session) -> User | None:
         """Backward-compatible alias for username lookup."""
-        return UserService.get_user_by_username(email)
-
-    @staticmethod
-    def _is_hashed_password(value: str) -> bool:
-        return value.startswith(("pbkdf2:", "scrypt:", "argon2:"))
-
-    @staticmethod
-    def get_user_password(username: str) -> str | None:
-        """
-        Retrieve the raw password from keyring. If the database still has a
-        legacy plaintext password, migrate it to a hash.
-        """
-        stored = keyring.get_password(_KEYRING_SERVICE, username)
-
-        with Session(engine) as session:
-            user = session.exec(select(User).where(User.username == username)).first()
-
-            if user and user.password and not UserService._is_hashed_password(user.password):
-                raw_password = stored or user.password
-
-                if not stored:
-                    try:
-                        keyring.set_password(_KEYRING_SERVICE, username, raw_password)
-                    except Exception as exc:
-                        _logger.warning(
-                            "Failed to store password in keyring for %s: %s", username, exc
-                        )
-
-                user.password = generate_password_hash(raw_password)
-                session.add(user)
-                session.commit()
-
-                return raw_password
-
-        return stored
+        return session.exec(select(User).where(User.email == email)).first()
 
     @staticmethod
     @session

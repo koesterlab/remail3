@@ -50,7 +50,7 @@ class EmailSyncService:
             raise NotImplementedError("Fetching with exchange accounts not implemented")
 
     @session
-    def sync_emails(self, session: Session, new_only = True) -> dict:
+    def sync_emails(self, session: Session, new_only = True) -> None:
         """
         Sync emails from IMAP server to database.
 
@@ -77,12 +77,6 @@ class EmailSyncService:
             except ValueError as v:
                 pass
         self._save_connection_data()
-        return {
-            "status": "success",
-            "message": f"Synced {synced_count} email(s), skipped {skipped_count} duplicate(s)",
-            "synced_count": synced_count,
-            "skipped_count": skipped_count,
-        }
 
     @session
     async def wait_for_mail_changes_async(self, session:Session) -> AsyncGenerator[None, None]:

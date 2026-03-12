@@ -2,28 +2,20 @@ from sqlmodel import Session, select
 
 from remail.database.db import engine
 from remail.models.settings import Settings
+from remail.utils.session_management import session
 
 
 class SettingsService:
     @staticmethod
-    def init_settings() -> Settings:
+    @session
+    def __init_settings(self, session: Session) -> Settings:
         """
-        Initialize settings table and ensure default row exists.
-
-        Creates the settings table if it doesn't exist and inserts a default
-        settings row with id=1 if no settings exist yet.
+        Creates new settings row in db
 
         Returns:
             The settings row (either existing or newly created).
         """
-
-        with Session(engine) as session:
-            statement = select(Settings).where(Settings.id == 1)
-            existing = session.exec(statement).first()
-
-            if not existing:
-                # Create default settings
-                default_settings = Settings(
+        default_settings = Settings(
                     id=1,
                     theme_mode="system",
                     font_size="medium",
@@ -34,83 +26,44 @@ class SettingsService:
                     email_notifications=True,
                     quiet_hours=False,
                 )
-                session.add(default_settings)
-                session.commit()
-                session.refresh(default_settings)
-                return default_settings
-
-            return existing
+        session.add(default_settings)
+        session.commit()
+        session.refresh(default_settings)
+        return default_settings
 
     @staticmethod
-    def load_settings() -> Settings | None:
+    @session
+    def load_settings(self, session:Session) -> Settings:
         """
-        Load settings for id=1.
+        Load settings with lowest id.
 
         Returns:
-            Settings object if found, None otherwise.
+            Settings object (new or existing)
         """
-
-        with Session(engine) as session:
-            statement = select(Settings).where(Settings.id == 1)
-
-            return session.exec(statement).first()
+        while True:
+            settings = session.exec(select(Settings).order_by(Settings.id)).first()
+            if settings:
+                return settings
+            self.__init_settings(session)
 
     @staticmethod
+    @session
     def save_settings(
-        theme_mode: str | None = None,
-        font_size: str | None = None,
-        font_family: str | None = None,
-        language: str | None = None,
-        timezone: str | None = None,
-        desktop_notifications: bool | None = None,
-        email_notifications: bool | None = None,
-        quiet_hours: bool | None = None,
-    ) -> Settings:
+        settings: Settings,
+        session: Session,
+    ) -> None:
         """
         Update settings for id=1.
 
         Args:
-            theme_mode: Theme mode (light/dark/system)
-            font_size: Font size (small/medium/large)
-            font_family: Font family name
-            language: Language code
-            timezone: Timezone string
-            desktop_notifications: Whether desktop notifications are enabled
-            email_notifications: Whether email notifications are enabled
-            quiet_hours: Whether quiet hours mode is enabled
-
-        Returns:
-            Updated Settings object
+            settings: Settings object, can be from another db session
+            session: Database session
         """
-
-        with Session(engine) as session:
-            statement = select(Settings).where(Settings.id == 1)
-            settings = session.exec(statement).first()
-
-            if not settings:
-                # This shouldn't happen if init_settings was called, but handle it
-                settings = Settings(id=1)
-                session.add(settings)
-
-            if theme_mode is not None:
-                settings.theme_mode = theme_mode
-            if font_size is not None:
-                settings.font_size = font_size
-            if font_family is not None:
-                settings.font_family = font_family
-            if language is not None:
-                settings.language = language
-            if timezone is not None:
-                settings.timezone = timezone
-            if desktop_notifications is not None:
-                settings.desktop_notifications = desktop_notifications
-            if email_notifications is not None:
-                settings.email_notifications = email_notifications
-            if quiet_hours is not None:
-                settings.quiet_hours = quiet_hours
-
+        settings.id = 1
+        db_obj = session.get(Settings, session.get(Settings, 1).id)
+        if db_obj:
+            session.merge(settings)
+        else:
             session.add(settings)
-            session.commit()
-            session.refresh(settings)
-
-            return settings
+        session.commit()
+        session.refresh(settings)

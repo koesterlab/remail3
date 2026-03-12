@@ -11,8 +11,6 @@ from imapclient import IMAPClient
 from remail.enums.auth_methods import AuthMethods
 from remail.enums.connection_security import ConnectionSecurity
 from remail.interfaces.email import EmailProtocol
-from remail.models.email import Email  # angenommen, dein Email-Datentyp
-
 
 class ImapProtocol(EmailProtocol):
     """IMAP/SMTP email protocol implementation."""

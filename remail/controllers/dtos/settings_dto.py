@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from remail.utils.session_management import session
+
 
 @dataclass(slots=True)
 class SettingsDTO:
@@ -20,6 +22,7 @@ class SettingsDTO:
     quiet_hours: bool
 
     @classmethod
+    @session
     def from_model(cls, settings) -> SettingsDTO:
         """
         Create DTO from Settings model.

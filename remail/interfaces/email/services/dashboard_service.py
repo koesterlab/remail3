@@ -18,6 +18,7 @@ from remail.models.user_conversation import UserConversation
 class DashboardService:
     """
     Data access layer for the Dashboard.
+    We should delete this Service and redistribute functions on other services.
 
     Notes:
     - We do NOT have a dedicated "appointments" table in the DB yet.

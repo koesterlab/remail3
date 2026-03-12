@@ -22,35 +22,16 @@ class ConversationService:
         self.engine = engine
 
     @session
-    def get_all_conversations(self, user_id: int, session: Session) -> list[Conversation]:
-        """
-        Fetch all conversations with their contacts for a specific user.
-
-        Args:
-            user_id: User ID to fetch conversations for
-
-        Returns:
-            List of conversation dictionaries with contacts and favorite status
-        """
-        user = session.get(User, user_id)  #
-        if not user:
-            return []
-        return user.conversations
-
-    @session
     def get_conversation_by_id(
         self,
         conversation_id: int,
         session: Session,
-        user_id: int | None = None,
-    ) -> dict | None:
+    ) -> Conversation:
         """
         Fetch a single conversation with its contacts.
 
         Args:
             conversation_id: Conversation ID to fetch
-            user_id: Optional user ID to include favorite status
-
         Returns:
             Conversation dictionary with contacts and favorite status, or None if not found
         """
@@ -58,7 +39,7 @@ class ConversationService:
         conversation = session.get(Conversation, conversation_id)
         if not conversation:
             raise ValueError(f"Conversation with id {conversation_id} not found")
-        return self._build_conversation_dict(conversation, conversation.contacts)
+        return conversation
 
     @session
     def create_conversation(
@@ -91,47 +72,6 @@ class ConversationService:
         session.add(new_conversation)
 
         return new_conversation
-
-    def _build_conversation_dict(self, conversation: Conversation, contacts: list[Contact]) -> dict:
-        """
-        Build a conversation dictionary with all related data.
-
-        Args:
-            conversation: Conversation model instance
-            contacts: List of Contact model instances
-
-        Returns:
-            Dictionary with conversation data including contacts and favorite status
-        """
-        contacts_data = [self._build_contact_dict(contact) for contact in contacts]
-
-        return {
-            "id": conversation.id,
-            "contacts": contacts_data,
-            "custom_name": conversation.custom_name,
-            "type": conversation.type.value,
-            "is_favorite": conversation.is_favorite,
-        }
-
-    @staticmethod
-    def _build_contact_dict(contact: Contact) -> dict:
-        """
-        Build a contact dictionary.
-
-        Args:
-            contact: Contact model instance
-
-        Returns:
-            Dictionary with contact data
-        """
-        return {
-            "id": contact.id,
-            "first_name": contact.first_name or "",
-            "last_name": contact.last_name or "",
-            "email": contact.email_address,
-            "is_known": contact.is_known,
-            "type": contact.contact_type.value,
-        }
 
     @session
     def get_conversation_by_members(

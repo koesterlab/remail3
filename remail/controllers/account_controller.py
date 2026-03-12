@@ -39,7 +39,8 @@ class AccountController:
     @session
     def __init__(self, account_id: int):
         self.user_id = account_id
-        self.user: UserDTO = UserService.get_user_by_id(account_id)
+        user = UserService.get_user_by_id(account_id)
+        self.user: UserDTO = UserDTO.get_from_model(user, UserService.count_unread(user))
         self.sync_service = EmailSyncService(user_id=self.user.id)
         self.thread_service = ThreadService()
         self.user_service = UserService()
@@ -58,8 +59,7 @@ class AccountController:
         self._notify_callback()
 
         # return all conversation DTOs
-        conversations_data = self.conversation_service.get_all_conversations(self.user.id)
-        return [self._conversation_to_dto(e) for e in conversations_data]
+        return [self._conversation_to_dto(e) for e in self.user_service.get_user_by_id(self.user_id).conversations]
 
     def set_callback_email_changes(
         self, callback: Callable[[Iterable[ConversationDTO]], None]

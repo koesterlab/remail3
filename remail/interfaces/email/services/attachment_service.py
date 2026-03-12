@@ -1,16 +1,21 @@
 import os
 
+from sqlmodel import Session
 from werkzeug.utils import secure_filename
 
+from remail.models import Email
+from remail.utils.session_management import session
 
-def save_attachment(filename: str, content: bytes, message_id: str) -> str:
+
+@session
+def save_attachment(filename: str, content: bytes, message: Email, session: Session) -> str:
     """
     Safely save an email attachment to disk.
 
     Args:
         filename: Original filename
         content: File content as bytes
-        message_id: Email message ID (used for directory organization)
+        message: Owning Email message
 
     Returns:
         Absolute path to saved file
@@ -21,7 +26,7 @@ def save_attachment(filename: str, content: bytes, message_id: str) -> str:
     """
 
     attachments_dir = os.path.abspath(os.path.join("remail", "database", "attachments"))
-    message_dir = os.path.join(attachments_dir, secure_filename(message_id).replace(".", "_"))
+    message_dir = os.path.join(attachments_dir, secure_filename(message.message_id).replace(".", "_"))
     max_size = 200 * 1024 * 1024  # 200 MB limit
 
     if len(content) > max_size:
