@@ -39,28 +39,29 @@ class ThreadController:
         return self.service.get_most_important_threads(count=count)  # type:ignore
 
     @session
-    def create_thread(self, conversation: ConversationDTO, name: str)->ThreadDTO:
+    def create_thread(self, conversation_id, name: str)->ThreadDTO:
         """
         Creates a thread in the local database. Note that it is only "synced" with other clients if a mail is sent
 
         Args:
-              conversation: The DTO of the conversation the thread belongs to
+              conversation_id: The Id of the conversation the thread belongs to
               name: Name of the new thread
         """
 
-        return ThreadDTO.from_model(self.service.create_thread(name, conversation.id))
+        return ThreadDTO.from_model(self.service.create_thread(name, conversation_id))
 
     @session
-    def send_message(self, thread: ThreadDTO, message: str, attachment: list[Any]):
+    def send_message(self, thread_id, message: str, attachment: list[Any]):
         """
         Sends a message to a given thread
 
         Args:
-            thread: The corresponding thread
+            thread_id: The Id of the corresponding thread
             message: The message to send
             attachment: NOT IMPLEMENTED - a list of attachments - just here to remember todo
         """
-        user = self.service.get_thread_by_id(thread.id).conversation.users[0]
+        thread = self.service.get_thread_by_id(thread_id)
+        user = thread.conversation.users[0]
         protocol = ImapProtocol(serialized=user.connection)
         protocol.send_email(
             sender=(user.name, user.email),

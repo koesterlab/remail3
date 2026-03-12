@@ -3,6 +3,8 @@
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+import flet
+
 from remail.client.views.view_router import ViewRouter
 from remail.controllers.dtos.user_dto import UserDTO
 from remail.enums import (
@@ -38,7 +40,7 @@ class AppState:
         email_schedulers: Dictionary mapping usernames to their schedulers
     """
 
-    theme_mode: ThemeMode = ThemeMode.SYSTEM
+    theme_mode: ThemeMode = flet.ThemeMode.SYSTEM
     font_size: FontSize = FontSize.MEDIUM
     font_family: FontFamily = FontFamily.ARIAL
     language: Language = Language.ENGLISH

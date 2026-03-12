@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from remail.utils.session_management import session
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, frozen=False)
 class SettingsDTO:
     """DTO for application settings."""
 

@@ -9,7 +9,7 @@ from remail.client.widgets.settings.appearance import (
     create_theme_selector,
 )
 from remail.controllers import SettingsController
-from remail.enums import ThemeMode
+from remail.controllers.dtos import SettingsDTO
 
 
 def create_appearance_view(page: ft.Page, app_state: AppState) -> ft.Container:
@@ -24,61 +24,50 @@ def create_appearance_view(page: ft.Page, app_state: AppState) -> ft.Container:
     """
 
     controller = SettingsController()
-    current_settings = controller.get_settings()
+    settings_data: SettingsDTO = controller.get_settings()
 
     theme_selector = create_theme_selector(page, app_state)
     font_size_selector = create_font_size_selector(page, app_state)
     font_family_selector = create_font_family_selector(page, app_state)
 
     # Load saved settings into UI controls
-    if current_settings:
-        # Set theme
-        if hasattr(theme_selector.controls[1], "value"):
-            theme_selector.controls[1].value = current_settings.theme_mode
+    # Set theme
+    if hasattr(theme_selector.controls[1], "value"):
+        theme_selector.controls[1].value = settings_data.theme_mode
 
-        # Set font size if available
-        if len(font_size_selector.controls) > 1 and hasattr(
-            font_size_selector.controls[1], "value"
-        ):
-            font_size_selector.controls[1].value = current_settings.font_size
+    # Set font size if available
+    if len(font_size_selector.controls) > 1 and hasattr(
+        font_size_selector.controls[1], "value"
+    ):
+        font_size_selector.controls[1].value = settings_data.font_size
 
-        # Set font family if available
-        if len(font_family_selector.controls) > 1 and hasattr(
-            font_family_selector.controls[1], "value"
-        ):
-            font_family_selector.controls[1].value = current_settings.font_family
+    # Set font family if available
+    if len(font_family_selector.controls) > 1 and hasattr(
+        font_family_selector.controls[1], "value"
+    ):
+        font_family_selector.controls[1].value = settings_data.font_family
 
     def apply_appearance_settings(e):
         """Apply the selected appearance settings."""
 
-        theme = theme_selector.controls[1].value  # RadioGroup value
-        font_size = (
+        theme = ft.ThemeMode(theme_selector.controls[1].value)  # RadioGroup value
+        settings_data.font_size = (
             font_size_selector.controls[1].value
             if len(font_size_selector.controls) > 1
             else "medium"
         )
-        font_family = (
+        settings_data.font_family = (
             font_family_selector.controls[1].value
             if len(font_family_selector.controls) > 1
             else "system"
         )
 
         # Update app state
-        app_state.theme_mode = ThemeMode(theme)
-
-        if app_state.theme_mode == ThemeMode.LIGHT:
-            page.theme_mode = ft.ThemeMode.LIGHT
-        elif app_state.theme_mode == ThemeMode.DARK:
-            page.theme_mode = ft.ThemeMode.DARK
-        else:
-            page.theme_mode = ft.ThemeMode.SYSTEM
+        app_state.theme_mode = theme
+        page.theme_mode = theme
 
         # Save to database using controller
-        controller.update_settings(
-            theme_mode=theme,
-            font_size=font_size,
-            font_family=font_family,
-        )
+        controller.update_settings(settings_data)
 
         # Show success message
         snack_bar = ft.SnackBar(

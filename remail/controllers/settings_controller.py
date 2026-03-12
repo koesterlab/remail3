@@ -1,5 +1,6 @@
 from remail.controllers.dtos.settings_dto import SettingsDTO
 from remail.interfaces.email.services.settings_service import SettingsService
+from remail.models import Settings
 
 
 class SettingsController:
@@ -9,70 +10,37 @@ class SettingsController:
         """Initialize settings controller."""
         self.service = SettingsService()
 
-    def initialize_settings(self) -> SettingsDTO:
-        """
-        Initialize settings table and ensure default row exists.
-
-        Returns:
-            SettingsDTO with initialized settings
-        """
-
-        settings = self.service.init_settings()
-
-        return SettingsDTO.from_model(settings)
-
     def get_settings(self) -> SettingsDTO | None:
         """
         Load current settings.
 
         Returns:
-            SettingsDTO if found, None otherwise
+            SettingsDTO
         """
-
-        settings = self.service.load_settings()
-
-        if not settings:
-            return None
-
-        return SettingsDTO.from_model(settings)
+        return SettingsDTO.from_model(self.service.load_settings())
 
     def update_settings(
-        self,
-        theme_mode: str | None = None,
-        font_size: str | None = None,
-        font_family: str | None = None,
-        language: str | None = None,
-        timezone: str | None = None,
-        desktop_notifications: bool | None = None,
-        email_notifications: bool | None = None,
-        quiet_hours: bool | None = None,
+            self,
+            settings: SettingsDTO,
     ) -> SettingsDTO:
         """
         Update application settings.
 
         Args:
-            theme_mode: Theme mode (light/dark/system)
-            font_size: Font size (small/medium/large)
-            font_family: Font family name
-            language: Language code
-            timezone: Timezone string
-            desktop_notifications: Whether desktop notifications are enabled
-            email_notifications: Whether email notifications are enabled
-            quiet_hours: Whether quiet hours mode is enabled
+            settings: SettingsDTO with updated values
 
         Returns:
             Updated SettingsDTO
         """
-
-        settings = self.service.save_settings(
-            theme_mode=theme_mode,
-            font_size=font_size,
-            font_family=font_family,
-            language=language,
-            timezone=timezone,
-            desktop_notifications=desktop_notifications,
-            email_notifications=email_notifications,
-            quiet_hours=quiet_hours,
+        db_obj = Settings(
+            id=settings.id,
+            theme_mode=settings.theme_mode,
+            font_size=settings.font_size,
+            font_family=settings.font_family,
+            language=settings.language,
+            timezone=settings.timezone,
+            desktop_notifications=settings.desktop_notifications,
+            email_notifications=settings.email_notifications,
+            quiet_hours=settings.quiet_hours,
         )
-
-        return SettingsDTO.from_model(settings)
+        return SettingsDTO.from_model(self.service.save_settings(db_obj))
