@@ -38,7 +38,7 @@ class TodoList(ft.Container):
 
         items_column = ft.Column(
             spacing=6,
-            controls=[TodoItem(state, thread, user) for thread, conversation, user in self.todos],
+            controls=[TodoItem(state, thread, user) for thread, conversation, user in self.todos if thread.messages],
         )
 
         content_column = ft.Column(

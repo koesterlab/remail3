@@ -153,26 +153,16 @@ class UserService:
         return UserService.user_to_dto(user)
 
     @staticmethod
-    def delete_user(username: str) -> None:
+    @session
+    def delete_user(user_id: int, session:Session) -> None:
         """
         Delete a user from the database by username.
 
         Args:
-            username: Username to delete
+            user_id: Id of the user to delete
         """
-        with Session(engine) as session:
-            user = session.exec(select(User).where(User.username == username)).first()
-
-            if not user:
-                raise ValueError("User not found.")
-
-            session.delete(user)
-            session.commit()
-
-        try:
-            keyring.delete_password(_KEYRING_SERVICE, username)
-        except Exception as exc:
-            _logger.warning("Failed to delete keyring password for %s: %s", username, exc)
+        session.delete(session.get(User, user_id))
+        #todo: handle keyring
 
     @staticmethod
     def get_all_users() -> list[UserDTO]:
@@ -186,3 +176,10 @@ class UserService:
             statement = select(User)
             results = session.exec(statement).all()
             return [UserService.user_to_dto(user) for user in results]
+
+    @session
+    def reload_all_user_mails(self, user_id:int, session:Session) -> None:
+        for conversation in session.get(User, user_id).conversations:
+            session.delete(conversation)
+
+

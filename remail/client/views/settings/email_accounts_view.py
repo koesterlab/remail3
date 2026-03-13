@@ -2,6 +2,7 @@ import flet as ft
 from remail.client.scheduler import Scheduler
 from remail.client.state.app_state import AppState
 from remail.controllers.account_controller import AccountController
+from remail.controllers.dtos.user_dto import UserDTO
 from remail.controllers.email_controller import EmailController
 from remail.enums import ConnectionSecurity, AuthMethods, Protocol
 from remail.interfaces.email.services.email_sync_service import EmailSyncService
@@ -161,23 +162,21 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
                 show_snackbar("Connection failed", ft.Colors.ERROR)
 
             cancel_add(None)  # reset input fields
+            update_account_view()
 
         except Exception as ex:
             show_snackbar(f"Error: {str(ex)}", ft.Colors.RED_400)
 
     # ---------------- Remove Account ----------------
-    def remove_account(username_to_remove):
+    def remove_account(user: UserDTO):
         def handler(e):
             try:
-                UserService.delete_user(username_to_remove)
+                AccountController(user.id).delete()
             except Exception as ex:
                 show_snackbar(f"Failed to remove user: {ex}", ft.Colors.ORANGE_400)
 
             # Remove UI element
-            create_connected_email_accounts.content.controls.remove(e.control.parent.parent)
-            if not app_state.connected_emails:
-                start_text.visible = True
-            page.update()
+            update_account_view()
         return handler
 
     # ---------------- Cancel Add ----------------
@@ -197,39 +196,46 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
         margin=ft.margin.only(top=20),
     )
 
-    create_connected_email_accounts = ft.Container(
-        ft.Column(
-            [
-                ft.Text("Email Accounts", size=18, weight=ft.FontWeight.BOLD),
-                ft.Text("Manage your email accounts"),
-                ft.Divider(height=2, color=ft.Colors.GREY_400),
-                start_text,
-                add_button,
-                input_panel,
-            ],
-            spacing=15,
-            scroll=ft.ScrollMode.AUTO,
-        ),
-        padding=20,
-        border_radius=10,
-        alignment=ft.alignment.center_left,
-        expand=True,
-    )
-
-    # Pre-populate existing accounts
-    for user in app_state.connected_emails:
-        account_container = ft.Container(
-            ft.Row(
+    base = ft.Container()
+    def update_account_view():
+        accounts = AccountController.all_client_accounts()
+        c = len(accounts)
+        accounts_list = ft.Container(
+            ft.Column(
                 [
-                    ft.Icon(ft.Icons.EMAIL, color=ft.Colors.BLUE),
-                    ft.Text(user.username, expand=True),
-                    ft.IconButton(icon=ft.Icons.DELETE, icon_color=ft.Colors.RED, tooltip="Remove account", on_click=remove_account(user.username)),
-                ]
+                    ft.Text("Email Accounts", size=18, weight=ft.FontWeight.BOLD),
+                    ft.Text("Manage your email accounts"),
+                    ft.Divider(height=2, color=ft.Colors.GREY_400),
+                    ft.Text(f"{c if c > 0 else "No"} accounts connected", size=12),
+                    ft.Column([
+                        ft.Container(
+                            ft.Row(
+                                [
+                                    ft.Icon(ft.Icons.EMAIL, color=ft.Colors.BLUE),
+                                    ft.Text(user.name, expand=True),
+                                    ft.IconButton(icon=ft.Icons.DELETE, icon_color=ft.Colors.RED,
+                                                  tooltip="Remove account", on_click=remove_account(user)),
+                                ]
+                            ),
+                            border=ft.border.all(1, ft.Colors.GREY_400),
+                            border_radius=5,
+                            padding=10,
+                        ) for user in [acc.get_user() for acc in accounts]
+                    ]),
+                    add_button,
+                    input_panel,
+                ],
+                spacing=15,
+                scroll=ft.ScrollMode.AUTO,
             ),
-            border=ft.border.all(1, ft.Colors.GREY_400),
-            border_radius=5,
-            padding=10,
+            padding=20,
+            border_radius=10,
+            alignment=ft.alignment.center_left,
+            expand=True,
         )
-        create_connected_email_accounts.content.controls.insert(-2, account_container)
+        base.content = accounts_list
+        if base.page:
+            base.update()
 
-    return create_connected_email_accounts
+    update_account_view()
+    return base

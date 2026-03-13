@@ -60,7 +60,7 @@ class ThreadController:
             message: The message to send
             attachment: NOT IMPLEMENTED - a list of attachments - just here to remember todo
         """
-        user = self.service.get_thread_by_id(thread.id).conversation.users[0]
+        user = self.service.get_thread_by_id(thread.id).conversation.user
         protocol = ImapProtocol(serialized=user.connection)
         protocol.send_email(
             sender=(user.name, user.email),

@@ -110,7 +110,7 @@ class EmailParser:
         db_email = Email(
             imap_uid=uid,
             message_id=message_id,
-            body=body,
+            body=self.sanitize(body),
             sent_at=sent_at,
             sender=sender_contact,
             thread=None,  # type: ignore
@@ -118,13 +118,12 @@ class EmailParser:
             read=b"\\Seen" in flags,
         )
         session.add(db_email)
+        # Ensure email has a primary key before creating dependent rows
+        session.commit()
 
         self.thread_service.organize_email_into_thread(
-            email=db_email, conversation=conversation, subject=raw_email.get("Subject", "unknown")
+            email=db_email, conversation=conversation, subject=self.sanitize(raw_email.get("Subject", "unknown"))
         )
-
-        # Ensure email has a primary key before creating dependent rows
-        session.flush()
 
         # Create EmailReception records for all recipients
         self._create_email_receptions(db_email, to_recipients, cc_recipients, bcc_recipients)
@@ -152,8 +151,8 @@ class EmailParser:
 
         participants: list[Contact] = []
         for name, email in addr:
-            decoded_name = self._decode_header_value(name).strip() if name else ""
-            decoded_email = self._decode_header_value(email).strip() if email else ""
+            decoded_name = self.sanitize(self._decode_header_value(name).strip()) if name else ""
+            decoded_email = self.sanitize(self._decode_header_value(email).strip()) if email else ""
             if not decoded_email and "@" in decoded_name:
                 decoded_email = decoded_name
                 decoded_name = ""
@@ -369,3 +368,11 @@ class EmailParser:
                     contact=contact,
                 )
                 session.add(reception)
+
+    @staticmethod
+    def sanitize(text: str) -> str:
+        """
+        Normalizes UTF text so that no flutter-forbidden characters are in it
+        """
+        text = text.replace("\x00", "")
+        return "".join(ch for ch in text if ch.isprintable() or ch in "\n\r\t")
