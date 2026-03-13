@@ -36,6 +36,7 @@ def init_database(db_path: str = "database.db", load_fixtures: bool = False) -> 
     print(f"{'=' * 80}\n")
 
 
+
 if __name__ == "__main__":
     import argparse
 

@@ -74,7 +74,7 @@ class EmailSyncService:
                     synced_count += 1
                 else:
                     skipped_count += 1
-            except ValueError as v:
+            except Exception as v:
                 pass
         self._save_connection_data()
 

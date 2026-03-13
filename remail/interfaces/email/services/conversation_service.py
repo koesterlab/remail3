@@ -67,7 +67,7 @@ class ConversationService:
             type=conversation_type if conversation_type else ConversationType.GROUP,
             custom_name=custom_name,
             contacts=contacts,
-            users=[user],
+            user=user,
         )
         session.add(new_conversation)
 

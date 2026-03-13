@@ -26,8 +26,7 @@ class User(SQLModel, table=True):
     )
     connection: str = Field(default="{}")
 
-    # Many-to-many relationship with conversations
+    # one-to-many relationship with conversations
     conversations: list["Conversation"] = Relationship(
-        back_populates="users",
-        link_model=UserConversation,
+        back_populates="user",
     )

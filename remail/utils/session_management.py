@@ -48,9 +48,11 @@ def session(func):
                 active_session.commit()
             return result
         except Exception as e:
-            print("Debug: Rolling back session because exception occurred")
-            active_session.rollback()
-            raise e
+            if owns_session:
+                print("Debug: Rolling back session because exception occurred")
+                print(e)
+                active_session.rollback()
+            raise
         finally:
             if owns_session:
                 _current_session.reset(token)

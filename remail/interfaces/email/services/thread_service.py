@@ -234,8 +234,8 @@ class ThreadService:
         return [
             (
                 ThreadDTO.from_model(t),
-                ConversationDTO.from_model(t.conversation, t.conversation.users[0]),
-                UserDTO.get_from_model(t.conversation.users[0]),
+                ConversationDTO.from_model(t.conversation, t.conversation.user),
+                UserService.user_to_dto(t.conversation.user),
             )
             for t in threads
         ]

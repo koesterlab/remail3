@@ -122,6 +122,9 @@ class AccountController:
             )
         )
 
+    def delete(self):
+        UserService.delete_user(self.user_id)
+
     @session
     def _conversation_to_dto(self, conversation: Conversation) -> ConversationDTO:
         threads = []
