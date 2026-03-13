@@ -1,11 +1,11 @@
-from remail.client.state import MainAppState
+from remail.client.state import MainAppState, MainAppStateProperties
 from remail.client.widgets.mail_selection.conversation_preview import ConversationPreview
 from remail.controllers.dtos.conversations import ConversationDTO
 
 
 class ContactPreview(ConversationPreview):
     # component representing a single contact entry
-    def __init__(self, state: MainAppState, conversation: ConversationDTO, on_click=lambda: None):
+    def __init__(self, state: MainAppState, conversation: ConversationDTO):
         contact = conversation.contacts[0] if conversation.contacts else None
         full_name = ""
         if contact:
@@ -28,5 +28,4 @@ class ContactPreview(ConversationPreview):
             full_name,
             last_message,
             contact.is_known if contact else False,
-            on_click,
         )

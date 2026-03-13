@@ -81,7 +81,7 @@ def create_notifications_view(page: ft.Page, app_state: AppState) -> ft.Containe
                 ),
                 ft.Container(
                     ft.OutlinedButton("Apply", on_click=apply_settings),
-                    alignment=ft.alignment.center,
+                    alignment=ft.Alignment.CENTER,
                 ),
             ],
             spacing=15,
@@ -89,6 +89,6 @@ def create_notifications_view(page: ft.Page, app_state: AppState) -> ft.Containe
         ),
         padding=20,
         border_radius=10,
-        alignment=ft.alignment.center_left,
+        alignment=ft.Alignment.CENTER_LEFT,
         expand=True,
     )

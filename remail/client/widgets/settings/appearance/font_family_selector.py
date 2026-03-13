@@ -4,7 +4,7 @@ from remail.client.state.app_state import AppState
 from remail.enums import FontFamily
 
 
-def create_font_family_selector(page: ft.Page, app_state: AppState) -> ft.Column:
+def create_font_family_selector(_, app_state: AppState) -> ft.Column:
     """Create font family selector dropdown."""
 
     selected_font_family = {"value": app_state.font_family}
@@ -27,7 +27,7 @@ def create_font_family_selector(page: ft.Page, app_state: AppState) -> ft.Column
                     ft.dropdown.Option(FontFamily.TAHOMA.value),
                 ],
                 width=200,
-                on_change=font_family_changed,
+                on_select=font_family_changed,
             ),
         ],
         spacing=10,

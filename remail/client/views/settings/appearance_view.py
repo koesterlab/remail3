@@ -93,12 +93,12 @@ def create_appearance_view(page: ft.Page, app_state: AppState) -> ft.Container:
                 font_family_selector,
                 ft.Container(
                     ft.OutlinedButton("Apply", on_click=apply_appearance_settings),
-                    alignment=ft.alignment.center,
+                    alignment=ft.Alignment.CENTER,
                 ),
             ],
             spacing=15,
         ),
         padding=20,
         border_radius=10,
-        alignment=ft.alignment.center_left,
+        alignment=ft.Alignment.CENTER_LEFT,
     )

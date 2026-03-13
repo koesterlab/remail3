@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from enum import Enum
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, TypeVar, Union
 from weakref import WeakMethod, WeakSet
 
 E = TypeVar("E", bound=Enum)

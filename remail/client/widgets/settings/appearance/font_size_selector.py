@@ -4,7 +4,7 @@ from remail.client.state.app_state import AppState
 from remail.enums import FontSize
 
 
-def create_font_size_selector(page: ft.Page, app_state: AppState) -> ft.Column:
+def create_font_size_selector(_, app_state: AppState) -> ft.Column:
     """Create font size selector dropdown."""
 
     selected_font_size = {"value": app_state.font_size}
@@ -23,7 +23,7 @@ def create_font_size_selector(page: ft.Page, app_state: AppState) -> ft.Column:
                     ft.dropdown.Option(FontSize.LARGE.value),
                 ],
                 width=200,
-                on_change=font_size_changed,
+                on_select=font_size_changed,
             ),
         ],
         spacing=10,

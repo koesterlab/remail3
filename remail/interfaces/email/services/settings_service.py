@@ -31,7 +31,6 @@ class SettingsService:
         session.refresh(default_settings)
         return default_settings
 
-    @staticmethod
     @session
     def load_settings(self, session:Session) -> Settings:
         """
@@ -46,9 +45,9 @@ class SettingsService:
                 return settings
             self.__init_settings(session)
 
-    @staticmethod
     @session
     def save_settings(
+        self,
         settings: Settings,
         session: Session,
     ) -> None:

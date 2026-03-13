@@ -1,6 +1,7 @@
 from remail.controllers.dtos.settings_dto import SettingsDTO
 from remail.interfaces.email.services.settings_service import SettingsService
 from remail.models import Settings
+from remail.utils.session_management import session
 
 
 class SettingsController:
@@ -10,6 +11,7 @@ class SettingsController:
         """Initialize settings controller."""
         self.service = SettingsService()
 
+    @session
     def get_settings(self) -> SettingsDTO | None:
         """
         Load current settings.
@@ -19,6 +21,7 @@ class SettingsController:
         """
         return SettingsDTO.from_model(self.service.load_settings())
 
+    @session
     def update_settings(
             self,
             settings: SettingsDTO,

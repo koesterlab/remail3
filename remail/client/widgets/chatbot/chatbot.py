@@ -1,5 +1,4 @@
 import flet as ft
-from flet.core.colors import Colors
 
 from remail.client.state.main_app_state import MainAppState, MainAppStateProperties
 from remail.controllers.dtos import LLMResponseDTO
@@ -79,11 +78,11 @@ def create_chatbot(app_state: MainAppState):
         message_input.value = ""
         message_input.update()
 
-        chat_display.controls.append(ft.Text(f"You: {user_message}", color=Colors.BLUE))
+        chat_display.controls.append(ft.Text(f"You: {user_message}", color=ft.Colors.BLUE))
 
         loading_indicator = ft.ProgressRing()
         loading_container = ft.Row(
-            controls=[loading_indicator, ft.Text("AIfred is thinking...", color=Colors.YELLOW_500)],
+            controls=[loading_indicator, ft.Text("AIfred is thinking...", color=ft.Colors.YELLOW_500)],
             spacing=10,
         )
 
@@ -97,12 +96,12 @@ def create_chatbot(app_state: MainAppState):
             chat_display.controls.append(
                 ft.Text(
                     f"AI: (LLM Server Unavailable) I received your message: '{user_message}'. Please make sure the LLM server is running at the configured base URL.",
-                    color=Colors.RED,
+                    color=ft.Colors.RED,
                 )
             )
 
         else:
-            chat_display.controls.append(ft.Text(f"AI: {response_dto.content}", color=Colors.GREEN))
+            chat_display.controls.append(ft.Text(f"AI: {response_dto.content}", color=ft.Colors.GREEN))
 
         chat_display.update()
 

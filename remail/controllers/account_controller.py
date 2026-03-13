@@ -169,3 +169,6 @@ class AccountController:
             ],
             threads=threads,
         )
+
+    def search(self, search_string: str) -> list[ConversationDTO]:
+        return []#todo

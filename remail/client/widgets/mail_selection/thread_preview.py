@@ -12,7 +12,7 @@ class ThreadPreview(ft.Container):
         self, state: MainAppState, thread: ThreadPreviewDTO, conversation: ConversationDTO
     ):
         def on_click():
-            state.set(MainAppStateProperties.ACTIVE_CONVERSATION, conversation)
+            state.set(MainAppStateProperties.ACTIVE_THREAD_CONVERSATION, conversation)
             state.set(MainAppStateProperties.ACTIVE_THREAD, thread)
 
         super().__init__(

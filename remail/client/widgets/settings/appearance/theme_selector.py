@@ -4,7 +4,7 @@ from remail.client.state.app_state import AppState
 from remail.enums import ThemeMode
 
 
-def create_theme_selector(page: ft.Page, app_state: AppState) -> ft.Column:
+def create_theme_selector(_, app_state: AppState) -> ft.Column:
     """Create theme selector with radio buttons."""
 
     selected_theme = {"value": app_state.theme_mode}

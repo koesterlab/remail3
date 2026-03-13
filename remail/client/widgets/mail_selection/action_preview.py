@@ -6,13 +6,13 @@ from remail.client.widgets.mail_selection.action import Action
 
 
 class ActionPreview(ft.Container):
-    def __init__(self, action: Action, callback: Callable[[], None]):
+    def __init__(self, action: Action):
         super().__init__(
-            on_click=lambda _: callback(),
+            on_click=action.on_executed,
             content=ft.Row(
                 [
                     ft.CircleAvatar(
-                        content=ft.Icon(action.icon),
+                        content=ft.Icon(ft.IconData(action.icon)),
                         color=action.color,
                         bgcolor=ft.Colors.WHITE,
                         radius=20,

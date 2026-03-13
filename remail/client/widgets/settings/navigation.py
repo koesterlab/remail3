@@ -30,7 +30,7 @@ def create_settings_navigation(app_state: AppState, on_navigate: Callable) -> ft
         is_active = app_state.get_current_view(MainView.SETTINGS) == view_name
 
         return ft.TextButton(
-            text=label,
+            content=label,
             on_click=on_click,
             style=ft.ButtonStyle(
                 color=ft.Colors.PRIMARY if is_active else ft.Colors.ON_SURFACE,

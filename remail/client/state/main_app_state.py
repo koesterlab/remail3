@@ -15,6 +15,7 @@ class MainAppStateProperties(Enum):
     DRAFT = "draft"
     ACTIVE_USER = "active_user"
     ACTIVE_THREAD = "active_thread"
+    ACTIVE_THREAD_CONVERSATION = "active_thread_conversation"
     ACTIVE_CONVERSATION = "active_conversation"
     ACTIVE_CHATBOT = "active_chatbot"
     SEARCH_TERM = "search_term"

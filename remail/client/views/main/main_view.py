@@ -20,7 +20,8 @@ def create_main_view(page: ft.Page, global_state: AppState):
     main_state.set(MainAppStateProperties.DISPLAYED_MAILS, [])
     main_state.set(MainAppStateProperties.ACTIVE_CHATBOT, False)
     main_state.set(MainAppStateProperties.ACTIVE_THREAD, None)
-    main_state.set(MainAppStateProperties.ACTIVE_CONVERSATION, [])
+    main_state.set(MainAppStateProperties.ACTIVE_CONVERSATION, None)
+    main_state.set(MainAppStateProperties.ACTIVE_THREAD_CONVERSATION, None)
     main_state.set(MainAppStateProperties.SEARCH_TERM, "")
     selection_bar = SelectionBar(main_state)
 
@@ -98,7 +99,7 @@ def create_main_view(page: ft.Page, global_state: AppState):
         for acc in accounts:
             main_state.account_controllers[acc.get_email_address()] = acc
             acc.set_callback_email_changes(
-                lambda updates, acc_=acc: on_emails_synced(acc_.get_user(), updates)
+                lambda updates, acc_= acc: on_emails_synced(acc_.get_user(), updates)
             )
             acc.set_callback_email_errors(
                 lambda msg, acc_=acc: on_email_sync_error(acc_.get_user(), msg)

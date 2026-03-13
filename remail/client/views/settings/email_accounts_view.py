@@ -1,12 +1,10 @@
 import flet as ft
-from remail.client.scheduler import Scheduler
+
 from remail.client.state.app_state import AppState
 from remail.controllers.account_controller import AccountController
 from remail.controllers.dtos.user_dto import UserDTO
 from remail.controllers.email_controller import EmailController
 from remail.enums import ConnectionSecurity, AuthMethods, Protocol
-from remail.interfaces.email.services.email_sync_service import EmailSyncService
-from remail.interfaces.email.services.user_service import UserService
 
 
 def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Container:
@@ -34,7 +32,7 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
         page.update()
 
     # ---------------- Advanced SMTP/IMAP Dialogs ----------------
-    def on_smtp_settings(e):
+    def on_smtp_settings():
         dlg = ft.AlertDialog(
             title=ft.Text("Advanced SMTP Settings"),
             content=ft.Column(
@@ -43,10 +41,10 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
                 spacing=10,
             ),
             actions=[
-                ft.TextButton("Cancel", on_click=lambda e: close_dialog(dlg)),
+                ft.TextButton("Cancel", on_click=lambda _: close_dialog(dlg)),
                 ft.TextButton(
                     "Save",
-                    on_click=lambda e: (
+                    on_click=lambda _: (
                         show_snackbar("SMTP settings saved!", ft.Colors.GREEN_400),
                         close_dialog(dlg),
                     ),
@@ -57,7 +55,7 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
         dlg.open = True
         page.update()
 
-    def on_imap_settings(e):
+    def on_imap_settings():
         dlg = ft.AlertDialog(
             title=ft.Text("Advanced IMAP Settings"),
             content=ft.Column(
@@ -104,7 +102,7 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
         start_text.visible = False
 
     # ---------------- Add Account ----------------
-    def add_account_click(e):
+    def add_account_click():
         input_panel.content = ft.Column(
             [
                 ft.Text("Add Email Account", size=16, weight=ft.FontWeight.BOLD),
@@ -127,7 +125,7 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
         page.update()
 
     # ---------------- Connect Account ----------------
-    def connect_account(e):
+    def connect_account():
         if not email_input.value or not password_input.value or not imap_host_input.value or not smtp_host_input.value:
             show_snackbar("Please fill in all fields", ft.Colors.RED_400)
             return
@@ -161,7 +159,7 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
             else:
                 show_snackbar("Connection failed", ft.Colors.ERROR)
 
-            cancel_add(None)  # reset input fields
+            cancel_add()  # reset input fields
             update_account_view()
 
         except Exception as ex:
@@ -169,7 +167,7 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
 
     # ---------------- Remove Account ----------------
     def remove_account(user: UserDTO):
-        def handler(e):
+        def handler():
             try:
                 AccountController(user.id).delete()
             except Exception as ex:
@@ -180,7 +178,7 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
         return handler
 
     # ---------------- Cancel Add ----------------
-    def cancel_add(e):
+    def cancel_add():
         email_input.value = ""
         password_input.value = ""
         imap_host_input.value = ""
@@ -192,7 +190,7 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
     # ---------------- UI Containers ----------------
     add_button = ft.Container(
         ft.OutlinedButton("Add Email Account", icon=ft.Icons.ADD, on_click=add_account_click),
-        alignment=ft.alignment.center,
+        alignment=ft.Alignment.CENTER,
         margin=ft.margin.only(top=20),
     )
 
@@ -230,12 +228,14 @@ def create_email_accounts_view(page: ft.Page, app_state: AppState) -> ft.Contain
             ),
             padding=20,
             border_radius=10,
-            alignment=ft.alignment.center_left,
+            alignment=ft.Alignment.CENTER_LEFT,
             expand=True,
         )
         base.content = accounts_list
-        if base.page:
+        try:
             base.update()
+        except RuntimeError:
+            pass
 
     update_account_view()
     return base

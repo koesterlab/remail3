@@ -30,7 +30,7 @@ def create_language_view(page: ft.Page, app_state: AppState) -> ft.Container:
         app_state.timezone = Timezone(e.control.value)
         page.update()
 
-    def apply_settings(e):
+    def apply_settings():
         # Save language and timezone settings to database
         controller.update_settings(
             language=app_state.language.value,
@@ -69,7 +69,7 @@ def create_language_view(page: ft.Page, app_state: AppState) -> ft.Container:
                 ),
                 ft.Container(
                     ft.OutlinedButton("Apply", on_click=apply_settings),
-                    alignment=ft.alignment.center,
+                    alignment=ft.Alignment.CENTER,
                 ),
             ],
             spacing=15,
@@ -77,6 +77,6 @@ def create_language_view(page: ft.Page, app_state: AppState) -> ft.Container:
         ),
         padding=20,
         border_radius=10,
-        alignment=ft.alignment.center_left,
+        alignment=ft.Alignment.CENTER_LEFT,
         expand=True,
     )

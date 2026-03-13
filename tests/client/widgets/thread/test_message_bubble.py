@@ -38,7 +38,7 @@ class TestMessageBubble(unittest.TestCase):
         bubble = MessageBubble(message, self.user_contact)
 
         # Outer container alignment
-        self.assertEqual(bubble.alignment, ft.alignment.center_right)
+        self.assertEqual(bubble.alignment, ft.Alignment.CENTER_RIGHT)
 
         # Inner bubble container
         if isinstance(bubble.content, ft.Container):

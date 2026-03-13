@@ -69,7 +69,7 @@ def create_new_message_dialog(state: MainAppState) -> ft.Container:
     def send_mail():
         # retrieve data
         thread = state.get(MainAppStateProperties.ACTIVE_THREAD)
-        conversation = state.get(MainAppStateProperties.ACTIVE_CONVERSATION)
+        conversation = state.get(MainAppStateProperties.ACTIVE_THREAD_CONVERSATION)
         if thread.title == "":
             return
         message = input_field.value
@@ -118,7 +118,7 @@ def create_new_message_dialog(state: MainAppState) -> ft.Container:
                 ft.Column([button_bar, input_field], expand=False),
                 ft.Container(send_btn_bottom, width=40, margin=ft.margin.only(right=5)),
             ],
-            alignment=ft.alignment.center_right,
+            alignment=ft.Alignment.CENTER_RIGHT,
         ),
         bgcolor=ft.Colors.INVERSE_SURFACE,
         margin=ft.margin.all(5),

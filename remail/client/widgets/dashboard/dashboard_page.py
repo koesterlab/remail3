@@ -4,7 +4,6 @@ from datetime import datetime
 from typing import Any
 
 import flet as ft
-from flet.core.dropdown import Dropdown
 
 from remail.client.state import MainAppState, MainAppStateProperties
 from remail.client.widgets.dashboard.account_card import AccountCard
@@ -81,7 +80,7 @@ class DashboardPage(ft.Column):
             return  # todo show message
         first_name = self.accounts[0].get_user().name.split()[0]
 
-        self.dropdown = Dropdown(
+        self.dropdown = ft.Dropdown(
             value=self.state.get(MainAppStateProperties.ACTIVE_USER).id,
             text_size=10,
             width=250,
@@ -92,7 +91,8 @@ class DashboardPage(ft.Column):
                 )
                 for acc in [c.get_user() for c in self.accounts]
             ],
-            on_change=lambda user_id: self.state.set(
+
+            on_select=lambda user_id: self.state.set(
                 MainAppStateProperties.ACTIVE_USER,
                 [a for a in self.accounts if a.user_id == user_id][0],
             ),
@@ -170,7 +170,7 @@ This should be the summary of the emails since the last login. It could for exam
         self.controls = [
             ft.Container(
                 expand=True,
-                alignment=ft.alignment.top_center,
+                alignment=ft.Alignment.TOP_CENTER,
                 bgcolor=ft.Colors.SURFACE,
                 content=ft.Container(
                     expand=True,

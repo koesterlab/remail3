@@ -2,7 +2,6 @@ import datetime
 from collections.abc import Callable
 
 import flet as ft
-from flet.core.control_event import ControlEvent
 
 from remail.client.state.main_app_state import MainAppState, MainAppStateProperties
 from remail.controllers.dtos.conversations import ConversationDTO, ThreadPreviewDTO
@@ -14,8 +13,8 @@ class SearchHeader(ft.Container):
         self.__term = state.get(MainAppStateProperties.SEARCH_TERM)
 
         # ----- Search Input -----
-        def handle_change(e: ControlEvent):
-            state.set(MainAppStateProperties.SEARCH_TERM, e.control.value)
+        def handle_change():
+            state.set(MainAppStateProperties.SEARCH_TERM, self.input.value)
 
         self.input = ft.TextField(
             value=self.__term,
@@ -39,7 +38,7 @@ class SearchHeader(ft.Container):
         def on_home_clicked(_):
             state.set(MainAppStateProperties.SEARCH_TERM, "")
             state.set(MainAppStateProperties.ACTIVE_THREAD, None)
-            state.set(MainAppStateProperties.ACTIVE_CONVERSATION, None)
+            state.set(MainAppStateProperties.ACTIVE_THREAD_CONVERSATION, None)
             # todo: load mails from controller
 
         # ----- Home Icon -----
@@ -71,7 +70,7 @@ class SearchHeader(ft.Container):
             ]
             thread = ThreadPreviewDTO(-1, "", 0, 0, "", datetime.datetime.now())
             conversation = ConversationDTO(-1, contacts, [thread], False, None)
-            state.set(MainAppStateProperties.ACTIVE_CONVERSATION, conversation)
+            state.set(MainAppStateProperties.ACTIVE_THREAD_CONVERSATION, conversation)
             state.set(MainAppStateProperties.ACTIVE_THREAD, thread)
             state.clear_selected()
 
@@ -97,8 +96,10 @@ class SearchHeader(ft.Container):
             else:
                 bottom_row.controls = [delete_button, archiv_button, group_button]
                 bottom_row.alignment = ft.MainAxisAlignment.SPACE_BETWEEN
-            if bottom_row.page:
+            try:
                 bottom_row.update()
+            except RuntimeError:
+                pass
 
         state.listen_selection(None, on_selection_change)
         on_selection_change(None)
