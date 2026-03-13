@@ -22,27 +22,9 @@ def test_engine():
 @pytest.fixture(autouse=True)
 def patch_db_engine(test_engine, monkeypatch):
     """Patch all database engine references to use the test engine."""
-    import remail.database as database
-    import remail.database.db as db
     import remail.utils.session_management as session_management
-    from remail.interfaces.email.services import (
-        contact_service,
-        conversation_service,
-        email_sync_service,
-        settings_service,
-        thread_service,
-        user_service,
-    )
-
-    monkeypatch.setattr(db, "engine", test_engine)
-    monkeypatch.setattr(database, "engine", test_engine)
-    monkeypatch.setattr(contact_service, "engine", test_engine)
-    monkeypatch.setattr(conversation_service, "engine", test_engine)
-    monkeypatch.setattr(email_sync_service, "engine", test_engine)
-    monkeypatch.setattr(settings_service, "engine", test_engine)
-    monkeypatch.setattr(thread_service, "engine", test_engine)
-    monkeypatch.setattr(user_service, "engine", test_engine)
-    monkeypatch.setattr(session_management, "engine", test_engine)
+    import remail.database
+    remail.database.engine = test_engine
     # Prevent leaked @session context between tests when a session is provided.
     session_management._current_session.set(None)
     yield

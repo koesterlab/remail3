@@ -16,9 +16,7 @@ def load_settings_into_state(app_state: AppState, page: ft.Page) -> None:
         app_state: The application state to populate
         page: The Flet page to apply theme to
     """
-    controller = SettingsController()
-    settings_dto = controller.initialize_settings()
-
+    settings_dto = SettingsController().get_settings()
     if settings_dto:
         try:
             app_state.theme_mode = ThemeMode(settings_dto.theme_mode)

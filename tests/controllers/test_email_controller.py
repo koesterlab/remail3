@@ -1,467 +1,105 @@
 """Tests for EmailController."""
 
-from datetime import UTC, datetime
-from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-import pytest
-
-from remail import errors as ee
 from remail.controllers.email_controller import EmailController
-from remail.enums import RecipientKind
-from remail.models import Contact, Email, Thread
+from remail.enums import AuthMethods, ConnectionSecurity
 
 
-@pytest.fixture
-def mock_protocol():
-    """Create a mock ImapProtocol."""
+class TestCheckCredentials:
+    """Tests for EmailController.check_credentials."""
 
-    with patch("remail.controllers.email_controller.ImapProtocol") as mock:
-        protocol_instance = MagicMock()
-        protocol_instance.user_username = "user@example.com"
-        protocol_instance.logged_in = False
-        mock.return_value = protocol_instance
+    def test_check_credentials_returns_protocol_when_connection_succeeds(self):
+        """It should return the created protocol when connection test passes."""
+        controller = EmailController()
 
-        yield protocol_instance
+        with patch("remail.controllers.email_controller.ImapProtocol") as mock_protocol_cls:
+            protocol_instance = MagicMock()
+            protocol_instance.test_connection.return_value = True
+            mock_protocol_cls.return_value = protocol_instance
 
-
-@pytest.fixture
-def controller(mock_protocol):
-    """Create an EmailController instance with mocked protocol."""
-
-    return EmailController(
-        username="user@example.com",
-        password="password123",
-        host="imap.example.com",
-    )
-
-
-class TestLogin:
-    """Tests for login functionality."""
-
-    def test_login_success(self, controller, mock_protocol):
-        """Test successful login."""
-
-        mock_protocol.login.return_value = None
-
-        result = controller.login()
-
-        assert result["status"] == "success"
-        assert result["message"] == "Successfully logged in"
-        assert result["logged_in"] is True
-
-        mock_protocol.login.assert_called_once()
-
-    def test_login_invalid_credentials(self, controller, mock_protocol):
-        """Test login with invalid credentials."""
-
-        mock_protocol.login.side_effect = ee.InvalidLoginData()
-
-        result = controller.login()
-
-        assert result["status"] == "error"
-        assert result["message"] == "Invalid login credentials"
-        assert result["logged_in"] is False
-
-
-class TestFromId:
-    """Tests for loading an EmailController from a saved user."""
-
-    def test_from_id_uses_persisted_host(self):
-        """Test that from_id uses the stored host value."""
-        mock_user = MagicMock()
-        mock_user.id = 7
-        mock_user.username = "user@example.com"
-        mock_user.host = "imap.example.com"
-
-        with patch("remail.controllers.email_controller.UserService") as mock_user_service:
-            with patch("remail.controllers.email_controller.ImapProtocol") as mock_protocol:
-                mock_user_service.get_all_users.return_value = [mock_user]
-                mock_user_service.get_user_password.return_value = "secret"
-
-                EmailController.from_id(7)
-
-                mock_protocol.assert_called_once_with(
-                    username="user@example.com",
-                    password="secret",
-                    host="imap.example.com",
-                )
-
-    def test_login_generic_error(self, controller, mock_protocol):
-        """Test login with generic error."""
-
-        mock_protocol.login.side_effect = Exception("Connection timeout")
-
-        result = controller.login()
-
-        assert result["status"] == "error"
-        assert "Login failed" in result["message"]
-        assert "Connection timeout" in result["message"]
-        assert result["logged_in"] is False
-
-
-class TestSendEmail:
-    """Tests for send email functionality."""
-
-    def test_send_email_success(self, controller, mock_protocol):
-        """Test successful email sending."""
-
-        mock_protocol.send_email.return_value = None
-
-        thread_stub = SimpleNamespace(contacts=[SimpleNamespace(email="recipient@example.com")])
-
-        with patch("remail.controllers.email_controller.ThreadService") as thread_service:
-            thread_service.return_value.get_thread_by_id.return_value = thread_stub
-            with patch.object(
-                controller, "_create_email_model", return_value=SimpleNamespace()
-            ) as create_email:
-                with patch.object(controller, "_serialize_email", return_value={}):
-                    result = controller.send_email(
-                        subject="Test Subject",
-                        body="Test Body",
-                        thread_id=123,
-                    )
-
-        assert result["status"] == "success"
-        assert result["message"] == "Email sent successfully"
-        assert "email" in result
-
-        mock_protocol.send_email.assert_called_once()
-        create_email.assert_called_once()
-
-    def test_send_email_uses_thread_contacts(self, controller, mock_protocol):
-        """Test sending email uses recipients from thread contacts."""
-
-        mock_protocol.send_email.return_value = None
-
-        thread_stub = SimpleNamespace(
-            contacts=[
-                SimpleNamespace(email="to1@example.com"),
-                SimpleNamespace(email="to2@example.com"),
-            ]
-        )
-
-        with patch("remail.controllers.email_controller.ThreadService") as thread_service:
-            thread_service.return_value.get_thread_by_id.return_value = thread_stub
-            with patch.object(
-                controller, "_create_email_model", return_value=SimpleNamespace()
-            ) as create_email:
-                with patch.object(controller, "_serialize_email", return_value={}):
-                    result = controller.send_email(
-                        subject="Test",
-                        body="Body",
-                        thread_id=42,
-                    )
-
-        assert result["status"] == "success"
-
-        assert create_email.call_args.kwargs["to"] == ["to1@example.com", "to2@example.com"]
-
-    def test_send_email_with_attachments(self, controller, mock_protocol):
-        """Test sending email with attachments."""
-
-        mock_protocol.send_email.return_value = None
-
-        thread_stub = SimpleNamespace(contacts=[SimpleNamespace(email="to@example.com")])
-
-        with patch("remail.controllers.email_controller.ThreadService") as thread_service:
-            thread_service.return_value.get_thread_by_id.return_value = thread_stub
-            with patch.object(
-                controller, "_create_email_model", return_value=SimpleNamespace()
-            ) as create_email:
-                with patch.object(controller, "_serialize_email", return_value={}):
-                    result = controller.send_email(
-                        subject="Test",
-                        body="Body",
-                        attachments=["file1.pdf", "file2.jpg"],
-                        thread_id=5,
-                    )
-
-        assert result["status"] == "success"
-        assert create_email.call_args.kwargs["attachments"] == ["file1.pdf", "file2.jpg"]
-
-    def test_send_email_not_logged_in(self, controller, mock_protocol):
-        """Test sending email when not logged in."""
-
-        mock_protocol.send_email.side_effect = ee.NotLoggedIn()
-
-        thread_stub = SimpleNamespace(contacts=[SimpleNamespace(email="to@example.com")])
-
-        with patch("remail.controllers.email_controller.ThreadService") as thread_service:
-            thread_service.return_value.get_thread_by_id.return_value = thread_stub
-
-            result = controller.send_email(
-                subject="Test",
-                body="Body",
-                thread_id=7,
+            result = controller.check_credentials(
+                imap_username="imap_user@example.com",
+                imap_host="imap.example.com",
+                imap_port=993,
+                imap_password="password",
+                imap_security=ConnectionSecurity.SSL_TLS,
+                imap_method=AuthMethods.PASSWORD,
+                smtp_username="smtp_user@example.com",
+                smtp_host="smtp.example.com",
+                smtp_port=465,
+                smtp_password="password",
+                smtp_security=ConnectionSecurity.SSL_TLS,
+                smtp_method=AuthMethods.PASSWORD,
             )
 
-        assert result["status"] == "error"
-        assert result["message"] == "Not logged in"
+        assert result is protocol_instance
+        mock_protocol_cls.assert_called_once_with(
+            imap_username="imap_user@example.com",
+            imap_host="imap.example.com",
+            imap_port=993,
+            imap_password="password",
+            imap_method=AuthMethods.PASSWORD,
+            imap_security=ConnectionSecurity.SSL_TLS,
+            smtp_username="smtp_user@example.com",
+            smtp_host="smtp.example.com",
+            smtp_port=465,
+            smtp_password="password",
+            smtp_method=AuthMethods.PASSWORD,
+            smtp_security=ConnectionSecurity.SSL_TLS,
+        )
+        protocol_instance.test_connection.assert_called_once()
 
-    def test_send_email_value_error(self, controller, mock_protocol):
-        """Test sending email returns ValueError message."""
+    def test_check_credentials_returns_none_when_connection_fails(self):
+        """It should return None when connection test returns False."""
+        controller = EmailController()
 
-        mock_protocol.send_email.side_effect = ValueError("No recipients provided.")
+        with patch("remail.controllers.email_controller.ImapProtocol") as mock_protocol_cls:
+            protocol_instance = MagicMock()
+            protocol_instance.test_connection.return_value = False
+            mock_protocol_cls.return_value = protocol_instance
 
-        thread_stub = SimpleNamespace(contacts=[SimpleNamespace(email="to@example.com")])
-
-        with patch("remail.controllers.email_controller.ThreadService") as thread_service:
-            thread_service.return_value.get_thread_by_id.return_value = thread_stub
-
-            result = controller.send_email(
-                subject="Test",
-                body="Body",
-                thread_id=9,
+            result = controller.check_credentials(
+                imap_username="imap_user@example.com",
+                imap_host="imap.example.com",
+                imap_port=993,
+                imap_password="password",
+                imap_security=ConnectionSecurity.SSL_TLS,
+                imap_method=AuthMethods.PASSWORD,
+                smtp_username="smtp_user@example.com",
+                smtp_host="smtp.example.com",
+                smtp_port=465,
+                smtp_password="password",
+                smtp_security=ConnectionSecurity.SSL_TLS,
+                smtp_method=AuthMethods.PASSWORD,
             )
 
-        assert result["status"] == "error"
-        assert "No recipients provided" in result["message"]
+        assert result is None
+        protocol_instance.test_connection.assert_called_once()
 
-    def test_send_email_generic_error(self, controller, mock_protocol):
-        """Test sending email with generic error."""
+    def test_check_credentials_returns_none_when_connection_raises(self):
+        """It should return None when connection test raises an exception."""
+        controller = EmailController()
 
-        mock_protocol.send_email.side_effect = Exception("SMTP error")
+        with patch("remail.controllers.email_controller.ImapProtocol") as mock_protocol_cls:
+            protocol_instance = MagicMock()
+            protocol_instance.test_connection.side_effect = Exception("connection error")
+            mock_protocol_cls.return_value = protocol_instance
 
-        thread_stub = SimpleNamespace(contacts=[SimpleNamespace(email="to@example.com")])
-
-        with patch("remail.controllers.email_controller.ThreadService") as thread_service:
-            thread_service.return_value.get_thread_by_id.return_value = thread_stub
-
-            result = controller.send_email(
-                subject="Test",
-                body="Body",
-                thread_id=10,
+            result = controller.check_credentials(
+                imap_username="imap_user@example.com",
+                imap_host="imap.example.com",
+                imap_port=993,
+                imap_password="password",
+                imap_security=ConnectionSecurity.SSL_TLS,
+                imap_method=AuthMethods.PASSWORD,
+                smtp_username="smtp_user@example.com",
+                smtp_host="smtp.example.com",
+                smtp_port=465,
+                smtp_password="password",
+                smtp_security=ConnectionSecurity.SSL_TLS,
+                smtp_method=AuthMethods.PASSWORD,
             )
 
-        assert result["status"] == "error"
-        assert "Failed to send email" in result["message"]
-        assert "SMTP error" in result["message"]
-
-    def test_send_email_invalid_thread(self, controller, mock_protocol):
-        """Test sending email with invalid thread id."""
-
-        with patch("remail.controllers.email_controller.ThreadService") as thread_service:
-            thread_service.return_value.get_thread_by_id.return_value = None
-
-            result = controller.send_email(
-                subject="Test",
-                body="Body",
-                thread_id=999,
-            )
-
-        assert result["status"] == "error"
-        assert "Thread with the specified ID does not exist." in result["message"]
-        mock_protocol.send_email.assert_not_called()
-
-
-class TestSendEmailNewThread:
-    """Tests for send_email_new_thread functionality."""
-
-    def test_send_email_new_thread_success(self, controller, mock_protocol):
-        """Test successful email send in a new thread."""
-
-        mock_protocol.send_email.return_value = None
-
-        conversation_data = {
-            "contacts": [{"email": "to1@example.com"}, {"email": "to2@example.com"}],
-        }
-        thread_stub = SimpleNamespace(id=55)
-
-        with patch("remail.controllers.email_controller.ConversationService") as conv_service:
-            with patch("remail.controllers.email_controller.ThreadService") as thread_service:
-                conv_service.return_value.get_conversation_by_id.return_value = conversation_data
-                thread_service.return_value.create_thread.return_value = thread_stub
-                with patch.object(
-                    controller, "_create_email_model", return_value=SimpleNamespace()
-                ) as create_email:
-                    with patch.object(controller, "_serialize_email", return_value={}):
-                        result = controller.send_email_new_thread(
-                            subject="Subject",
-                            body="Body",
-                            conversation_id=9,
-                            attachments=["file.txt"],
-                        )
-
-        assert result["status"] == "success"
-        assert create_email.call_args.kwargs["to"] == ["to1@example.com", "to2@example.com"]
-        assert create_email.call_args.kwargs["attachments"] == ["file.txt"]
-        assert result["thread_id"] == 55
-        assert result["conversation_id"] == 9
-
-    def test_send_email_new_thread_invalid_conversation(self, controller, mock_protocol):
-        """Test send_email_new_thread with invalid conversation."""
-
-        with patch("remail.controllers.email_controller.ConversationService") as conv_service:
-            conv_service.return_value.get_conversation_by_id.return_value = None
-
-            result = controller.send_email_new_thread(
-                subject="Subject",
-                body="Body",
-                conversation_id=999,
-            )
-
-        assert result["status"] == "error"
-        assert "Invalid conversation ID" in result["message"]
-        mock_protocol.send_email.assert_not_called()
-
-
-class TestSendEmailNewConversation:
-    """Tests for send_email_new_conversation functionality."""
-
-    def test_send_email_new_conversation_success(self, controller, mock_protocol):
-        """Test successful email send for a new conversation."""
-
-        mock_protocol.send_email.return_value = None
-
-        contact1 = Contact(id=1, name="User One", email_address="one@example.com")
-        contact2 = Contact(id=2, name="User Two", email_address="two@example.com")
-        conversation_stub = {"id": 77}
-        thread_stub = SimpleNamespace(id=88)
-
-        with patch("remail.controllers.email_controller.ContactService") as contact_service:
-            with patch("remail.controllers.email_controller.ConversationService") as conv_service:
-                with patch("remail.controllers.email_controller.ThreadService") as thread_service:
-                    with patch("remail.controllers.email_controller.UserService") as user_service:
-                        contact_service.return_value.get_contact_by_id.side_effect = [
-                            contact1,
-                            contact2,
-                        ]
-                        user_service.get_user_by_username.return_value = SimpleNamespace(id=7)
-                        conv_service.return_value.create_conversation.return_value = (
-                            conversation_stub
-                        )
-                        thread_service.return_value.create_thread.return_value = thread_stub
-                        with patch.object(
-                            controller, "_create_email_model", return_value=SimpleNamespace()
-                        ) as create_email:
-                            with patch.object(controller, "_serialize_email", return_value={}):
-                                result = controller.send_email_new_conversation(
-                                    contact_ids=[1, 2],
-                                    subject="Hello",
-                                    body="Body",
-                                    attachments=["doc.pdf"],
-                                )
-
-        assert result["status"] == "success"
-        assert create_email.call_args.kwargs["to"] == ["one@example.com", "two@example.com"]
-        assert create_email.call_args.kwargs["attachments"] == ["doc.pdf"]
-        assert result["thread_id"] == 88
-        assert result["conversation_id"] == 77
-
-    def test_send_email_new_conversation_invalid_contact(self, controller, mock_protocol):
-        """Test send_email_new_conversation with a missing contact."""
-
-        with patch("remail.controllers.email_controller.ContactService") as contact_service:
-            contact_service.return_value.get_contact_by_id.return_value = None
-
-            result = controller.send_email_new_conversation(
-                contact_ids=[123],
-                subject="Hello",
-                body="Body",
-            )
-
-        assert result["status"] == "error"
-        assert "Contact ID 123 not found" in result["message"]
-        mock_protocol.send_email.assert_not_called()
-
-    def test_send_email_new_conversation_no_recipients(self, controller, mock_protocol):
-        """Test send_email_new_conversation with no recipients."""
-
-        result = controller.send_email_new_conversation(
-            contact_ids=[],
-            subject="Hello",
-            body="Body",
-        )
-
-        assert result["status"] == "error"
-        assert "No recipients provided" in result["message"]
-        mock_protocol.send_email.assert_not_called()
-
-
-class TestEmailModelCreation:
-    """Tests for internal email model creation."""
-
-    def test_create_email_model_basic(self, controller):
-        """Test creating basic email model."""
-
-        email = controller._create_email_model(
-            subject="Test",
-            body="Body",
-            to=["to@example.com"],
-            attachments=[],
-            thread_id=1,
-        )
-
-        assert email.body == "Body"
-        assert email.thread_id == 1
-        assert email.sender.email_address == "user@example.com"
-        assert len(email.recipients) == 1
-        assert email.recipients[0].kind == RecipientKind.TO
-        assert email.recipients[0].contact.email_address == "to@example.com"
-
-    def test_create_email_model_multiple_recipients(self, controller):
-        """Test creating email with multiple recipients."""
-
-        email = controller._create_email_model(
-            subject="Test",
-            body="Body",
-            to=["to1@example.com", "to2@example.com"],
-            attachments=[],
-            thread_id=2,
-        )
-
-        assert len(email.recipients) == 2
-
-        to_recipients = [r for r in email.recipients if r.kind == RecipientKind.TO]
-
-        assert len(to_recipients) == 2
-
-
-class TestEmailSerialization:
-    """Tests for email serialization."""
-
-    def test_serialize_email_with_no_recipients(self, controller):
-        """Test serializing email with no recipients."""
-
-        sender = Contact(id=1, name="Sender", email_address="sender@example.com")
-        thread = Thread(title="Thread Title", conversation_id=1)
-        email = Email(
-            id=1,
-            body="Body",
-            sent_at=datetime(2025, 11, 13, tzinfo=UTC),
-            sender_id=1,
-            thread_id=1,
-            sender=sender,
-        )
-        email.thread = thread
-        email.recipients = []
-        email.attachments = []
-
-        result = controller._serialize_email(email)
-
-        assert result["id"] == 1
-        assert result["subject"] == "Thread Title"
-        assert result["recipients"] == []
-        assert result["attachments"] == []
-
-    def test_serialize_email_with_no_sender(self, controller):
-        """Test serializing email with no sender."""
-
-        thread = Thread(title="Thread Title", conversation_id=1)
-        email = Email(
-            id=1,
-            body="Body",
-            sent_at=datetime(2025, 11, 13, tzinfo=UTC),
-            sender_id=1,
-            thread_id=1,
-        )
-        email.sender = None
-        email.thread = thread
-        email.recipients = []
-        email.attachments = []
-
-        result = controller._serialize_email(email)
-
-        assert result["sender"]["name"] is None
-        assert result["sender"]["email"] is None
+        assert result is None
+        protocol_instance.test_connection.assert_called_once()
