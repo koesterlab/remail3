@@ -39,19 +39,22 @@ class ThreadController:
         return self.service.get_most_important_threads(count=count)  # type:ignore
 
     @session
-    def create_thread(self, conversation_id, name: str)->ThreadDTO:
+    def create_thread(self, conversation_id: int, name: str) -> ThreadDTO:
         """
         Creates a thread in the local database. Note that it is only "synced" with other clients if a mail is sent
 
         Args:
               conversation_id: The Id of the conversation the thread belongs to
               name: Name of the new thread
+
+        Returns:
+              ThreadDTO with the created thread data
         """
 
         return ThreadDTO.from_model(self.service.create_thread(name, conversation_id))
 
     @session
-    def send_message(self, thread_id, message: str, attachment: list[Any]):
+    def send_message(self, thread_id: int, message: str, attachment: list[Any]) -> None:
         """
         Sends a message to a given thread
 
