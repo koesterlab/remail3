@@ -8,9 +8,8 @@ from remail.enums import MainView
 class ViewRouter:
     """Router for managing main application views."""
 
-    def __init__(self, page: ft.Page, app_state: "AppState"):  # type: ignore # noqa: F821   # sonst circular import
+    def __init__(self, page: ft.Page):  # type: ignore # noqa: F821   # sonst circular import
         self.page = page
-        self.app_state = app_state
 
         self._view_registry: dict[MainView, Callable] = {}
 
@@ -32,14 +31,14 @@ class ViewRouter:
 
         view_creator = self._view_registry[view]
 
-        return view_creator(self.page, self.app_state)
+        return view_creator(self.page, self)
 
-    def register_view(self, view: MainView, view_creator: Callable) -> None:
+    def register_view(self, view: MainView, view_creator: Callable[[ft.Page, ViewRouter], ft.Control]) -> None:
         """Register a new view creator.
 
         Args:
             view: The main view enum
-            view_creator: Function that creates the view, signature: (page, app_state) -> Container
+            view_creator: Function that creates the view
         """
 
         self._view_registry[view] = view_creator

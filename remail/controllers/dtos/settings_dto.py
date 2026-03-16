@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from remail.enums import ThemeMode, FontSize, FontFamily, Language, Timezone
+from remail.models import Settings
 from remail.utils.session_management import session
 
 
@@ -12,18 +14,20 @@ class SettingsDTO:
     """DTO for application settings."""
 
     id: int
-    theme_mode: str
-    font_size: str
-    font_family: str
-    language: str
-    timezone: str
+    theme_mode: ThemeMode
+    font_size: FontSize
+    font_family: FontFamily
+    language: Language
+    timezone: Timezone
     desktop_notifications: bool
     email_notifications: bool
     quiet_hours: bool
+    llm_url: str
+    llm_key: str
 
     @classmethod
     @session
-    def from_model(cls, settings) -> SettingsDTO:
+    def from_model(cls, settings:Settings) -> SettingsDTO:
         """
         Create DTO from Settings model.
 
@@ -33,28 +37,16 @@ class SettingsDTO:
         Returns:
             SettingsDTO instance
         """
-        return cls(
+        return SettingsDTO(
             id=settings.id,
-            theme_mode=settings.theme_mode,
-            font_size=settings.font_size,
-            font_family=settings.font_family,
-            language=settings.language,
-            timezone=settings.timezone,
+            theme_mode=ThemeMode(settings.theme_mode),
+            font_size=FontSize(settings.font_size),
+            font_family=FontFamily(settings.font_family),
+            language=Language(settings.language),
+            timezone=Timezone(settings.timezone),
             desktop_notifications=settings.desktop_notifications,
             email_notifications=settings.email_notifications,
             quiet_hours=settings.quiet_hours,
+            llm_url=settings.llm_url,
+            llm_key=settings.llm_key,
         )
-
-    def to_dict(self) -> dict[str, str | int | bool]:
-        """Convert DTO to dictionary."""
-        return {
-            "id": self.id,
-            "theme_mode": self.theme_mode,
-            "font_size": self.font_size,
-            "font_family": self.font_family,
-            "language": self.language,
-            "timezone": self.timezone,
-            "desktop_notifications": self.desktop_notifications,
-            "email_notifications": self.email_notifications,
-            "quiet_hours": self.quiet_hours,
-        }

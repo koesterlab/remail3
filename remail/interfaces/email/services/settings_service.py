@@ -15,17 +15,7 @@ class SettingsService:
         Returns:
             The settings row (either existing or newly created).
         """
-        default_settings = Settings(
-                    id=1,
-                    theme_mode="system",
-                    font_size="medium",
-                    font_family="system",
-                    language="en",
-                    timezone="Europe/London",
-                    desktop_notifications=True,
-                    email_notifications=True,
-                    quiet_hours=False,
-                )
+        default_settings = Settings()
         session.add(default_settings)
         session.commit()
         session.refresh(default_settings)

@@ -6,7 +6,7 @@ from remail.controllers.llm_controller import LLMController
 
 
 def create_chatbot(app_state: MainAppState):
-    llm_controller = LLMController()
+    llm_controller = LLMController(app_state.)
 
     # if score is above zero, the widget is "active" and expands
     _active_input = False

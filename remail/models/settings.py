@@ -17,3 +17,5 @@ class Settings(SQLModel, table=True):
     desktop_notifications: bool = Field(default=True)
     email_notifications: bool = Field(default=True)
     quiet_hours: bool = Field(default=False)
+    llm_url: str = Field(default="https://chat-ai.academiccloud.de/v1")
+    llm_key: str = Field(default="##api-key##")

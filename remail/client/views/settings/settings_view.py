@@ -7,16 +7,16 @@ from remail.client.views.settings.appearance_view import create_appearance_view
 from remail.client.views.settings.email_accounts_view import create_email_accounts_view
 from remail.client.views.settings.language_view import create_language_view
 from remail.client.views.settings.notifications_view import create_notifications_view
+from remail.client.views.view_router import ViewRouter
 from remail.client.widgets.settings.navigation import create_settings_navigation
 from remail.enums import MainView, SettingsSubView
 
 
-def create_settings_view(page: ft.Page, app_state: AppState) -> ft.Container:
+def create_settings_view(page: ft.Page, router:ViewRouter) -> ft.Container:
     """Create the main settings view with navigation and content area.
 
     Args:
         page: The Flet page object
-        app_state: The application state
 
     Returns:
         A Container with the settings view
@@ -26,9 +26,9 @@ def create_settings_view(page: ft.Page, app_state: AppState) -> ft.Container:
     # Back to dashboard button
     def navigate_to_dashboard(e):
         """Navigate back to dashboard."""
-        if app_state.router:
+        if router:
             page.clean()
-            dashboard_view = app_state.router.load_view(MainView.DASHBOARD)
+            dashboard_view = router.load_view(MainView.DASHBOARD)
             page.add(dashboard_view)
             page.update()
 
@@ -44,13 +44,13 @@ def create_settings_view(page: ft.Page, app_state: AppState) -> ft.Container:
     def load_view(view_name: SettingsSubView):
         """Load a settings sub-view into the content area."""
         if view_name == SettingsSubView.APPEARANCE:
-            content_container.current.content = create_appearance_view(page, app_state)
+            content_container.current.content = create_appearance_view(page)
         elif view_name == SettingsSubView.EMAIL_ACCOUNTS:
-            content_container.current.content = create_email_accounts_view(page, app_state)
+            content_container.current.content = create_email_accounts_view(page)
         elif view_name == SettingsSubView.LANGUAGE:
-            content_container.current.content = create_language_view(page, app_state)
+            content_container.current.content = create_language_view(page)
         elif view_name == SettingsSubView.NOTIFICATIONS:
-            content_container.current.content = create_notifications_view(page, app_state)
+            content_container.current.content = create_notifications_view(page)
 
         page.update()
 
