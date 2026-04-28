@@ -1,7 +1,12 @@
 from importlib import import_module
 
+from .account_controller import AccountController
+from .email_controller import EmailController
+from .llm_controller import LLMController
+from .settings_controller import SettingsController
+from .thread_controller import ThreadController
+
 __all__ = [
-    "ConversationsController",
     "EmailController",
     "LLMController",
     "SettingsController",

@@ -53,9 +53,9 @@ class AppointmentItem(ft.Container):
 
         super().__init__(
             bgcolor=ft.Colors.SURFACE,
-            padding=ft.padding.all(14),
+            padding=ft.Padding.all(14),
             border_radius=16,
-            margin=ft.margin.only(bottom=10),
+            margin=ft.Margin.only(bottom=10),
             content=ft.Row(
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 vertical_alignment=ft.CrossAxisAlignment.START,

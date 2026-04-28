@@ -3,8 +3,8 @@
 from unittest.mock import Mock, patch
 
 import flet as ft
-
 from remail.client.state.app_state import AppState
+
 from remail.client.views.settings.notifications_view import create_notifications_view
 
 

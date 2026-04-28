@@ -1,10 +1,10 @@
 from enum import Enum
 
 
-class FontSize(str, Enum):
-    SMALL = "Small"
-    MEDIUM = "Medium"
-    LARGE = "Large"
+class FontSize(Enum):
+    SMALL = "small"
+    MEDIUM = "medium"
+    LARGE = "large"
 
 
 __all__ = ["FontSize"]

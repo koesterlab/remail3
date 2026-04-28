@@ -1,13 +1,14 @@
 import flet as ft
-from flet.core.colors import Colors
 
 from remail.client.state.main_app_state import MainAppState, MainAppStateProperties
 from remail.controllers.dtos import LLMResponseDTO
 from remail.controllers.llm_controller import LLMController
+from remail.controllers.settings_controller import SettingsController
 
 
 def create_chatbot(app_state: MainAppState):
-    llm_controller = LLMController()
+    settings = SettingsController().get_settings()
+    llm_controller = LLMController(settings.llm_url, settings.llm_key)
 
     # if score is above zero, the widget is "active" and expands
     _active_input = False
@@ -79,11 +80,14 @@ def create_chatbot(app_state: MainAppState):
         message_input.value = ""
         message_input.update()
 
-        chat_display.controls.append(ft.Text(f"You: {user_message}", color=Colors.BLUE))
+        chat_display.controls.append(ft.Text(f"You: {user_message}", color=ft.Colors.BLUE))
 
         loading_indicator = ft.ProgressRing()
         loading_container = ft.Row(
-            controls=[loading_indicator, ft.Text("AIfred is thinking...", color=Colors.YELLOW_500)],
+            controls=[
+                loading_indicator,
+                ft.Text("AIfred is thinking...", color=ft.Colors.YELLOW_500),
+            ],
             spacing=10,
         )
 
@@ -97,12 +101,14 @@ def create_chatbot(app_state: MainAppState):
             chat_display.controls.append(
                 ft.Text(
                     f"AI: (LLM Server Unavailable) I received your message: '{user_message}'. Please make sure the LLM server is running at the configured base URL.",
-                    color=Colors.RED,
+                    color=ft.Colors.RED,
                 )
             )
 
         else:
-            chat_display.controls.append(ft.Text(f"AI: {response_dto.content}", color=Colors.GREEN))
+            chat_display.controls.append(
+                ft.Text(f"AI: {response_dto.content}", color=ft.Colors.GREEN)
+            )
 
         chat_display.update()
 
@@ -125,6 +131,6 @@ def create_chatbot(app_state: MainAppState):
             alignment=ft.MainAxisAlignment.END,
         ),
         on_hover=lambda f: change_active_state(active_hover=f.data == "true"),
-        padding=ft.padding.all(5),
+        padding=ft.Padding.all(5),
         bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
     )

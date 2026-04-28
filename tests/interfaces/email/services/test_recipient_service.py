@@ -1,7 +1,8 @@
 from types import SimpleNamespace
 
-from remail.enums import RecipientKind
 from remail.interfaces.email.services.recipient_service import RecipientService
+
+from remail.enums import RecipientKind
 
 
 class DummyRecipient:

@@ -4,8 +4,8 @@ import unittest
 from unittest.mock import Mock, patch
 
 import flet as ft
-
 from remail.client.state.app_state import AppState
+
 from remail.client.views.settings.email_accounts_view import create_email_accounts_view
 from remail.controllers.dtos.user_dto import UserDTO
 from remail.enums import Protocol, UserAccountCategory
@@ -266,7 +266,7 @@ class TestEmailAccoutsView(unittest.TestCase):
         email_input = form_column.controls[1]
         password_input = form_column.controls[2]
         host_input = form_column.controls[3]
-        buttons_row = form_column.controls[4]
+        buttons_row = form_column.controls[5]
 
         # Set some values
         email_input.value = "test@example.com"
@@ -308,7 +308,7 @@ class TestEmailAccoutsView(unittest.TestCase):
         add_button.content.on_click(Mock())
 
         form_column = input_panel.content
-        buttons_row = form_column.controls[4]
+        buttons_row = form_column.controls[5]
         connect_button = buttons_row.controls[0]
 
         # Click connect with empty fields
@@ -353,7 +353,7 @@ class TestEmailAccoutsView(unittest.TestCase):
         email_input = form_column.controls[1]
         password_input = form_column.controls[2]
         host_input = form_column.controls[3]
-        buttons_row = form_column.controls[4]
+        buttons_row = form_column.controls[5]
 
         email_input.value = "existing@example.com"
         password_input.value = "password123"
@@ -432,7 +432,7 @@ class TestEmailAccoutsView(unittest.TestCase):
         email_input = form_column.controls[1]
         password_input = form_column.controls[2]
         host_input = form_column.controls[3]
-        buttons_row = form_column.controls[4]
+        buttons_row = form_column.controls[5]
 
         email_input.value = "new@example.com"
         password_input.value = "password123"
@@ -503,7 +503,7 @@ class TestEmailAccoutsView(unittest.TestCase):
         email_input = form_column.controls[1]
         password_input = form_column.controls[2]
         host_input = form_column.controls[3]
-        buttons_row = form_column.controls[4]
+        buttons_row = form_column.controls[5]
 
         email_input.value = "duplicate@example.com"
         password_input.value = "password123"
@@ -555,7 +555,7 @@ class TestEmailAccoutsView(unittest.TestCase):
         email_input = form_column.controls[1]
         password_input = form_column.controls[2]
         host_input = form_column.controls[3]
-        buttons_row = form_column.controls[4]
+        buttons_row = form_column.controls[5]
 
         email_input.value = "error@example.com"
         password_input.value = "password123"
@@ -604,7 +604,7 @@ class TestEmailAccoutsView(unittest.TestCase):
         email_input = form_column.controls[1]
         password_input = form_column.controls[2]
         host_input = form_column.controls[3]
-        buttons_row = form_column.controls[4]
+        buttons_row = form_column.controls[5]
 
         email_input.value = "failed@example.com"
         password_input.value = "wrongpassword"
@@ -649,7 +649,7 @@ class TestEmailAccoutsView(unittest.TestCase):
         email_input = form_column.controls[1]
         password_input = form_column.controls[2]
         host_input = form_column.controls[3]
-        buttons_row = form_column.controls[4]
+        buttons_row = form_column.controls[5]
 
         email_input.value = "exception@example.com"
         password_input.value = "password123"

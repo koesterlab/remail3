@@ -8,7 +8,7 @@ from .contact import ContactDTO
 from .thread_preview import ThreadPreviewDTO
 
 
-@dataclass()
+@dataclass(frozen=True)
 class ConversationDTO:
     id: int
     contacts: list[ContactDTO]

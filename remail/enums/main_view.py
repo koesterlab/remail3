@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class MainView(str, Enum):
+class MainView(Enum):
     SETTINGS = "settings"
     EMAIL = "email"
     DASHBOARD = "dashboard"

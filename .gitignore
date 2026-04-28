@@ -32,8 +32,8 @@ test.db-shm
 
 # ENV
 .venv
-.env
 **/.DS_Store
+.env
 
 # Build artifacts
 *.egg-info/

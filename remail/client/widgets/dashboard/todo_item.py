@@ -32,7 +32,7 @@ class TodoItem(ft.Container):
                 ft.Container(
                     bgcolor=ft.Colors.ERROR,
                     border_radius=8,
-                    padding=ft.padding.all(2),
+                    padding=ft.Padding.all(2),
                     content=ft.Text(
                         self.fmt_badge(todo.sent_at),
                         size=11,
@@ -56,8 +56,8 @@ class TodoItem(ft.Container):
         )
 
         quick_reply = ft.Container(
-            margin=ft.margin.only(top=8),
-            padding=ft.padding.symmetric(horizontal=12, vertical=8),
+            margin=ft.Margin.only(top=8),
+            padding=ft.Padding.symmetric(horizontal=12, vertical=8),
             border_radius=20,
             bgcolor=ft.Colors.SURFACE,
             content=ft.Row(
@@ -98,9 +98,9 @@ class TodoItem(ft.Container):
 
         super().__init__(
             bgcolor=ft.Colors.SURFACE,
-            padding=ft.padding.all(15),
+            padding=ft.Padding.all(15),
             border_radius=16,
-            margin=ft.margin.only(bottom=12),
+            margin=ft.Margin.only(bottom=12),
             content=content_column,
         )
 

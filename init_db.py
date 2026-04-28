@@ -9,13 +9,12 @@ from sqlmodel import SQLModel, create_engine
 import remail.models  # noqa: F401
 
 
-def init_database(db_path: str = "database.db", load_fixtures: bool = False) -> None:
+def init_database(db_path: str = "database.db") -> None:
     """
     Initialize the SQLite database and create all tables.
 
     Args:
         db_path: Path to the database file (default: database.db)
-        load_fixtures: Whether to load sample fixture data (default: False)
     """
 
     db_file = Path(db_path).resolve()
@@ -52,11 +51,6 @@ if __name__ == "__main__":
         action="store_true",
         help="Delete existing database before creating new one",
     )
-    parser.add_argument(
-        "--fixtures",
-        action="store_true",
-        help="Load sample fixture data into the database",
-    )
 
     args = parser.parse_args()
 
@@ -65,4 +59,4 @@ if __name__ == "__main__":
         os.remove(args.db_path)
 
     # Initialize the database
-    init_database(args.db_path, load_fixtures=args.fixtures)
+    init_database(args.db_path)

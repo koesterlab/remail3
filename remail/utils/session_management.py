@@ -1,4 +1,5 @@
 import contextvars
+from collections.abc import Callable
 from functools import wraps
 from inspect import signature
 
@@ -12,20 +13,23 @@ _current_session: contextvars.ContextVar[Session | None] = contextvars.ContextVa
 )
 
 
-def session(func):
+def session(func: Callable) -> Callable:
+    """
+    Decorator that creates a database session for every function call. If the method is called by another @session method, the Session from the calling methode is used
+    The session can be accessed via the parameter session
+    """
     sig = signature(func)
 
     @wraps(func)
-    def wrapper(*args, **kwargs):
-        bound = sig.bind_partial(*args, **kwargs)
-
-        provided_session = bound.arguments.get("session")
+    def wrapper(*args, session: Session | None = None, **kwargs):
+        provided_session = session
         parent_session = _current_session.get()
 
         owns_session = False
         # Fall 1: Session explizit übergeben
         if provided_session is not None:
             active_session = provided_session
+            kwargs["session"] = active_session
 
         # Fall 2: Parent-@session existiert → gleiche nehmen
         elif parent_session is not None:
@@ -48,9 +52,11 @@ def session(func):
                 active_session.commit()
             return result
         except Exception as e:
-            print("Debug: Rolling back session because exception occurred")
-            active_session.rollback()
-            raise e
+            if owns_session:
+                print("Debug: Rolling back session because exception occurred")
+                print(e)
+                active_session.rollback()
+            raise
         finally:
             if owns_session:
                 _current_session.reset(token)

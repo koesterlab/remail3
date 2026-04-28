@@ -30,7 +30,7 @@ class AccountCard(ft.Container):
                     offset=ft.Offset(1.32, 0.001),
                     bgcolor=ft.Colors.DEEP_ORANGE_900,
                     border_radius=30,
-                    padding=ft.padding.all(0),
+                    padding=ft.Padding.all(0),
                     width=15,
                     height=15,
                     visible=account.unread_conversations > 0,

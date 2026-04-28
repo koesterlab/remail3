@@ -1,7 +1,6 @@
 import flet as ft
 
 from remail.client.state import MainAppState, MainAppStateProperties
-from remail.controllers import EmailController
 
 
 def create_new_message_dialog(state: MainAppState) -> ft.Container:
@@ -69,21 +68,20 @@ def create_new_message_dialog(state: MainAppState) -> ft.Container:
     def send_mail():
         # retrieve data
         thread = state.get(MainAppStateProperties.ACTIVE_THREAD)
-        conversation = state.get(MainAppStateProperties.ACTIVE_CONVERSATION)
+        conversation = state.get(MainAppStateProperties.ACTIVE_THREAD_CONVERSATION)
         if thread.title == "":
             return
         message = input_field.value
 
         # send
-        controller = EmailController.from_id(state.get(MainAppStateProperties.ACTIVE_USER).id)
         if conversation.id < 0:  # creating new conversation
-            controller.send_email_new_conversation(
-                [c.id for c in conversation.contacts], thread.title, message, None
+            conversation = state.get_active_email_account().create_conversation(
+                conversation.contacts
             )
+            thread = state.thread_controller.create_thread(conversation, thread.title)
         elif thread.id < 0:
-            controller.send_email_new_thread(thread.title, message, conversation.id, None)
-        else:
-            controller.send_email(thread.title, message, None, thread.id)
+            thread = state.thread_controller.create_thread(conversation, thread.title)
+        state.thread_controller.send_message(thread, message, [])
 
         # clear
         state.set(MainAppStateProperties.DRAFT, "")
@@ -119,12 +117,12 @@ def create_new_message_dialog(state: MainAppState) -> ft.Container:
         ft.Stack(
             [
                 ft.Column([button_bar, input_field], expand=False),
-                ft.Container(send_btn_bottom, width=40, margin=ft.margin.only(right=5)),
+                ft.Container(send_btn_bottom, width=40, margin=ft.Margin.only(right=5)),
             ],
-            alignment=ft.alignment.center_right,
+            alignment=ft.Alignment.CENTER_RIGHT,
         ),
         bgcolor=ft.Colors.INVERSE_SURFACE,
-        margin=ft.margin.all(5),
+        margin=ft.Margin.all(5),
         border_radius=20,
     )
 

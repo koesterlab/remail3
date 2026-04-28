@@ -9,7 +9,6 @@ from remail.enums import ConversationType
 
 # Import at runtime for SQLAlchemy
 from .conversation_contact import ConversationContact  # noqa: F401
-from .thread import Thread
 from .user_conversation import UserConversation  # noqa: F401
 
 if TYPE_CHECKING:
@@ -25,6 +24,7 @@ class Conversation(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     custom_name: str | None = None
+    user_id: int | None = Field(default=None, foreign_key="users.id")
     is_favorite: bool = Field(default=False, nullable=False)
     conversation_type: ConversationType = Field(nullable=False, default=ConversationType.GROUP)
     type: ConversationType = Field(
@@ -37,12 +37,10 @@ class Conversation(SQLModel, table=True):
         back_populates="conversations",
         link_model=ConversationContact,
     )
-    # Many-to-many relationship with users (users who can see this conversation)
-    users: list["User"] = Relationship(
-        back_populates="conversations",
-        link_model=UserConversation,
-    )
+    # Many-to-one relationship with users (user who can see this conversation)
+    user: "User" = Relationship(back_populates="conversations")
     # one-to-many
     threads: list["Thread"] = Relationship(
         back_populates="conversation",
+        cascade_delete=True,
     )

@@ -20,8 +20,29 @@ def patch_save_attachment(monkeypatch):
 
 
 @pytest.fixture
-def parser() -> EmailParser:
-    return EmailParser()
+def test_user(test_engine):
+    """Create a test user in the database."""
+    from sqlmodel import Session
+
+    from remail.enums import Protocol
+    from remail.models import User
+
+    with Session(test_engine) as session:
+        user = User(
+            name="test",
+            email="test@example.com",
+            protocol=Protocol.IMAP,
+            connection='{"host": "imap.example.com"}',
+        )
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+        return user.id
+
+
+@pytest.fixture
+def parser(test_user) -> EmailParser:
+    return EmailParser(user_id=test_user)
 
 
 def test_extract_msg_date_happy_path(parser: EmailParser):

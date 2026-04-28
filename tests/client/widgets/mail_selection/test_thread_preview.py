@@ -33,7 +33,7 @@ class TestThreadPreview(unittest.TestCase):
         preview = ThreadPreview(self.state, self.topic, self.conversation)
         # Prüfen, dass content Row enthält
         self.assertIsInstance(preview.content, ft.Column)
-        self.assertEqual(preview.padding, ft.padding.all(12))
+        self.assertEqual(preview.padding, ft.Padding.all(12))
 
     def test_texts_display(self):
         self.state.set(MainAppStateProperties.ACTIVE_THREAD, None)

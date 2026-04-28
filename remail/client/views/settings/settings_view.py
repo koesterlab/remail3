@@ -2,102 +2,92 @@
 
 import flet as ft
 
-from remail.client.state.app_state import AppState
-from remail.client.views.settings.appearance_view import create_appearance_view
-from remail.client.views.settings.email_accounts_view import create_email_accounts_view
-from remail.client.views.settings.language_view import create_language_view
-from remail.client.views.settings.notifications_view import create_notifications_view
-from remail.client.widgets.settings.navigation import create_settings_navigation
-from remail.enums import MainView, SettingsSubView
+from remail.client.state import MainAppState, MainAppStateProperties
+from remail.client.views.settings import (
+    AppearanceView,
+    EmailAccountsView,
+    LanguageView,
+    NotificationsView,
+)
+from remail.enums import SettingsSubView
 
 
-def create_settings_view(page: ft.Page, app_state: AppState) -> ft.Container:
-    """Create the main settings view with navigation and content area.
+class SettingsView(ft.Container):
+    def __init__(self, state: MainAppState):
+        super().__init__()
+        back_button = ft.IconButton(
+            icon=ft.Icons.ARROW_BACK,
+            tooltip="Back to Dashboard",
+            on_click=lambda: state.set(MainAppStateProperties.ACTIVE_SETTINGS, None),
+        )
 
-    Args:
-        page: The Flet page object
-        app_state: The application state
-
-    Returns:
-        A Container with the settings view
-    """
-    page.title = "Settings"
-
-    # Back to dashboard button
-    def navigate_to_dashboard(e):
-        """Navigate back to dashboard."""
-        if app_state.router:
-            page.clean()
-            dashboard_view = app_state.router.load_view(MainView.DASHBOARD)
-            page.add(dashboard_view)
-            page.update()
-
-    back_button = ft.IconButton(
-        icon=ft.Icons.ARROW_BACK,
-        tooltip="Back to Dashboard",
-        on_click=navigate_to_dashboard,
-    )
-
-    # Content container that will hold the active sub-view
-    content_container = ft.Ref[ft.Container]()
-
-    def load_view(view_name: SettingsSubView):
-        """Load a settings sub-view into the content area."""
-        if view_name == SettingsSubView.APPEARANCE:
-            content_container.current.content = create_appearance_view(page, app_state)
-        elif view_name == SettingsSubView.EMAIL_ACCOUNTS:
-            content_container.current.content = create_email_accounts_view(page, app_state)
-        elif view_name == SettingsSubView.LANGUAGE:
-            content_container.current.content = create_language_view(page, app_state)
-        elif view_name == SettingsSubView.NOTIFICATIONS:
-            content_container.current.content = create_notifications_view(page, app_state)
-
-        page.update()
-
-    initial_sub_view = app_state.settings_start_sub_view or SettingsSubView.APPEARANCE
-    app_state.settings_start_sub_view = None
-
-    # Set default view
-    app_state.set_current_view(MainView.SETTINGS, initial_sub_view)
-
-    # Create navigation
-    navigation = create_settings_navigation(app_state, load_view)
-
-    # Create header with back button
-    header = ft.Container(
-        content=ft.Row(
-            [
-                back_button,
-                ft.Text("Settings", size=24, weight=ft.FontWeight.BOLD),
-            ],
-        ),
-        padding=ft.padding.only(left=10, top=10, bottom=10),
-    )
-
-    # Create main layout
-    main_row = ft.Row(
-        controls=[
-            navigation,
-            ft.VerticalDivider(width=1),
-            ft.Container(
-                ref=content_container,
-                expand=True,
+        # Create header with back button
+        header = ft.Container(
+            content=ft.Row(
+                [
+                    back_button,
+                    ft.Text("Settings", size=24, weight=ft.FontWeight.BOLD),
+                ],
             ),
-        ],
-        expand=True,
-    )
+            padding=ft.Padding.only(left=10, top=10, bottom=10),
+        )
 
-    # Load initial view
-    load_view(initial_sub_view)
+        # Create main layout
+        sub_view = ft.Container(expand=True)
+        main_row = ft.Row(
+            controls=[
+                ft.Container(
+                    ft.Column(
+                        controls=[
+                            ft.TextButton(
+                                content=label,
+                                on_click=lambda _, v=link_name: state.set(
+                                    MainAppStateProperties.ACTIVE_SETTINGS, v
+                                ),
+                                style=ft.ButtonStyle(
+                                    color=ft.Colors.ON_SURFACE,
+                                ),
+                            )
+                            for label, link_name in [
+                                ("Appearance", SettingsSubView.APPEARANCE),
+                                ("Email Accounts", SettingsSubView.EMAIL_ACCOUNTS),
+                                ("Notification", SettingsSubView.NOTIFICATIONS),
+                                ("Language", SettingsSubView.LANGUAGE),
+                            ]
+                        ],
+                        spacing=16,
+                    ),
+                    width=200,
+                    padding=10,
+                ),
+                ft.VerticalDivider(width=1),
+                sub_view,
+            ],
+            expand=True,
+        )
 
-    return ft.Container(
-        content=ft.Column(
+        def update_subview(view: SettingsSubView):
+            if not view:
+                return
+            sub_view.content = {
+                SettingsSubView.APPEARANCE: AppearanceView,
+                SettingsSubView.EMAIL_ACCOUNTS: EmailAccountsView,
+                SettingsSubView.LANGUAGE: LanguageView,
+                SettingsSubView.NOTIFICATIONS: NotificationsView,
+            }[view]()
+            try:
+                sub_view.update()
+            except RuntimeError as _:
+                pass
+
+        update_subview(state.get(MainAppStateProperties.ACTIVE_SETTINGS))
+        state.register_observer(MainAppStateProperties.ACTIVE_SETTINGS, update_subview)
+
+        self.content = ft.Column(
             [
                 header,
                 ft.Divider(height=1),
                 ft.Container(content=main_row, expand=True),
             ],
             expand=True,
-        ),
-        expand=True,
-    )
+        )

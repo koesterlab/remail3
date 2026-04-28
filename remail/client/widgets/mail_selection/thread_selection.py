@@ -1,5 +1,4 @@
 import datetime
-from collections.abc import Callable
 from typing import Any
 
 import flet as ft
@@ -16,34 +15,38 @@ Subwidget of selectionBar to choose between different conversations of a contact
 
 
 class ThreadSelection(ft.Container):
-    def __init__(self, state: MainAppState, on_click_back: Callable[[], None]):
+    def __init__(self, state: MainAppState):
         self.conversation: ConversationDTO | None = None
         self.slided_in: bool = False
-        self.__state: MainAppState = state
-        self.__content = ft.Column(spacing=0)
-        self.__image = ft.Container(width=40, height=40)
-        self.__primary_text = ft.Text("", weight=ft.FontWeight.BOLD, color=ft.Colors.ON_SURFACE)
-        self.__secondary_text = ft.Text("", size=12, color=ft.Colors.ON_SURFACE_VARIANT)
+        self._state: MainAppState = state
+        self._content = ft.Column(spacing=0)
+        self._image = ft.Container(width=40, height=40)
+        self._primary_text = ft.Text("", weight=ft.FontWeight.BOLD, color=ft.Colors.ON_SURFACE)
+        self._secondary_text = ft.Text("", size=12, color=ft.Colors.ON_SURFACE_VARIANT)
+
+        state.register_observer(MainAppStateProperties.ACTIVE_CONVERSATION, self.set_content)
 
         super().__init__(
             ft.Column(
                 controls=[
                     # header
                     ft.Container(
-                        padding=ft.padding.only(left=0, right=5, top=5, bottom=10),
+                        padding=ft.Padding.only(left=0, right=5, top=5, bottom=10),
                         content=ft.Row(
                             [
                                 ft.IconButton(
                                     icon=ft.Icons.ARROW_BACK,
-                                    on_click=lambda _: on_click_back(),
+                                    on_click=lambda _: state.set(
+                                        MainAppStateProperties.ACTIVE_CONVERSATION, None
+                                    ),
                                     icon_color=ft.Colors.ON_SURFACE_VARIANT,
                                     icon_size=30,
                                 ),
-                                self.__image,
+                                self._image,
                                 ft.Container(
                                     ft.Column(
                                         alignment=ft.MainAxisAlignment.CENTER,
-                                        controls=[self.__primary_text, self.__secondary_text],
+                                        controls=[self._primary_text, self._secondary_text],
                                         spacing=6,
                                     ),
                                     height=50,
@@ -51,17 +54,17 @@ class ThreadSelection(ft.Container):
                             ],
                             spacing=7,
                         ),
-                        border=ft.border.only(bottom=ft.border.BorderSide(1, ft.Colors.GREY)),
+                        border=ft.Border.only(bottom=ft.border.BorderSide(1, ft.Colors.GREY)),
                     ),
                     # thread_list
                     ft.Container(
-                        alignment=ft.alignment.top_center,
+                        alignment=ft.Alignment.TOP_CENTER,
                         expand=True,
                         content=ft.Column(  # outer: align content to top, middle: scroll, inner: enumeration of elements
                             scroll=ft.ScrollMode.AUTO,
                             alignment=ft.MainAxisAlignment.START,
                             spacing=0,
-                            controls=[self.__content],
+                            controls=[self._content],
                         ),
                     ),
                 ]
@@ -85,8 +88,8 @@ class ThreadSelection(ft.Container):
             if not self.conversation:
                 return  # just for mypy
             self.conversation.threads.append(thread)  # only in the frontend, until message is sent
-            self.__state.set(MainAppStateProperties.ACTIVE_CONVERSATION, self.conversation)
-            self.__state.set(MainAppStateProperties.ACTIVE_THREAD, thread)
+            self._state.set(MainAppStateProperties.ACTIVE_THREAD_CONVERSATION, self.conversation)
+            self._state.set(MainAppStateProperties.ACTIVE_THREAD, thread)
 
         self.add_thread_field = ft.TextField(
             on_submit=on_submit_new_thread,
@@ -99,27 +102,28 @@ class ThreadSelection(ft.Container):
             dense=True,
             expand=True,
             text_style=ft.TextStyle(weight=ft.FontWeight.BOLD),
-            border_radius=ft.border_radius.all(20),
+            border_radius=ft.BorderRadius.all(20),
             prefix_icon=ft.Icons.ADD,
             hint_text="add Topic",
         )
 
-        self.add_thread_btn = ft.Container(self.add_thread_field, padding=ft.padding.only(top=5))
+        self.add_thread_btn = ft.Container(self.add_thread_field, padding=ft.Padding.only(top=5))
 
     def set_content(self, content: ConversationDTO):
-        self.__image.content = create_profile_picture(content)
+        if not content:
+            return
+        self._image.content = create_profile_picture(content)
         self.conversation = content
         if len(content.contacts) == 1:
             contact = content.contacts[0]
-            self.__primary_text.value = content.get_member_string(extended=True)
-            self.__secondary_text.value = contact.email
+            self._primary_text.value = content.get_member_string(extended=True)
+            self._secondary_text.value = contact.email
         else:
-            self.__primary_text.value = (
+            self._primary_text.value = (
                 content.custom_name if content.custom_name else content.get_member_string()
             )
-            self.__secondary_text.value = str(len(content.contacts)) + " Members"
-        # todo: make more efficient on reload
-        # todo: sort algorithm
-        self.__content.controls = [
-            ThreadPreview(self.__state, elem, self.conversation) for elem in content.threads
+            self._secondary_text.value = str(len(content.contacts)) + " Members"
+        self._content.controls = [
+            ThreadPreview(self._state, elem, self.conversation) for elem in content.threads
         ] + [self.add_thread_btn]  # type: ignore
+        self.update()

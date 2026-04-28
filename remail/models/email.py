@@ -31,8 +31,10 @@ class Email(SQLModel, table=True):
     attachments: list["Attachment"] = Relationship(
         back_populates="email",
         sa_relationship_kwargs={"cascade": "all, delete-orphan", "single_parent": True},
+        cascade_delete=True,
     )
     recipients: list["EmailReception"] = Relationship(
         back_populates="email",
+        cascade_delete=True,
         sa_relationship_kwargs={"cascade": "all, delete-orphan", "single_parent": True},
     )

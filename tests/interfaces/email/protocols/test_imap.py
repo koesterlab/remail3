@@ -36,8 +36,9 @@ def folder_service_mock(imap_mock, monkeypatch):
         proto_mod.FolderService,
         "build_search_criteria",
         staticmethod(
-            lambda since, flags: (["SINCE", since.date()] if since else []) + (flags or [])
-            or ["ALL"]
+            lambda since, flags: (
+                (["SINCE", since.date()] if since else []) + (flags or []) or ["ALL"]
+            )
         ),
     )
 

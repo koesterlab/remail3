@@ -38,7 +38,11 @@ class TodoList(ft.Container):
 
         items_column = ft.Column(
             spacing=6,
-            controls=[TodoItem(state, thread, user) for thread, conversation, user in self.todos],
+            controls=[
+                TodoItem(state, thread, user)
+                for thread, conversation, user in self.todos
+                if thread.messages
+            ],
         )
 
         content_column = ft.Column(
@@ -53,7 +57,7 @@ class TodoList(ft.Container):
         super().__init__(
             bgcolor=None,
             # bgcolor=ft.Colors.SURFACE,
-            padding=ft.padding.all(15),
+            padding=ft.Padding.all(15),
             border_radius=24,
             expand=True,
             content=content_column,

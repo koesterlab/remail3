@@ -1,8 +1,9 @@
 from datetime import datetime
+from email import message_from_bytes
 from email.header import decode_header, make_header
 from email.message import Message
 from email.utils import getaddresses, parsedate_to_datetime
-from typing import cast
+from typing import Any, cast
 
 from pytz import timezone
 from sqlmodel import Session, select
@@ -13,8 +14,7 @@ from remail.interfaces.email.services.contact_service import ContactService
 from remail.models import Contact, Conversation, Email, EmailReception, User
 from remail.utils.session_management import session
 
-from . import ConversationService
-from .thread_service import ThreadService
+from . import ConversationService, ThreadService
 
 UTC = timezone("UTC")
 
@@ -22,25 +22,67 @@ UTC = timezone("UTC")
 class EmailParser:
     """Service for parsing email messages."""
 
-    def __init__(self):
+    def __init__(self, user_id: int):
         """Initialize email parser."""
+        self.user_id = user_id
         self.contact_service = ContactService()
         self.conversation_service = ConversationService()
         self.thread_service = ThreadService()
 
     @session
-    def process_email(self, raw_email: Message, user: User, uid: int, session: Session) -> Email:
+    def parse_mail(self, mail_data: dict, imap_uid: int, session: Session) -> tuple[bool, int]:
+        """
+        Parses the mail from raw imap data. Updates an existing entry or creates a new one (with thread and conversation if necessary)
+
+        Args:
+            mail_data: the imap response with at least body, flags, internaldate,
+            imap_uid: the imap uid of the mail (not included in the data!)
+            session: DB Session with @session
+        """
+        msg_id = message_from_bytes(mail_data[b"BODY[]"]).get("Message-ID")
+        if not msg_id:
+            raise ValueError("Emails without message-id cannot be processed")
+        msg_id = msg_id.strip().lower()
+        existing = session.exec(select(Email).where(Email.message_id == msg_id)).first()
+        if existing:
+            changed, mail = self._update_mail_data(existing, mail_data)
+            return changed, mail.id
+        else:
+            return True, self.process_new_email(mail_data, imap_uid).id
+
+    @session
+    def _update_mail_data(self, existing: Email, mail_data: dict) -> tuple[bool, Email]:
+        """
+        Updates an existing Mail in the Database. AtM, only seen and deleted state are watched
+
+        Args:
+            existing: The db email model (active session)
+            mail_data: the corresponding raw imap data with FLAGS
+        """
+        # msg = message_from_bytes(mail_data[b"BODY[]"])
+        flags = mail_data[b"FLAGS"]
+        read = b"\\Seen" in flags
+        deleted = b"\\Deleted" in flags
+        changed = existing.read != read or existing.deleted != deleted
+        existing.read = read
+        existing.deleted = deleted
+        return changed, existing
+
+    @session
+    def process_new_email(self, mail_data: dict[bytes, Any], uid: int, session: Session) -> Email:
         """
         Process a raw email and save to database.
 
         Args:
-            raw_email: Raw email object from parser
-            user: Current user
+            raw_email: Raw email entry from the imap fetch (with at least FLAGS, BODY[])
             uid: imap_uid of mail
             session: DB session
         Returns:
             Saved Email instance
         """
+        user: User = session.get(User, self.user_id)  # type:ignore
+        raw_email = message_from_bytes(mail_data[b"BODY[]"])
+        flags = mail_data[b"FLAGS"]
 
         # Extract sender info
         [sender_contact] = self._extract_participant(raw_email, "From")
@@ -61,33 +103,30 @@ class EmailParser:
         # Create the email record
         sent_at = self.extract_msg_date(raw_email)
         body = self._get_body(raw_email)
-        message_id = raw_email.get("Message-ID", None)
+        message_id = (raw_email.get("Message-ID") or "").strip().lower()
 
         db_email = Email(
+            imap_uid=uid,
             message_id=message_id,
-            body=body,
+            body=self.sanitize(body),
             sent_at=sent_at,
             sender=sender_contact,
             thread=None,  # type: ignore
-            imap_uid=uid,
+            deleted=b"\\Deleted" in flags,
+            read=b"\\Seen" in flags,
         )
         session.add(db_email)
+        # Ensure email has a primary key before creating dependent rows
+        session.commit()
 
         self.thread_service.organize_email_into_thread(
-            email=db_email, conversation=conversation, subject=raw_email.get("Subject", "unknown")
+            email=db_email,
+            conversation=conversation,
+            subject=self.sanitize(raw_email.get("Subject", "unknown")),
         )
-
-        # Ensure email has a primary key before creating dependent rows
-        session.flush()
 
         # Create EmailReception records for all recipients
         self._create_email_receptions(db_email, to_recipients, cc_recipients, bcc_recipients)
-
-        # Handle attachments if present
-        attachments = getattr(raw_email, "attachments", []) or []
-        for attachment in attachments:
-            attachment.email_id = db_email.id
-            session.add(attachment)
 
         return db_email
 
@@ -112,8 +151,8 @@ class EmailParser:
 
         participants: list[Contact] = []
         for name, email in addr:
-            decoded_name = self._decode_header_value(name).strip() if name else ""
-            decoded_email = self._decode_header_value(email).strip() if email else ""
+            decoded_name = self.sanitize(self._decode_header_value(name).strip()) if name else ""
+            decoded_email = self.sanitize(self._decode_header_value(email).strip()) if email else ""
             if not decoded_email and "@" in decoded_name:
                 decoded_email = decoded_name
                 decoded_name = ""
@@ -221,7 +260,7 @@ class EmailParser:
         body_text: str = ""
         html_parts: list[str] = []
         attachments: list[str] = []
-        message_id = em.get("Message-Id") or "unknown"
+        message_id = (em.get("Message-ID") or "").strip().lower() or "unknown"
 
         if em.is_multipart():
             for part in em.walk():
@@ -329,3 +368,11 @@ class EmailParser:
                     contact=contact,
                 )
                 session.add(reception)
+
+    @staticmethod
+    def sanitize(text: str) -> str:
+        """
+        Normalizes UTF text so that no flutter-forbidden characters are in it
+        """
+        text = text.replace("\x00", "")
+        return "".join(ch for ch in text if ch.isprintable() or ch in "\n\r\t")

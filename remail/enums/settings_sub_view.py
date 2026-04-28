@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class SettingsSubView(str, Enum):
+class SettingsSubView(Enum):
     APPEARANCE = "appearance"
     EMAIL_ACCOUNTS = "email_accounts"
     LANGUAGE = "language"
