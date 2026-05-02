@@ -3,8 +3,8 @@
 from unittest.mock import Mock
 
 import flet as ft
-
 from remail.client.state.app_state import AppState
+
 from remail.client.views.settings.appearance_view import create_appearance_view
 from remail.enums import ThemeMode
 

@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class FontFamily(str, Enum):
+class FontFamily(Enum):
     ARIAL = "Arial"
     ROBOTO = "Roboto"
     GEORGIA = "Georgia"

@@ -30,17 +30,6 @@ class ContactService:
         return session.get(Contact, contact_id)
 
     @session
-    def create_contact(self, name: str, email: str, session: Session) -> Contact:
-        resolved_name = name or email
-        new_contact = Contact(
-            name=resolved_name,
-            email_address=email,
-        )
-
-        session.add(new_contact)
-        return new_contact
-
-    @session
     def get_or_create_contact(
         self,
         email: str,

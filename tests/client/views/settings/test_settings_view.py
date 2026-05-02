@@ -3,8 +3,8 @@
 from unittest.mock import Mock
 
 import flet as ft
-
 from remail.client.state.app_state import AppState
+
 from remail.client.views.settings.settings_view import create_settings_view
 from remail.enums import MainView, SettingsSubView
 

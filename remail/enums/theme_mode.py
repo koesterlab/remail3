@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class ThemeMode(str, Enum):
+class ThemeMode(Enum):
     LIGHT = "light"
     DARK = "dark"
     SYSTEM = "system"

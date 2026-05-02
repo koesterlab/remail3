@@ -10,4 +10,4 @@ class Action:
     secondary: str
     on_executed: Callable[[], None]
     color: flet.Colors
-    icon: flet.Icons
+    icon: flet.IconData

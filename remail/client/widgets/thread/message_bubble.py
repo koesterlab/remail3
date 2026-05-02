@@ -16,15 +16,17 @@ class MessageBubble(ft.Container):
         is_me = message.sender == current_user
 
         # --- Layout style ---
-        alignment = ft.alignment.center_right if is_me else ft.alignment.center_left
+        alignment = ft.Alignment.CENTER_RIGHT if is_me else ft.Alignment.CENTER_LEFT
 
         # --- Bubble style ---
-        own_border = ft.border_radius.only(top_left=18, bottom_left=18, bottom_right=18)
-        others_border = ft.border_radius.only(top_right=18, bottom_left=18, bottom_right=18)
+        own_border = ft.BorderRadius.only(top_left=18, bottom_left=18, bottom_right=18)
+        others_border = ft.BorderRadius.only(top_right=18, bottom_left=18, bottom_right=18)
         bubble = ft.Container(
-            padding=ft.padding.symmetric(horizontal=14, vertical=10),
+            margin=ft.Margin.only(left=20) if is_me else ft.Margin.only(right=20),
+            padding=ft.Padding.symmetric(horizontal=14, vertical=10),
             border_radius=own_border if is_me else others_border,  # it would be rounder
             bgcolor=ft.Colors.PRIMARY if is_me else ft.Colors.SECONDARY,
+            expand=True,
             shadow=ft.BoxShadow(
                 blur_radius=6,
                 spread_radius=1,
@@ -41,6 +43,7 @@ class MessageBubble(ft.Container):
         # --- Outer container to control alignment ---
         super().__init__(
             alignment=alignment,
-            padding=ft.padding.only(left=6, right=6, top=4, bottom=4),
+            padding=ft.Padding.only(left=6, right=6, top=4, bottom=4),
             content=bubble if is_me else ft.Row([create_contact_picture(message.sender), bubble]),
+            expand=True,
         )

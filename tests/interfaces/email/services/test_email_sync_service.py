@@ -1,179 +1,253 @@
 """Tests for EmailSyncService."""
 
-from datetime import datetime
-from email.message import EmailMessage
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from sqlmodel import Session
 
 from remail.enums import Protocol
 from remail.interfaces.email.services.email_sync_service import EmailSyncService
-from remail.models import Contact, Email, Thread, User
+from remail.models import Email, Thread, User
 
 
 @pytest.fixture
-def mock_protocol():
-    """Create a mock IMAP protocol."""
-    protocol = MagicMock()
-    protocol.logged_in = True
-    protocol.fetch_emails.return_value = []
-    return protocol
-
-
-@pytest.fixture
-def mock_email_parser():
-    """Create a mock email parser."""
-    return MagicMock()
-
-
-def create_test_user(engine) -> User:
-    """Helper to create the test user in the database."""
-    with Session(engine) as session:
+def test_user(test_engine):
+    """Create a test user in the database."""
+    with Session(test_engine) as session:
         user = User(
             name="test",
-            username="test@example.com",
             email="test@example.com",
-            host="imap.example.com",
-            password="",
             protocol=Protocol.IMAP,
+            connection='{"host": "imap.example.com", "port": 993}',
         )
         session.add(user)
         session.commit()
         session.refresh(user)
-        return user
+        return user.id
 
 
 class TestEmailSyncService:
     """Test suite for EmailSyncService."""
 
-    def test_sync_emails_no_new_emails(self, mock_protocol, mock_email_parser, test_engine):
+    def test_init_creates_protocol(self, test_engine, test_user):
+        """Test that initialization creates protocol from user connection."""
+        with patch("remail.interfaces.email.services.email_sync_service.ImapProtocol") as mock_imap:
+            with patch("remail.interfaces.email.services.email_sync_service.EmailParser"):
+                service = EmailSyncService(user_id=test_user)
+
+                mock_imap.assert_called_once()
+                assert service.user_id == test_user
+                assert service.changed_mails == []
+                assert service.changed_threads == []
+
+    def test_sync_emails_no_new_emails(self, test_engine, test_user):
         """Test sync when there are no new emails."""
-        user = create_test_user(test_engine)
-        service = EmailSyncService(
-            protocol=mock_protocol, email_parser=mock_email_parser, user_id=user.id
-        )
-        mock_protocol.fetch_emails.return_value = []
+        with patch(
+            "remail.interfaces.email.services.email_sync_service.ImapProtocol"
+        ) as mock_imap_cls:
+            mock_protocol = MagicMock()
+            mock_protocol.fetch_emails.return_value = {}
+            mock_protocol.serialize.return_value = '{"host": "imap.example.com"}'
+            mock_imap_cls.return_value = mock_protocol
 
-        before_sync = datetime.now()
-        result = service.sync_emails()
+            with patch("remail.interfaces.email.services.email_sync_service.EmailParser"):
+                service = EmailSyncService(user_id=test_user)
+                service.sync_emails()
 
-        assert result["status"] == "success"
-        assert result["synced_count"] == 0
+                mock_protocol.fetch_emails.assert_called_once_with(new_only=True)
+                assert len(service.changed_mails) == 0
 
+    def test_sync_emails_processes_new_emails(self, test_engine, test_user):
+        """Test sync processes new emails from protocol."""
+        with patch(
+            "remail.interfaces.email.services.email_sync_service.ImapProtocol"
+        ) as mock_imap_cls:
+            mock_protocol = MagicMock()
+            mock_protocol.fetch_emails.return_value = {
+                1: {b"BODY[]": b"test1", b"FLAGS": []},
+                2: {b"BODY[]": b"test2", b"FLAGS": []},
+            }
+            mock_protocol.serialize.return_value = '{"host": "imap.example.com"}'
+            mock_imap_cls.return_value = mock_protocol
+
+            with patch(
+                "remail.interfaces.email.services.email_sync_service.EmailParser"
+            ) as mock_parser_cls:
+                mock_parser = MagicMock()
+                mock_parser.parse_mail.side_effect = [
+                    (True, 101),  # Changed, mail_id 101
+                    (False, 102),  # Not changed, mail_id 102
+                ]
+                mock_parser_cls.return_value = mock_parser
+
+                service = EmailSyncService(user_id=test_user)
+                service.sync_emails()
+
+                assert mock_parser.parse_mail.call_count == 2
+                assert len(service.changed_mails) == 1
+                assert service.changed_mails[0] == 101
+
+    def test_sync_emails_handles_parser_errors(self, test_engine, test_user):
+        """Test sync continues when parser raises exception."""
+        with patch(
+            "remail.interfaces.email.services.email_sync_service.ImapProtocol"
+        ) as mock_imap_cls:
+            mock_protocol = MagicMock()
+            mock_protocol.fetch_emails.return_value = {
+                1: {b"BODY[]": b"bad_email", b"FLAGS": []},
+            }
+            mock_protocol.serialize.return_value = '{"host": "imap.example.com"}'
+            mock_imap_cls.return_value = mock_protocol
+
+            with patch(
+                "remail.interfaces.email.services.email_sync_service.EmailParser"
+            ) as mock_parser_cls:
+                mock_parser = MagicMock()
+                mock_parser.parse_mail.side_effect = ValueError("Invalid email")
+                mock_parser_cls.return_value = mock_parser
+
+                service = EmailSyncService(user_id=test_user)
+                service.sync_emails()  # Should not raise
+
+                assert len(service.changed_mails) == 0
+
+    def test_sync_emails_saves_connection_data(self, test_engine, test_user):
+        """Test that sync saves updated connection data back to user."""
+        with patch(
+            "remail.interfaces.email.services.email_sync_service.ImapProtocol"
+        ) as mock_imap_cls:
+            mock_protocol = MagicMock()
+            mock_protocol.fetch_emails.return_value = {}
+            mock_protocol.serialize.return_value = '{"host": "updated.example.com", "port": 993}'
+            mock_imap_cls.return_value = mock_protocol
+
+            with patch("remail.interfaces.email.services.email_sync_service.EmailParser"):
+                service = EmailSyncService(user_id=test_user)
+                service.sync_emails()
+
+                # Verify connection was updated
+                with Session(test_engine) as session:
+                    user = session.get(User, test_user)
+                    assert "updated.example.com" in user.connection
+
+    def test_check_for_changed_threads_empty(self, test_engine, test_user):
+        """Test check_for_changed_threads returns empty when no changes."""
+        with patch("remail.interfaces.email.services.email_sync_service.ImapProtocol"):
+            with patch("remail.interfaces.email.services.email_sync_service.EmailParser"):
+                service = EmailSyncService(user_id=test_user)
+                result = service.check_for_changed_threads()
+
+                assert result == []
+
+    def test_check_for_changed_threads_returns_threads(self, test_engine, test_user):
+        """Test check_for_changed_threads returns threads for changed emails."""
         with Session(test_engine) as session:
-            from sqlmodel import select
-
-            refreshed = session.exec(select(User).where(User.id == user.id)).first()
-            assert refreshed is not None
-            assert refreshed.last_refresh >= before_sync
-
-    def test_sync_emails_fails_if_user_not_found(self, mock_protocol, mock_email_parser):
-        """Test that sync fails if user does not exist."""
-        service = EmailSyncService(
-            protocol=mock_protocol, email_parser=mock_email_parser, user_id=999
-        )
-
-        result = service.sync_emails()
-
-        assert result["status"] == "error"
-        assert "not found" in result["message"].lower()
-        assert result["synced_count"] == 0
-
-    def test_sync_emails_calls_parser_for_each_email(
-        self, mock_protocol, mock_email_parser, test_engine
-    ):
-        """Test that sync calls the parser for each email."""
-        user = create_test_user(test_engine)
-        service = EmailSyncService(
-            protocol=mock_protocol, email_parser=mock_email_parser, user_id=user.id
-        )
-
-        msg1 = EmailMessage()
-        msg1["Message-ID"] = "<msg-1@example.com>"
-        msg2 = EmailMessage()
-        msg2["Message-ID"] = "<msg-2@example.com>"
-
-        mock_protocol.fetch_emails.return_value = [(1, msg1), (2, msg2)]
-
-        result = service.sync_emails()
-
-        assert result["status"] == "success"
-        assert mock_email_parser.process_email.call_count == 2
-
-        called_uids = [call.args[2] for call in mock_email_parser.process_email.call_args_list]
-        assert called_uids == [1, 2]
-
-        for call in mock_email_parser.process_email.call_args_list:
-            assert isinstance(call.args[1], User)
-
-    def test_sync_emails_skips_duplicate_message_id(
-        self, mock_protocol, mock_email_parser, test_engine
-    ):
-        """Test that sync skips emails with duplicate message_id."""
-        user = create_test_user(test_engine)
-        service = EmailSyncService(
-            protocol=mock_protocol, email_parser=mock_email_parser, user_id=user.id
-        )
-
-        with Session(test_engine) as session:
-            sender = Contact(name="Sender", email_address="sender@example.com")
+            user = session.get(User, test_user)
             from remail.models import Conversation
 
-            conversation = Conversation(custom_name="C")
-            session.add_all([conversation, sender])
-            session.commit()
+            conv = Conversation(type="conversation", user=user)
+            session.add(conv)
+            session.flush()
 
-            thread = Thread(title="T", conversation_id=conversation.id)
+            thread = Thread(title="Test Thread", conversation=conv)
             session.add(thread)
-            session.commit()
-            session.refresh(sender)
-            session.refresh(thread)
+            session.flush()
 
-            existing = Email(
-                message_id="<dup@example.com>",
+            email1 = Email(
+                message_id="<test1@example.com>",
+                subject="Test",
                 body="Body",
-                sent_at=datetime.now(),
-                sender_id=sender.id,
-                thread_id=thread.id,
+                sent_at="2024-01-01",
+                imap_uid=100,
+                thread=thread,
             )
-            session.add(existing)
+            session.add(email1)
             session.commit()
 
-        dup_msg = EmailMessage()
-        dup_msg["Message-ID"] = "<dup@example.com>"
+        with patch("remail.interfaces.email.services.email_sync_service.ImapProtocol"):
+            with patch("remail.interfaces.email.services.email_sync_service.EmailParser"):
+                service = EmailSyncService(user_id=test_user)
+                service.changed_mails = [100]  # Email with imap_uid 100 changed
 
-        mock_protocol.fetch_emails.return_value = [(42, dup_msg)]
+                result = service.check_for_changed_threads()
 
-        result = service.sync_emails()
+                assert len(result) == 1
+                assert result[0].title == "Test Thread"
+                assert service.changed_mails == []  # Should be cleared after check
 
-        assert result["status"] == "success"
-        assert result["synced_count"] == 0
-        assert result["skipped_count"] == 1
-        mock_email_parser.process_email.assert_not_called()
+    @pytest.mark.asyncio
+    async def test_wait_for_mail_changes_async(self, test_engine, test_user):
+        """Test async waiting for mail changes."""
+        with patch(
+            "remail.interfaces.email.services.email_sync_service.ImapProtocol"
+        ) as mock_imap_cls:
+            mock_protocol = MagicMock()
 
-    def test_sync_emails_handles_fetch_error(self, mock_protocol, mock_email_parser, test_engine):
-        """Test that sync handles IMAP fetch errors gracefully."""
-        user = create_test_user(test_engine)
-        service = EmailSyncService(
-            protocol=mock_protocol, email_parser=mock_email_parser, user_id=user.id
-        )
-        mock_protocol.fetch_emails.side_effect = Exception("Connection failed")
+            async def mock_wait():
+                yield {1: {b"BODY[]": b"new_mail", b"FLAGS": []}}
 
-        result = service.sync_emails()
+            mock_protocol.wait_for_changes = mock_wait
+            mock_protocol.serialize.return_value = '{"host": "imap.example.com"}'
+            mock_imap_cls.return_value = mock_protocol
 
-        assert result["status"] == "error"
-        assert "Connection failed" in result["message"]
+            with patch(
+                "remail.interfaces.email.services.email_sync_service.EmailParser"
+            ) as mock_parser_cls:
+                mock_parser = MagicMock()
+                mock_parser.parse_mail.return_value = (True, 200)
+                mock_parser_cls.return_value = mock_parser
 
-    def test_sync_emails_logs_in_when_needed(self, mock_protocol, mock_email_parser, test_engine):
-        """Test that sync triggers login when protocol is not logged in."""
-        user = create_test_user(test_engine)
-        service = EmailSyncService(
-            protocol=mock_protocol, email_parser=mock_email_parser, user_id=user.id
-        )
-        mock_protocol.logged_in = False
-        mock_protocol.fetch_emails.return_value = []
+                service = EmailSyncService(user_id=test_user)
 
-        service.sync_emails()
+                count = 0
+                async for _ in service.wait_for_mail_changes_async():
+                    count += 1
+                    assert len(service.changed_mails) == 1
+                    break  # Only test one iteration
 
-        mock_protocol.login.assert_called_once()
+                assert count == 1
+
+    def test_email_exists_true(self, test_engine, test_user):
+        """Test _email_exists returns True when email exists."""
+        with Session(test_engine) as session:
+            user = session.get(User, test_user)
+            from remail.models import Conversation
+
+            conv = Conversation(type="conversation", user=user)
+            session.add(conv)
+            session.flush()
+
+            thread = Thread(title="Test", conversation=conv)
+            session.add(thread)
+            session.flush()
+
+            email = Email(
+                message_id="<exists@example.com>",
+                subject="Test",
+                body="Body",
+                sent_at="2024-01-01",
+                imap_uid=1,
+                thread=thread,
+            )
+            session.add(email)
+            session.commit()
+
+        with patch("remail.interfaces.email.services.email_sync_service.ImapProtocol"):
+            with patch("remail.interfaces.email.services.email_sync_service.EmailParser"):
+                service = EmailSyncService(user_id=test_user)
+                assert service._email_exists("<exists@example.com>") is True
+
+    def test_email_exists_false(self, test_engine, test_user):
+        """Test _email_exists returns False when email doesn't exist."""
+        with patch("remail.interfaces.email.services.email_sync_service.ImapProtocol"):
+            with patch("remail.interfaces.email.services.email_sync_service.EmailParser"):
+                service = EmailSyncService(user_id=test_user)
+                assert service._email_exists("<notexists@example.com>") is False
+
+    def test_email_exists_empty_message_id(self, test_engine, test_user):
+        """Test _email_exists returns False for empty message_id."""
+        with patch("remail.interfaces.email.services.email_sync_service.ImapProtocol"):
+            with patch("remail.interfaces.email.services.email_sync_service.EmailParser"):
+                service = EmailSyncService(user_id=test_user)
+                assert service._email_exists("") is False
+                assert service._email_exists(None) is False

@@ -3,7 +3,6 @@ from unittest.mock import MagicMock
 
 import pytest
 from imapclient import IMAPClient
-
 from remail.interfaces.email.services.folder_service import FolderService
 
 

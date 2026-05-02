@@ -9,9 +9,6 @@ class UserDTO:
     id: int
     name: str
     email: str
-    username: str
-    host: str
-    password: str
     category: UserAccountCategory
     protocol: Protocol
     unread_conversations: int
@@ -25,9 +22,6 @@ class UserDTO:
             email=user.email,
             id=user.id if user.id else -1,
             name=user.name,
-            username=user.username,
-            host=user.host,
-            password=user.password,
             category=UserAccountCategory.PRIVATE,
             protocol=user.protocol,
             unread_conversations=unread_count,

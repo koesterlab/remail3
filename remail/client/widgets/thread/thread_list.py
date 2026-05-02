@@ -1,7 +1,3 @@
-# ---------------------------------------------------------------------- #
-# Self-test entry: Allows you to run this file directly for preview.
-#   (pixi) python -m remail.client.widgets.thread_widget
-# ---------------------------------------------------------------------- #
 from __future__ import annotations
 
 from typing import Any
@@ -35,7 +31,7 @@ class ThreadList(ft.Container):
     def _rebuild(self) -> None:
         new_thread: ThreadPreviewDTO = self.state.get(MainAppStateProperties.ACTIVE_THREAD)
         self.conversation: ConversationDTO = self.state.get(
-            MainAppStateProperties.ACTIVE_CONVERSATION
+            MainAppStateProperties.ACTIVE_THREAD_CONVERSATION
         )
         if not new_thread:  # dashboard -> just do nothing
             self.thread = None
@@ -56,7 +52,7 @@ class ThreadList(ft.Container):
                             ft.TextField(
                                 value=self.thread.title,
                                 hint_text="Enter a thread name",
-                                content_padding=ft.padding.all(0),
+                                content_padding=ft.Padding.all(0),
                                 collapsed=True,
                                 text_style=ft.TextStyle(
                                     size=22, weight=ft.FontWeight.BOLD, color=ft.Colors.ON_SURFACE
@@ -78,7 +74,7 @@ class ThreadList(ft.Container):
                 alignment=ft.MainAxisAlignment.START,
                 spacing=10,
             ),
-            padding=ft.padding.only(left=10, top=5, bottom=5, right=10),
+            padding=ft.Padding.only(left=10, top=5, bottom=5, right=10),
             height=60,
             bgcolor=ft.Colors.SURFACE,
         )
@@ -123,9 +119,6 @@ class ThreadList(ft.Container):
             expand=True,
         )
 
-        # ---------- downside message input box ---------- #
-
-        # ---------- conbination of the whole layout ---------- #
         self.content = ft.Column(
             [
                 header,

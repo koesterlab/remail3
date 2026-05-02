@@ -1,115 +1,67 @@
 """Appearance settings view."""
 
 import flet as ft
+from flet import ThemeMode
 
-from remail.client.state.app_state import AppState
-from remail.client.widgets.settings.appearance import (
-    create_font_family_selector,
-    create_font_size_selector,
-    create_theme_selector,
-)
-from remail.controllers import SettingsController
-from remail.enums import ThemeMode
+from remail.client.views.settings.settings_sub_view import SettingsSubView
+from remail.controllers.dtos import SettingsDTO
+from remail.enums import FontFamily, FontSize
 
 
-def create_appearance_view(page: ft.Page, app_state: AppState) -> ft.Container:
-    """Create the appearance settings view with all appearance customization options.
+class AppearanceView(SettingsSubView):
+    def _apply_theme_mode(self, value: str) -> None:
+        theme_mode = ThemeMode(value)
+        if self.page is not None:
+            self.page.theme_mode = theme_mode or ThemeMode.SYSTEM
+        self.apply_settings("theme_mode", theme_mode)
 
-    Args:
-        page: The Flet page object
-        app_state: The application state
+    def _apply_font_size(self, value: str) -> None:
+        font_size = FontSize(value)
+        self.apply_settings("font_size", font_size)
 
-    Returns:
-        A Container with the appearance settings view
-    """
+    def _apply_font_family(self, value: str) -> None:
+        font_family = FontFamily(value)
+        self.apply_settings("font_family", font_family)
 
-    controller = SettingsController()
-    current_settings = controller.get_settings()
-
-    theme_selector = create_theme_selector(page, app_state)
-    font_size_selector = create_font_size_selector(page, app_state)
-    font_family_selector = create_font_family_selector(page, app_state)
-
-    # Load saved settings into UI controls
-    if current_settings:
-        # Set theme
-        if hasattr(theme_selector.controls[1], "value"):
-            theme_selector.controls[1].value = current_settings.theme_mode
-
-        # Set font size if available
-        if len(font_size_selector.controls) > 1 and hasattr(
-            font_size_selector.controls[1], "value"
-        ):
-            font_size_selector.controls[1].value = current_settings.font_size
-
-        # Set font family if available
-        if len(font_family_selector.controls) > 1 and hasattr(
-            font_family_selector.controls[1], "value"
-        ):
-            font_family_selector.controls[1].value = current_settings.font_family
-
-    def apply_appearance_settings(e):
-        """Apply the selected appearance settings."""
-
-        theme = theme_selector.controls[1].value  # RadioGroup value
-        font_size = (
-            font_size_selector.controls[1].value
-            if len(font_size_selector.controls) > 1
-            else "medium"
+    def create_page(self, settings: SettingsDTO) -> ft.Container:
+        return ft.Container(
+            ft.Column(
+                [
+                    ft.Text("Appearance", size=18, weight=ft.FontWeight.BOLD),
+                    ft.Text("Customize how the app looks and feels"),
+                    ft.Divider(height=2, color=ft.Colors.BLACK),
+                    ft.Text("Theme", weight=ft.FontWeight.BOLD),
+                    ft.RadioGroup(
+                        content=ft.Row(
+                            [
+                                ft.Radio(value=ThemeMode.LIGHT.value, label="Light"),
+                                ft.Radio(value=ThemeMode.DARK.value, label="Dark"),
+                                ft.Radio(value=ThemeMode.SYSTEM.value, label="System"),
+                            ]
+                        ),
+                        value=self.settings.theme_mode.value,
+                        on_change=lambda e: self._apply_theme_mode(e.control.value),
+                    ),
+                    ft.Text("Font size", weight=ft.FontWeight.BOLD),
+                    ft.Dropdown(
+                        value=self.settings.font_size.value,
+                        options=[ft.dropdown.Option(size.value) for size in FontSize],
+                        width=200,
+                        on_select=lambda e: self._apply_font_size(e.control.value),
+                    ),
+                    ft.Text("Font family", weight=ft.FontWeight.BOLD),
+                    ft.Dropdown(
+                        value=self.settings.font_family.value,
+                        options=[ft.dropdown.Option(family.value) for family in FontFamily],
+                        width=200,
+                        on_select=lambda e: self._apply_font_family(e.control.value),
+                    ),
+                ],
+                spacing=15,
+                scroll=ft.ScrollMode.AUTO,
+            ),
+            padding=20,
+            border_radius=10,
+            alignment=ft.Alignment.CENTER_LEFT,
+            expand=True,
         )
-        font_family = (
-            font_family_selector.controls[1].value
-            if len(font_family_selector.controls) > 1
-            else "system"
-        )
-
-        # Update app state
-        app_state.theme_mode = ThemeMode(theme)
-
-        if app_state.theme_mode == ThemeMode.LIGHT:
-            page.theme_mode = ft.ThemeMode.LIGHT
-        elif app_state.theme_mode == ThemeMode.DARK:
-            page.theme_mode = ft.ThemeMode.DARK
-        else:
-            page.theme_mode = ft.ThemeMode.SYSTEM
-
-        # Save to database using controller
-        controller.update_settings(
-            theme_mode=theme,
-            font_size=font_size,
-            font_family=font_family,
-        )
-
-        # Show success message
-        snack_bar = ft.SnackBar(
-            content=ft.Text("Settings saved successfully"),
-            bgcolor=ft.Colors.GREEN,
-        )
-        page.overlay.append(snack_bar)
-        snack_bar.open = True
-
-        # TODO: Apply font size changes to the page/theme
-        # TODO: Apply font family changes to the page/theme
-
-        page.update()
-
-    return ft.Container(
-        ft.Column(
-            [
-                ft.Text("Appearance", size=18, weight=ft.FontWeight.BOLD),
-                ft.Text("Customize how the app looks and feels"),
-                ft.Divider(height=2, color=ft.Colors.BLACK),
-                theme_selector,
-                font_size_selector,
-                font_family_selector,
-                ft.Container(
-                    ft.OutlinedButton("Apply", on_click=apply_appearance_settings),
-                    alignment=ft.alignment.center,
-                ),
-            ],
-            spacing=15,
-        ),
-        padding=20,
-        border_radius=10,
-        alignment=ft.alignment.center_left,
-    )

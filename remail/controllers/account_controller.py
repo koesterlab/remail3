@@ -3,18 +3,18 @@ import logging
 from collections.abc import Callable, Iterable
 
 from remail import errors as ee
-from remail.controllers import EmailController
 from remail.controllers.dtos.conversations import ContactDTO, ConversationDTO, ThreadPreviewDTO
 from remail.controllers.dtos.user_dto import UserDTO
-from remail.interfaces.email import ImapProtocol
+from remail.enums import ConversationType, Protocol
+from remail.interfaces.email import EmailProtocol
 from remail.interfaces.email.services import (
     ConversationService,
-    EmailParser,
     EmailSyncService,
     ThreadService,
 )
+from remail.interfaces.email.services.contact_service import ContactService
 from remail.interfaces.email.services.user_service import UserService
-from remail.models import Conversation
+from remail.models import Conversation, Thread
 from remail.utils.session_management import session
 
 
@@ -28,22 +28,22 @@ class AccountController:
         users = UserService().get_all_users()
         return [AccountController(dto.id) for dto in users]
 
+    @staticmethod
+    def create_new_account(clearname: str, email: str, connection: EmailProtocol, method: Protocol):
+        if not connection.test_connection():
+            raise ValueError("Creating account with invalid credentials")
+        UserService().add_user(email, clearname, method, connection)
+
     @session
     def __init__(self, account_id: int):
         self.user_id = account_id
-        self.user: UserDTO = UserService.get_user_by_id(account_id)
-        password = UserService.get_user_password(self.user.username)
-        if password is None:
-            self._logger.warning("No stored password for %s", self.user.username)
-        self.protocol: ImapProtocol = ImapProtocol(
-            username=self.user.username, password=password, host=self.user.host
-        )  # todo implement exchange option
-        self.sync_service = EmailSyncService(
-            protocol=self.protocol, email_parser=EmailParser(), user_id=self.user.id
-        )
+        user = UserService.get_user_by_id(account_id)
+        self.user: UserDTO = UserDTO.get_from_model(user, UserService.count_unread(user))
+        self.sync_service = EmailSyncService(user_id=self.user.id)
         self.thread_service = ThreadService()
         self.user_service = UserService()
         self.conversation_service = ConversationService()
+        self.contact_service = ContactService()
         self.callback: Callable[[Iterable[ConversationDTO]], None] = lambda _: None
         self.error_callback: Callable[[str], None] = lambda _: None
 
@@ -57,8 +57,10 @@ class AccountController:
         self._notify_callback()
 
         # return all conversation DTOs
-        conversations_data = self.conversation_service.get_all_conversations(self.user.id)
-        return [self._conversation_to_dto(e) for e in conversations_data]
+        return [
+            self._conversation_to_dto(e)
+            for e in self.user_service.get_user_by_id(self.user_id).conversations
+        ]
 
     def set_callback_email_changes(
         self, callback: Callable[[Iterable[ConversationDTO]], None]
@@ -70,10 +72,11 @@ class AccountController:
         """Registers a callback that is called when background sync fails."""
         self.error_callback = callback
 
+    @session
     def _notify_callback(self):
-        changed = self.sync_service.check_for_changed_conversations()
+        changed: list[Thread] = self.sync_service.check_for_changed_threads()
         if len(changed) > 0:
-            self.callback(changed)
+            self.callback(ConversationDTO.from_model(c.conversation) for c in changed)
 
     def _notify_error(self, msg: str) -> None:
         self.error_callback(msg)
@@ -102,12 +105,19 @@ class AccountController:
     def get_user(self):
         return self.user
 
-    def get_email_controller(self) -> EmailController:
-        if self.protocol.user_username is None or self.protocol.user_password is None:
-            raise ValueError("Missing protocol credentials")
-        return EmailController(
-            self.protocol.user_username, self.protocol.user_password, self.protocol.host
+    @session
+    def create_conversation(self, contacts: list[ContactDTO]):
+        return ConversationDTO.from_model(
+            self.conversation_service.create_conversation(
+                conversation_type=ConversationType.GROUP,
+                contacts=[self.contact_service.get_contact_by_id(c.id) for c in contacts],
+                custom_name=None,
+                user=self.user_service.get_user_by_id(self.user_id),
+            )
         )
+
+    def delete(self):
+        UserService.delete_user(self.user_id)
 
     @session
     def _conversation_to_dto(self, conversation: Conversation) -> ConversationDTO:
@@ -153,3 +163,6 @@ class AccountController:
             ],
             threads=threads,
         )
+
+    def search(self, search_string: str) -> list[ConversationDTO]:
+        return []  # todo
