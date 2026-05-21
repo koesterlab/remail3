@@ -39,7 +39,7 @@ class ImapProtocol(EmailProtocol):
         ),
     ):
         self.fields_to_fetch = list(fields_to_fetch)
-        if serialized:
+        if serialized != "{}":
             self.deserialize(serialized)
         elif (
             imap_username
