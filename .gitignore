@@ -1,0 +1,41 @@
+*.log
+/remail/llm/models_
+/remail/llm/db
+*.gguf
+__pycache__
+/llm/db
+database1.db
+database.db
+database.db.wal
+MemStorage.txt
+/remail/database/attachments
+
+# Pixi
+.pixi/
+
+# Testing
+.pytest_cache/
+test-results.xml
+*.pyc
+.coverage
+coverage.json
+htmlcov/
+test.db
+test.db-wal
+test.db-shm
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ENV
+.venv
+**/.DS_Store
+.env
+
+# Build artifacts
+*.egg-info/
+dist/
+build/
