@@ -10,18 +10,17 @@ from typing import TYPE_CHECKING
 from sqlalchemy import and_, func
 from sqlmodel import Session, col, select
 
-from remail.controllers.dtos.conversations import ConversationDTO
-from remail.controllers.dtos.threads import ThreadDTO
-from remail.controllers.dtos.user_dto import UserDTO
 from remail.database import engine
 from remail.interfaces.email.services.user_service import UserService
 from remail.models import Conversation, Email, Thread
 from remail.utils.session_management import session
 
 if TYPE_CHECKING:
+    from remail.controllers.dtos.conversations import ConversationDTO
     from remail.controllers.dtos.threads import (
         ThreadDTO,
     )
+    from remail.controllers.dtos.user_dto import UserDTO
 
 
 class ThreadService:
@@ -221,6 +220,9 @@ class ThreadService:
         returns: (thread_id, ConversationDTO, UserDTO)
         """
         # todo ai valuing of mails
+        from remail.controllers.dtos.conversations import ConversationDTO
+        from remail.controllers.dtos.threads import ThreadDTO
+
         threads: Iterable[Thread] = session.exec(
             select(Thread)
             .order_by(
