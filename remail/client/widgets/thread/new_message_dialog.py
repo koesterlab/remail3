@@ -1,3 +1,5 @@
+import os
+
 import flet as ft
 
 from remail.client.state import MainAppState, MainAppStateProperties
@@ -5,6 +7,7 @@ from remail.client.state import MainAppState, MainAppStateProperties
 
 def create_new_message_dialog(state: MainAppState) -> ft.Container:
     expanded = False
+    attachments: list[str] = []
 
     def expand() -> None:
         nonlocal expanded
@@ -65,6 +68,31 @@ def create_new_message_dialog(state: MainAppState) -> ft.Container:
             expand()
         on_change()
 
+    def refresh_attachments_row() -> None:
+        attachments_row.controls = [
+            ft.Chip(
+                label=ft.Text(os.path.basename(p), size=12),
+                on_delete=lambda _, p=p: remove_attachment(p),
+            )
+            for p in attachments
+        ]
+        attachments_row.visible = bool(attachments)
+        attachments_row.update()
+
+    def remove_attachment(path: str) -> None:
+        if path in attachments:
+            attachments.remove(path)
+        refresh_attachments_row()
+
+    async def pick_files(e) -> None:
+        files = await ft.FilePicker().pick_files(allow_multiple=True)
+        if not files:
+            return
+        for f in files:
+            if f.path and f.path not in attachments:
+                attachments.append(f.path)
+        refresh_attachments_row()
+
     def send_mail():
         # retrieve data
         thread = state.get(MainAppStateProperties.ACTIVE_THREAD)
@@ -81,10 +109,12 @@ def create_new_message_dialog(state: MainAppState) -> ft.Container:
             thread = state.thread_controller.create_thread(conversation, thread.title)
         elif thread.id < 0:
             thread = state.thread_controller.create_thread(conversation, thread.title)
-        state.thread_controller.send_message(thread, message, [])
+        state.thread_controller.send_message(thread, message, list(attachments))
 
         # clear
         state.set(MainAppStateProperties.DRAFT, "")
+        attachments.clear()
+        refresh_attachments_row()
 
     state.register_observer(MainAppStateProperties.DRAFT, on_draft_change)
     send_btn_bottom = ft.IconButton(
@@ -100,11 +130,18 @@ def create_new_message_dialog(state: MainAppState) -> ft.Container:
         disabled=True,
     )
 
+    attachments_row = ft.Row([], wrap=True, visible=False)
+
     button_bar = ft.Row(
         [
             ft.IconButton(
                 ft.Icons.ARROW_DOWNWARD,
                 on_click=lambda _: collapse(),
+                icon_color=ft.Colors.ON_INVERSE_SURFACE,
+            ),
+            ft.IconButton(
+                ft.Icons.ATTACH_FILE,
+                on_click=pick_files,
                 icon_color=ft.Colors.ON_INVERSE_SURFACE,
             ),
             send_btn_top,
@@ -116,7 +153,7 @@ def create_new_message_dialog(state: MainAppState) -> ft.Container:
     container = ft.Container(
         ft.Stack(
             [
-                ft.Column([button_bar, input_field], expand=False),
+                ft.Column([button_bar, input_field, attachments_row], expand=False),
                 ft.Container(send_btn_bottom, width=40, margin=ft.Margin.only(right=5)),
             ],
             alignment=ft.Alignment.CENTER_RIGHT,

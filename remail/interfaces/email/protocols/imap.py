@@ -12,6 +12,7 @@ from imapclient import IMAPClient
 from remail.enums.auth_methods import AuthMethods
 from remail.enums.connection_security import ConnectionSecurity
 from remail.interfaces.email import EmailProtocol
+from remail.interfaces.email.services.message_builder import MessageBuilder
 
 
 class ImapProtocol(EmailProtocol):
@@ -170,12 +171,12 @@ class ImapProtocol(EmailProtocol):
         recipients: list[tuple[str, str]],
         subject: str,
         msg: str,
+        attachments: list[str] | None = None,
     ) -> None:
         """
         Sends a mail
         #todo not tested
         #todo support cc, bcc
-        #todo support attachments
 
         Args:
             server: The SMTP-Server (filled by annotation)
@@ -183,6 +184,7 @@ class ImapProtocol(EmailProtocol):
             recipients: the accounts to send the mail to [(name, mail)]
             subject: The mail subject
             msg: The (plaintext) message
+            attachments: Optional list of file paths to attach
         """
         email = EmailMessage()
 
@@ -194,6 +196,9 @@ class ImapProtocol(EmailProtocol):
 
         # Body (plain text)
         email.set_content(msg)
+
+        if attachments:
+            MessageBuilder.attach_files(email, attachments)
 
         # SMTP send
         server.send_message(email)
