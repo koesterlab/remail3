@@ -34,7 +34,6 @@ class ObservableState(Generic[E]):  # noqa: UP046
         if prop in self._values and value == self._values[prop]:
             return
         self._values[prop] = value
-        # schwache Observer
         self.trigger(prop)
 
     def get(self, prop: E) -> Any:
@@ -55,7 +54,6 @@ class ObservableState(Generic[E]):  # noqa: UP046
                     obs(value)
             for d in dead:
                 self._weak_observers[prop].discard(d)
-        # starke Observer
         if prop in self._strong_observers:
             for obs in list(self._strong_observers[prop]):
                 obs(value)
