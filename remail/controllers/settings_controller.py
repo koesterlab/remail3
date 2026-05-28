@@ -1,6 +1,14 @@
+from enum import Enum
+
 from remail.controllers.dtos.settings_dto import SettingsDTO
 from remail.interfaces.email.services.settings_service import SettingsService
 from remail.utils.session_management import session
+
+
+def _settings_value(value: object) -> str:
+    if isinstance(value, Enum):
+        return str(value.value)
+    return str(value)
 
 
 class SettingsController:
@@ -37,11 +45,11 @@ class SettingsController:
 
         settings_obj = self.service.load_settings()
 
-        settings_obj.theme_mode = str(settings.theme_mode)
-        settings_obj.font_size = str(settings.font_size)
-        settings_obj.font_family = str(settings.font_family)
-        settings_obj.language = str(settings.language)
-        settings_obj.timezone = str(settings.timezone)
+        settings_obj.theme_mode = _settings_value(settings.theme_mode)
+        settings_obj.font_size = _settings_value(settings.font_size)
+        settings_obj.font_family = _settings_value(settings.font_family)
+        settings_obj.language = _settings_value(settings.language)
+        settings_obj.timezone = _settings_value(settings.timezone)
         settings_obj.desktop_notifications = settings.desktop_notifications
         settings_obj.email_notifications = settings.email_notifications
         settings_obj.quiet_hours = settings.quiet_hours

@@ -311,9 +311,6 @@ class EmailParser:
 
         existing_filenames = {attachment.filename for attachment in email.attachments}
         for part in raw_email.walk():
-            if (part.get_content_disposition() or "").lower() != "attachment":
-                continue
-
             filename = str(make_header(decode_header(part.get_filename() or "")))
             payload = part.get_payload(decode=True)
             if not filename or filename in existing_filenames or not isinstance(payload, bytes):

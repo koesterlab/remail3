@@ -2,6 +2,7 @@ import asyncio
 
 import flet as ft
 
+from remail.client.views.settings.attachments_view import AttachmentsView
 from remail.client.widgets.chatbot.chatbot import create_chatbot
 from remail.client.widgets.mail_selection import SelectionBar
 from remail.controllers.account_controller import AccountController
@@ -19,11 +20,26 @@ class EmailView(ft.Container):
         super().__init__()
 
         def on_thread_change(new: ThreadPreviewDTO | None) -> None:
-            if new:
+            if new and state.get(MainAppStateProperties.ACTIVE_ATTACHMENTS):
+                state.set(MainAppStateProperties.ACTIVE_ATTACHMENTS, False)
+                return
+            update_right_view()
+
+        def on_attachments_change(_: bool) -> None:
+            update_right_view()
+
+        def update_right_view() -> None:
+            active_thread = state.get(MainAppStateProperties.ACTIVE_THREAD)
+            if active_thread:
                 right_view.content = ThreadList(state)
+            elif state.get(MainAppStateProperties.ACTIVE_ATTACHMENTS):
+                right_view.content = AttachmentsView()
             else:
                 right_view.content = dashboard
-            right_view.update()
+            try:
+                right_view.update()
+            except RuntimeError:
+                pass
 
         def on_chatbot_state_change(is_active: bool) -> None:
             if is_active:
@@ -87,6 +103,7 @@ class EmailView(ft.Container):
             state.set(MainAppStateProperties.ACTIVE_USER, self.accounts[0].get_user())
         state.register_observer(MainAppStateProperties.ACTIVE_CHATBOT, on_chatbot_state_change)
         state.register_observer(MainAppStateProperties.ACTIVE_THREAD, on_thread_change)
+        state.register_observer(MainAppStateProperties.ACTIVE_ATTACHMENTS, on_attachments_change)
 
         empty_accounts_view = ft.Container(
             ft.Column(
@@ -113,7 +130,7 @@ class EmailView(ft.Container):
         dashboard = ft.Container(content=DashboardPage(state), padding=10)
 
         right_view = ft.Container(
-            DashboardPage(state) if state.account_controllers else empty_accounts_view,
+            dashboard if state.account_controllers else empty_accounts_view,
             col={"xs": 6, "md": 8, "lg": 9},
             expand=True,
         )

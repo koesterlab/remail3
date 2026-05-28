@@ -1,0 +1,49 @@
+from datetime import datetime, timedelta
+
+from sqlmodel import Session
+
+from remail.client.views.settings.attachments_view import AttachmentsView
+from remail.models import Attachment, Contact, Conversation, Email, Thread
+
+
+def test_load_attachment_groups_groups_versions_by_thread_and_filename(session: Session):
+    contact = Contact(name="Alice Sender", email_address="alice@example.com")
+    conversation = Conversation(custom_name="Project")
+    session.add(contact)
+    session.add(conversation)
+    session.commit()
+
+    thread = Thread(title="Budget", conversation_id=conversation.id)
+    session.add(thread)
+    session.commit()
+
+    older = Email(
+        message_id="older",
+        body="old",
+        sent_at=datetime(2026, 1, 1),
+        sender_id=contact.id,
+        thread_id=thread.id,
+    )
+    newer = Email(
+        message_id="newer",
+        body="new",
+        sent_at=older.sent_at + timedelta(days=1),
+        sender_id=contact.id,
+        thread_id=thread.id,
+    )
+    session.add(older)
+    session.add(newer)
+    session.commit()
+
+    session.add(Attachment(filename="offer.pdf", email_id=older.id))
+    session.add(Attachment(filename="Offer.pdf", email_id=newer.id))
+    session.commit()
+
+    view = object.__new__(AttachmentsView)
+    groups = AttachmentsView._load_attachment_groups(view, session=session)
+
+    assert len(groups) == 1
+    assert groups[0].filename == "offer.pdf"
+    assert groups[0].thread_title == "Budget"
+    assert [version.sent_at for version in groups[0].versions] == [newer.sent_at, older.sent_at]
+    assert groups[0].sender_email == "alice@example.com"
