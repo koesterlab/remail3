@@ -10,7 +10,6 @@ def create_chatbot(app_state: MainAppState):
     settings = SettingsController().get_settings()
     llm_controller = LLMController(settings.llm_url, settings.llm_key)
 
-    # if score is above zero, the widget is "active" and expands
     _active_input = False
     _active_hover = False
 
@@ -22,31 +21,42 @@ def create_chatbot(app_state: MainAppState):
             _active_input = active_input
         if active_hover is not None:
             _active_hover = active_hover
-
         app_state.set(MainAppStateProperties.ACTIVE_CHATBOT, _active_input or _active_hover)
 
     chat_display = ft.ListView(
-        expand=True,
         auto_scroll=True,
         spacing=10,
-        visible=False,
+        height=0,
+        clip_behavior=ft.ClipBehavior.HARD_EDGE,
     )
 
     def change_chat_visibility(visible: bool) -> None:
-        nonlocal chat_display
-        chat_display.visible = visible
+
+        has_messages = len(chat_display.controls) > 0
+        chat_display.height = 290 if (visible and has_messages) else 0
         chat_display.update()
 
     app_state.register_observer(MainAppStateProperties.ACTIVE_CHATBOT, change_chat_visibility)
+
+    def _on_focus(_) -> None:
+        change_active_state(active_input=True)
+
+    def _on_blur(_) -> None:
+        change_active_state(active_input=False)
+
+    def _on_hover(f) -> None:
+        change_active_state(active_hover=f.data == "true")
 
     message_input = ft.TextField(
         label="Call AIfred 🤖 ...",
         expand=True,
         min_lines=1,
         max_lines=6,
-        on_focus=lambda _: change_active_state(active_input=True),
-        on_blur=lambda _: change_active_state(active_input=False),
-        color=ft.Colors.ON_PRIMARY,
+        on_focus=_on_focus,
+        on_blur=_on_blur,
+        color=ft.Colors.WHITE,
+        label_style=ft.TextStyle(color=ft.Colors.WHITE70),
+        cursor_color=ft.Colors.WHITE,
     )
 
     def _get_ai_response(user_message: str) -> LLMResponseDTO | None:
@@ -81,6 +91,9 @@ def create_chatbot(app_state: MainAppState):
         message_input.update()
 
         chat_display.controls.append(ft.Text(f"You: {user_message}", color=ft.Colors.BLUE))
+
+        if chat_display.height == 0:
+            chat_display.height = 290
 
         loading_indicator = ft.ProgressRing()
         loading_container = ft.Row(
@@ -117,20 +130,16 @@ def create_chatbot(app_state: MainAppState):
     input_row = ft.Row(
         controls=[message_input],
         spacing=10,
-        height=50,
     )
 
-    return ft.Container(
+    container = ft.Container(
         ft.Column(
-            controls=[
-                # ft.Text("Alfred 🤖", size=24, weight=FontWeight.BOLD),
-                chat_display,
-                input_row,
-            ],
+            controls=[chat_display, input_row],
             spacing=10,
-            alignment=ft.MainAxisAlignment.END,
+            tight=True,
         ),
-        on_hover=lambda f: change_active_state(active_hover=f.data == "true"),
+        on_hover=_on_hover,
         padding=ft.Padding.all(5),
         bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
     )
+    return container
