@@ -25,7 +25,6 @@ class EmailView(ft.Container):
                 right_view.content = dashboard
             right_view.update()
 
-
         def on_emails_synced(acting_account: UserDTO, updates: list[ConversationDTO]):
             if acting_account == state.get(
                 MainAppStateProperties.ACTIVE_USER
