@@ -85,8 +85,27 @@ class EmailView(ft.Container):
                     lambda msg, acc_=acc: on_email_sync_error(acc_.get_user(), msg)  # type:ignore
                 )
             state.set(MainAppStateProperties.ACTIVE_USER, self.accounts[0].get_user())
+        def on_accounts_changed(_email: str | None) -> None:
+            new_accounts = AccountController.all_client_accounts()
+            for acc in new_accounts:
+                if acc.get_email_address() not in state.account_controllers:
+                    state.account_controllers[acc.get_email_address()] = acc
+                    acc.set_callback_email_changes(
+                        lambda updates, acc_=acc: on_emails_synced(acc_.get_user(), updates)  # type:ignore
+                    )
+                    acc.set_callback_email_errors(
+                        lambda msg, acc_=acc: on_email_sync_error(acc_.get_user(), msg)  # type:ignore
+                    )
+                    self.accounts.append(acc)
+                    self.page.run_thread(
+                        lambda acc_=acc: asyncio.run(acc_.start_listening())
+                    )
+            if not state.get(MainAppStateProperties.ACTIVE_USER) and new_accounts:
+                state.set(MainAppStateProperties.ACTIVE_USER, new_accounts[0].get_user())
+
         state.register_observer(MainAppStateProperties.ACTIVE_CHATBOT, on_chatbot_state_change)
         state.register_observer(MainAppStateProperties.ACTIVE_THREAD, on_thread_change)
+        state.register_observer(MainAppStateProperties.ACCOUNTS_CHANGED, on_accounts_changed)
 
         empty_accounts_view = ft.Container(
             ft.Column(

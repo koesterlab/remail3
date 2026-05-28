@@ -21,7 +21,7 @@ class Email(SQLModel, table=True):
     body: str
     sent_at: datetime
     sender_id: int = Field(foreign_key="contacts.id", nullable=False)
-    thread_id: int = Field(foreign_key="threads.id", nullable=True)
+    thread_id: int | None = Field(default=None, foreign_key="threads.id", nullable=True)
     deleted: bool = Field(default=False, nullable=False)
     read: bool = Field(default=False, nullable=False)
 

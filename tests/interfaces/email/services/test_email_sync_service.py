@@ -7,7 +7,7 @@ from sqlmodel import Session
 
 from remail.enums import Protocol
 from remail.interfaces.email.services.email_sync_service import EmailSyncService
-from remail.models import Email, Thread, User
+from remail.models import Conversation, Email, Thread, User
 
 
 @pytest.fixture
@@ -37,7 +37,7 @@ class TestEmailSyncService:
 
                 mock_imap.assert_called_once()
                 assert service.user_id == test_user
-                assert service.changed_mails == []
+                assert service.changed_conversation_ids == []
                 assert service.changed_threads == []
 
     def test_sync_emails_no_new_emails(self, test_engine, test_user):
@@ -55,7 +55,7 @@ class TestEmailSyncService:
                 service.sync_emails()
 
                 mock_protocol.fetch_emails.assert_called_once_with(new_only=True)
-                assert len(service.changed_mails) == 0
+                assert len(service.changed_conversation_ids) == 0
 
     def test_sync_emails_processes_new_emails(self, test_engine, test_user):
         """Test sync processes new emails from protocol."""
@@ -75,8 +75,8 @@ class TestEmailSyncService:
             ) as mock_parser_cls:
                 mock_parser = MagicMock()
                 mock_parser.parse_mail.side_effect = [
-                    (True, 101),  # Changed, mail_id 101
-                    (False, 102),  # Not changed, mail_id 102
+                    (True, 101, 1),  # Changed, mail_id 101, conv_id 1
+                    (False, 102, None),  # Not changed
                 ]
                 mock_parser_cls.return_value = mock_parser
 
@@ -84,8 +84,8 @@ class TestEmailSyncService:
                 service.sync_emails()
 
                 assert mock_parser.parse_mail.call_count == 2
-                assert len(service.changed_mails) == 1
-                assert service.changed_mails[0] == 101
+                assert len(service.changed_conversation_ids) == 1
+                assert service.changed_conversation_ids[0] == 1
 
     def test_sync_emails_handles_parser_errors(self, test_engine, test_user):
         """Test sync continues when parser raises exception."""
@@ -109,7 +109,7 @@ class TestEmailSyncService:
                 service = EmailSyncService(user_id=test_user)
                 service.sync_emails()  # Should not raise
 
-                assert len(service.changed_mails) == 0
+                assert len(service.changed_conversation_ids) == 0
 
     def test_sync_emails_saves_connection_data(self, test_engine, test_user):
         """Test that sync saves updated connection data back to user."""
@@ -131,16 +131,16 @@ class TestEmailSyncService:
                     assert "updated.example.com" in user.connection
 
     def test_check_for_changed_threads_empty(self, test_engine, test_user):
-        """Test check_for_changed_threads returns empty when no changes."""
+        """Test get_changed_conversations returns empty when no changes."""
         with patch("remail.interfaces.email.services.email_sync_service.ImapProtocol"):
             with patch("remail.interfaces.email.services.email_sync_service.EmailParser"):
                 service = EmailSyncService(user_id=test_user)
-                result = service.check_for_changed_threads()
+                result = service.get_changed_conversations()
 
                 assert result == []
 
     def test_check_for_changed_threads_returns_threads(self, test_engine, test_user):
-        """Test check_for_changed_threads returns threads for changed emails."""
+        """Test get_changed_conversations returns conversations for changed emails."""
         with Session(test_engine) as session:
             user = session.get(User, test_user)
             from remail.models import Conversation
@@ -148,6 +148,7 @@ class TestEmailSyncService:
             conv = Conversation(type="conversation", user=user)
             session.add(conv)
             session.flush()
+            conv_id = conv.id
 
             thread = Thread(title="Test Thread", conversation=conv)
             session.add(thread)
@@ -155,7 +156,6 @@ class TestEmailSyncService:
 
             email1 = Email(
                 message_id="<test1@example.com>",
-                subject="Test",
                 body="Body",
                 sent_at="2024-01-01",
                 imap_uid=100,
@@ -167,13 +167,12 @@ class TestEmailSyncService:
         with patch("remail.interfaces.email.services.email_sync_service.ImapProtocol"):
             with patch("remail.interfaces.email.services.email_sync_service.EmailParser"):
                 service = EmailSyncService(user_id=test_user)
-                service.changed_mails = [100]  # Email with imap_uid 100 changed
+                service.changed_conversation_ids = [conv_id]
 
-                result = service.check_for_changed_threads()
+                result = service.get_changed_conversations()
 
                 assert len(result) == 1
-                assert result[0].title == "Test Thread"
-                assert service.changed_mails == []  # Should be cleared after check
+                assert service.changed_conversation_ids == []  # Should be cleared after check
 
     @pytest.mark.asyncio
     async def test_wait_for_mail_changes_async(self, test_engine, test_user):
@@ -194,7 +193,7 @@ class TestEmailSyncService:
                 "remail.interfaces.email.services.email_sync_service.EmailParser"
             ) as mock_parser_cls:
                 mock_parser = MagicMock()
-                mock_parser.parse_mail.return_value = (True, 200)
+                mock_parser.parse_mail.return_value = (True, 200, 5)
                 mock_parser_cls.return_value = mock_parser
 
                 service = EmailSyncService(user_id=test_user)
@@ -202,7 +201,7 @@ class TestEmailSyncService:
                 count = 0
                 async for _ in service.wait_for_mail_changes_async():
                     count += 1
-                    assert len(service.changed_mails) == 1
+                    assert len(service.changed_conversation_ids) == 1
                     break  # Only test one iteration
 
                 assert count == 1
