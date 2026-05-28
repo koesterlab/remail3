@@ -4,6 +4,7 @@ from remail.interfaces.embeddings import EmbeddingService
 from sqlalchemy import event
 from sqlalchemy import text
 
+
 class SearchController:
     def __init__(self):
         self.embedding_service = EmbeddingService()
@@ -42,15 +43,54 @@ class SearchController:
         with self.engine.begin() as conn:
             conn.execute(text(create_table_sql))
 
-    def index_email(self, email_id: int, text: str):
-        vector = self.embedding_service.get_embedding(text)
 
-        # Insert the list in a Binary Package
+    def index_email(self, email_id: int, subject: str, body: str):
+        # make one text from subject and body
+        full_text = subject + " " + body
+
+        # make a vector from the text
+        vector = self.embedding_service.get_embedding(full_text)
         vector_blob = sqlite_vec.serialize_float32(vector)
+
+        # delete old embedding if exists
+        delete_sql = "DELETE FROM email_embeddings WHERE email_id = :email_id"
+
+        # save the new vector in the database
         insert_sql = """
                      INSERT INTO email_embeddings(email_id, embedding)
                      VALUES (:email_id, :embedding)
                      """
 
         with self.engine.begin() as conn:
+            conn.execute(text(delete_sql), {"email_id": email_id})
             conn.execute(text(insert_sql), {"email_id": email_id, "embedding": vector_blob})
+
+
+    def search(self, query: str):
+        # if query is empty, return nothing
+        if query == "":
+            return []
+
+        # make a vector from the search query
+        query_vector = self.embedding_service.get_embedding(query)
+        query_blob = sqlite_vec.serialize_float32(query_vector)
+
+        # find the 10 most similar emails
+        search_sql = """
+                     SELECT email_id
+                     FROM email_embeddings
+                     WHERE embedding MATCH :query_embedding
+                     ORDER BY distance
+                     LIMIT 10
+                     """
+
+        with self.engine.begin() as conn:
+            result = conn.execute(text(search_sql), {"query_embedding": query_blob})
+            rows = result.fetchall()
+
+        # put the email ids in a list
+        email_ids = []
+        for row in rows:
+            email_ids.append(row[0])
+
+        return email_ids
