@@ -113,6 +113,7 @@ class ConversationSelection(ft.Container):
                 update_bound <<= 1  # updates after 2,4,8,16,32,... elements
 
         self.inner_content.controls = element_list
+        self.update()
 
     def create_list_item(self, elem: Action | ConversationDTO):
         if isinstance(elem, Action):
