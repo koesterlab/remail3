@@ -22,6 +22,7 @@ class MainAppStateProperties(Enum):
     DISPLAYED_MAILS = "displayed_mails"
     SYNC_FEEDBACK = "sync_feedback"
 
+
 class MainAppState(ObservableState[MainAppStateProperties]):
     def __init__(self):
         super().__init__()
