@@ -35,8 +35,5 @@ class IndexView(ft.Container):
             MainAppStateProperties.ACTIVE_SETTINGS, lambda s: show_content(s is not None)
         )
         show_content(False)
-        state.set(
-            MainAppStateProperties.SYNC_FEEDBACK,
-            "Synchronisiere E-Mails..."
-        )
+        state.set(MainAppStateProperties.SYNC_FEEDBACK, "Synchronisiere E-Mails...")
         emails_view.run_sync_threads()

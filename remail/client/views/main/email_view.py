@@ -50,6 +50,7 @@ class EmailView(ft.Container):
                 MainAppStateProperties.SYNC_FEEDBACK,
                 f"[{acting_account.email}] Synchronisierung abgeschlossen",
             )
+
         def on_email_sync_error(acting_account: UserDTO, msg: str):
             snack_bar = ft.SnackBar(
                 ft.Text(
@@ -117,9 +118,9 @@ class EmailView(ft.Container):
         sync_icon = ft.ProgressRing(width=16, height=16, visible=False)
 
         sync_text = ft.Text(
-           "",
-           color=ft.Colors.YELLOW_500,
-           size=12,
+            "",
+            color=ft.Colors.YELLOW_500,
+            size=12,
         )
 
         sync_feedback = ft.Row(
@@ -129,19 +130,19 @@ class EmailView(ft.Container):
         )
 
         def on_sync_feedback_change(message: str | None) -> None:
-             print("SYNC_FEEDBACK geaendert:", message)
-             sync_feedback.visible = message is not None
-             sync_icon.visible = message is not None
-             sync_text.value = message or ""
+            print("SYNC_FEEDBACK geaendert:", message)
+            sync_feedback.visible = message is not None
+            sync_icon.visible = message is not None
+            sync_text.value = message or ""
 
-             try:
-                 sync_feedback.update()
-             except RuntimeError:
-                 pass
+            try:
+                sync_feedback.update()
+            except RuntimeError:
+                pass
 
         state.register_observer(
-          MainAppStateProperties.SYNC_FEEDBACK,
-          on_sync_feedback_change,
+            MainAppStateProperties.SYNC_FEEDBACK,
+            on_sync_feedback_change,
         )
         self.content = ft.ResponsiveRow(
             expand=True,
