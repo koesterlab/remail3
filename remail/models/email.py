@@ -10,6 +10,8 @@ from .thread import Thread
 if TYPE_CHECKING:
     from .attachment import Attachment
     from .email_reception import EmailReception
+    from .tag import Tag
+    from .tag_email import EmailTag
 
 
 class Email(SQLModel, table=True):
@@ -24,6 +26,7 @@ class Email(SQLModel, table=True):
     thread_id: int = Field(foreign_key="threads.id", nullable=True)
     deleted: bool = Field(default=False, nullable=False)
     read: bool = Field(default=False, nullable=False)
+    due_at: datetime | None = Field(default=None)
 
     sender: Contact = Relationship(back_populates="sent_emails")
     thread: Thread = Relationship(back_populates="messages")
@@ -37,4 +40,8 @@ class Email(SQLModel, table=True):
         back_populates="email",
         cascade_delete=True,
         sa_relationship_kwargs={"cascade": "all, delete-orphan", "single_parent": True},
+    )
+    tags: list["Tag"] = Relationship(
+        back_populates="emails",
+        link_model=EmailTag,
     )
