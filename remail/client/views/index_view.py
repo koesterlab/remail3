@@ -13,6 +13,7 @@ class IndexView(ft.Container):
     def start(self) -> None:
         state = MainAppState()
         state.set(MainAppStateProperties.DISPLAYED_MAILS, [])
+        state.set(MainAppStateProperties.SYNC_FEEDBACK, None)
         state.set(MainAppStateProperties.ACTIVE_CHATBOT, False)
         state.set(MainAppStateProperties.ACTIVE_THREAD, None)
         state.set(MainAppStateProperties.ACTIVE_CONVERSATION, None)
@@ -34,4 +35,9 @@ class IndexView(ft.Container):
             MainAppStateProperties.ACTIVE_SETTINGS, lambda s: show_content(s is not None)
         )
         show_content(False)
+        
+        state.set(
+            MainAppStateProperties.SYNC_FEEDBACK,
+            "Synchronisiere E-Mails..."
+        )
         emails_view.run_sync_threads()

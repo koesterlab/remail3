@@ -20,7 +20,7 @@ class MainAppStateProperties(Enum):
     ACTIVE_SETTINGS = "active_settings"
     SEARCH_TERM = "search_term"
     DISPLAYED_MAILS = "displayed_mails"
-
+    SYNC_FEEDBACK = "sync_feedback"
 
 class MainAppState(ObservableState[MainAppStateProperties]):
     def __init__(self):

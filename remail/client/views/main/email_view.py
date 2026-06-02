@@ -40,12 +40,16 @@ class EmailView(ft.Container):
                             break
                     else:  # conversation was not found in last state
                         conversations.append(update)
+
                 state.trigger(
                     MainAppStateProperties.DISPLAYED_MAILS
                 )  # object (array) stays the same, no need to set it again
             else:
                 pass  # todo: set "news available on this account"-hint
-
+            state.set(
+                MainAppStateProperties.SYNC_FEEDBACK,
+                f"[{acting_account.email}] Synchronisierung abgeschlossen",
+            )
         def on_email_sync_error(acting_account: UserDTO, msg: str):
             snack_bar = ft.SnackBar(
                 ft.Text(
@@ -110,13 +114,42 @@ class EmailView(ft.Container):
         )
 
         chatbot = create_chatbot(state)
+        sync_icon = ft.ProgressRing(width=16, height=16, visible=False)
 
+        sync_text = ft.Text(
+           "",
+           color=ft.Colors.YELLOW_500,
+           size=12,
+        )
+
+        sync_feedback = ft.Row(
+            controls=[sync_icon, sync_text],
+            spacing=8,
+            visible=False,
+        )
+
+        def on_sync_feedback_change(message: str | None) -> None:
+             print("SYNC_FEEDBACK geaendert:", message)
+             sync_feedback.visible = message is not None
+             sync_icon.visible = message is not None
+             sync_text.value = message or ""
+
+             try:
+                 sync_feedback.update()
+             except RuntimeError:
+                 pass
+
+        state.register_observer(
+          MainAppStateProperties.SYNC_FEEDBACK,
+          on_sync_feedback_change,
+        )
         self.content = ft.ResponsiveRow(
             expand=True,
             controls=[
                 ft.Container(
                     content=ft.Column(
                         [
+                            sync_feedback,
                             ft.Container(SelectionBar(state), expand=1),
                             ft.Container(chatbot),
                         ],
