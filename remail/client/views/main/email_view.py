@@ -77,6 +77,10 @@ class EmailView(ft.Container):
                 acc.set_callback_email_errors(
                     lambda msg, acc_=acc: on_email_sync_error(acc_.get_user(), msg)  # type:ignore
                 )
+
+                acc.set_callback_progress(state.report_task)
+                acc.set_callback_done(state.remove_task)
+
             state.set(MainAppStateProperties.ACTIVE_USER, self.accounts[0].get_user())
 
         def on_accounts_changed(_email: str | None) -> None:
