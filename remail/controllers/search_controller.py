@@ -1,8 +1,12 @@
 import sqlite_vec
-from remail.database import engine
-from remail.interfaces.embeddings import EmbeddingService
+
 from sqlalchemy import event
 from sqlalchemy import text
+from sqlmodel import Session, select
+
+from remail.database import engine
+from remail.interfaces.embeddings import EmbeddingService
+from remail.models import Email
 
 
 class SearchController:
@@ -47,9 +51,10 @@ class SearchController:
     def index_email(self, email_id: int, subject: str, body: str):
         # make one text from subject and body
         full_text = subject + " " + body
+        safe_text = full_text[:10000]
 
         # make a vector from the text
-        vector = self.embedding_service.get_embedding(full_text)
+        vector = self.embedding_service.get_embedding(safe_text)
         vector_blob = sqlite_vec.serialize_float32(vector)
 
         # delete old embedding if exists
@@ -75,9 +80,11 @@ class SearchController:
         query_vector = self.embedding_service.get_embedding(query)
         query_blob = sqlite_vec.serialize_float32(query_vector)
 
+        count_sql = "SELECT COUNT(*) FROM email_embeddings"
+
         # find the 10 most similar emails
         search_sql = """
-                     SELECT email_id
+                     SELECT email_id, distance
                      FROM email_embeddings
                      WHERE embedding MATCH :query_embedding
                      ORDER BY distance
@@ -91,6 +98,29 @@ class SearchController:
         # put the email ids in a list
         email_ids = []
         for row in rows:
+            print("Search result:", row[0], "distance:", row[1])
             email_ids.append(row[0])
 
         return email_ids
+
+    def index_existing_emails(self):
+        with Session(self.engine) as session:
+            emails = session.exec(select(Email)).all()
+
+            print("Indexing existing emails:", len(emails))
+
+            for email in emails:
+                if email.id is None:
+                    continue
+
+                subject = email.thread.title if email.thread else ""
+                body = email.body or ""
+
+                print("Total emails:", len(emails))
+                print("Indexing email:", email.id)
+
+                self.index_email(
+                    email_id=email.id,
+                    subject=subject,
+                    body=body,
+                )
