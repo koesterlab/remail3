@@ -37,6 +37,7 @@ class ImapProtocol(EmailProtocol):
             "FLAGS",  # flags
             "INTERNALDATE",  # server-date
         ),
+
     ):
         self.fields_to_fetch = list(fields_to_fetch)
         if serialized != "{}":
@@ -153,6 +154,7 @@ class ImapProtocol(EmailProtocol):
             self.fetch_since = modcount  # setze fetch_since auf highest modcount
             return client.fetch(uids, self.fields_to_fetch, criteria)  # type:ignore
         else:
+            client.select_folder("INBOX")
             if self.fetch_since and new_only:
                 criteria = ["SINCE", datetime.datetime.fromtimestamp(self.fetch_since)]  # type:ignore
             else:
