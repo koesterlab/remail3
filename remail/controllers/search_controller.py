@@ -1,7 +1,5 @@
 import sqlite_vec
-
-from sqlalchemy import event
-from sqlalchemy import text
+from sqlalchemy import event, text
 from sqlmodel import Session, select
 
 from remail.database import engine
@@ -49,26 +47,29 @@ class SearchController:
 
 
     def index_email(self, email_id: int, subject: str, body: str):
-        # make one text from subject and body
+        # Prüfe ob Embedding schon existiert
+        check_sql = "SELECT COUNT(*) FROM email_embeddings WHERE email_id = :email_id"
+
+        with self.engine.begin() as conn:
+            result = conn.execute(text(check_sql), {"email_id": email_id})
+            count = result.fetchone()[0]
+
+            if count > 0:
+                print(f"Embedding already exists for email {email_id}, skipping...")
+                return
+
+        # Nur wenn nicht vorhanden berechnen und speichern
         full_text = subject + " " + body
         safe_text = full_text[:10000]
-
-        # make a vector from the text
         vector = self.embedding_service.get_embedding(safe_text)
         vector_blob = sqlite_vec.serialize_float32(vector)
 
-        # delete old embedding if exists
-        delete_sql = "DELETE FROM email_embeddings WHERE email_id = :email_id"
-
-        # save the new vector in the database
-        insert_sql = """
-                     INSERT INTO email_embeddings(email_id, embedding)
-                     VALUES (:email_id, :embedding)
-                     """
+        insert_sql = """INSERT INTO email_embeddings(email_id, embedding)
+                        VALUES (:email_id, :embedding)"""
 
         with self.engine.begin() as conn:
-            conn.execute(text(delete_sql), {"email_id": email_id})
             conn.execute(text(insert_sql), {"email_id": email_id, "embedding": vector_blob})
+            print(f"Indexed email {email_id}")
 
 
     def search(self, query: str):
@@ -80,7 +81,7 @@ class SearchController:
         query_vector = self.embedding_service.get_embedding(query)
         query_blob = sqlite_vec.serialize_float32(query_vector)
 
-        count_sql = "SELECT COUNT(*) FROM email_embeddings"
+
 
         # find the 10 most similar emails
         search_sql = """
