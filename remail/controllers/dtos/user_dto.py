@@ -12,6 +12,7 @@ class UserDTO:
     category: UserAccountCategory
     protocol: Protocol
     unread_conversations: int
+    connection: str
 
     def __eq__(self, other):
         return self.id == other.id
@@ -25,4 +26,6 @@ class UserDTO:
             category=UserAccountCategory.PRIVATE,
             protocol=user.protocol,
             unread_conversations=unread_count,
+            connection=user.connection,
+
         )

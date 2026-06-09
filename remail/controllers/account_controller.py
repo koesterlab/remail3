@@ -1,5 +1,6 @@
 import datetime
 import logging
+import json
 from collections.abc import Callable, Iterable
 
 from remail import errors as ee
@@ -34,6 +35,16 @@ class AccountController:
             raise ValueError("Creating account with invalid credentials")
         UserService().add_user(email, clearname, method, connection)
 
+
+
+    def get_connection_data(self):
+        connection = UserService.get_connection_by_user_id(self.user_id)
+
+        if not connection:
+            return {}
+
+        return json.loads(connection)
+
     @session
     def __init__(self, account_id: int):
         self.user_id = account_id
@@ -67,6 +78,13 @@ class AccountController:
     ) -> None:
         """Registers a callback that is called every time when a Conversation is updated or new with the conversation"""
         self.callback = callback
+
+    def update_account(self, name: str, password: str,):
+        UserService.update_user(
+            self.user_id,
+            name,
+            password,
+        )
 
     def set_callback_email_errors(self, callback: Callable[[str], None]) -> None:
         """Registers a callback that is called when background sync fails."""

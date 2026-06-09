@@ -207,6 +207,61 @@ class EmailAccountsView(SettingsSubView):
                 update_account_view()
 
             return handler
+        # ---------------- Edite Account ----------------
+        def edit_account(user):
+            controller = AccountController(user.id)
+            connection = controller.get_connection_data()
+
+            name_input.value = user.name
+            email_input.value = user.email
+            password_input.value = connection["imap_password"]
+
+            dlg = ft.AlertDialog(
+                title=ft.Text("Edit Email Account"),
+                content=ft.Column(
+                    [
+                        name_input,
+                        password_input,
+                        email_input,
+
+                    ],
+                    tight=True,
+                    spacing=10,
+                ),
+                actions=[
+                    ft.TextButton(
+                        "Update",
+                        on_click=lambda e: (
+                            update_account(e, user),
+                            close_dialog(dlg),
+                        ),
+                    ),
+                    ft.TextButton(
+                        "Cancel",
+                        on_click=lambda e: close_dialog(dlg),
+                    ),
+                ],
+            )
+            self.page.overlay.append(dlg)
+            dlg.open = True
+            self.page.update()
+
+
+
+
+        def update_account(e, user):
+
+            controller = AccountController(user.id)
+
+            controller.update_account(
+                name_input.value.strip(),
+                password_input.value,
+            )
+
+            show_snackbar("Account updated", ft.Colors.GREEN_400)
+
+            cancel_add(None)
+            update_account_view()
 
         # ---------------- Cancel Add ----------------
         def cancel_add(e):
@@ -246,6 +301,12 @@ class EmailAccountsView(SettingsSubView):
                                         [
                                             ft.Icon(ft.Icons.EMAIL, color=ft.Colors.BLUE),
                                             ft.Text(user.name, expand=True),
+                                            ft.IconButton(
+                                                icon=ft.Icons.EDIT,
+                                                tooltip="Edit account",
+                                                on_click=lambda e, u=user: edit_account(u),
+                                            ),
+
                                             ft.IconButton(
                                                 icon=ft.Icons.DELETE,
                                                 icon_color=ft.Colors.RED,
