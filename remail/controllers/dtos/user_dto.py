@@ -25,5 +25,4 @@ class UserDTO:
             category=UserAccountCategory.PRIVATE,
             protocol=user.protocol,
             unread_conversations=unread_count,
-
         )
