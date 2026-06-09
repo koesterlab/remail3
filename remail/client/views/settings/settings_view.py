@@ -29,7 +29,7 @@ class SettingsView(ft.Container):
                     ft.Text("Settings", size=24, weight=ft.FontWeight.BOLD),
                 ],
             ),
-            padding=ft.Padding.only(left=10, top=10, bottom=10),
+            padding=ft.Padding(left=10, top=10, bottom=10),
         )
 
         # Create main layout
@@ -40,7 +40,7 @@ class SettingsView(ft.Container):
                     ft.Column(
                         controls=[
                             ft.TextButton(
-                                content=label,
+                                content=ft.Text(label),
                                 on_click=lambda _, v=link_name: state.set(
                                     MainAppStateProperties.ACTIVE_SETTINGS, v
                                 ),

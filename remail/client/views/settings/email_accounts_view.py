@@ -51,9 +51,12 @@ class EmailAccountsView(SettingsSubView):
                     spacing=10,
                 ),
                 actions=[
-                    ft.TextButton("Cancel", on_click=lambda e: close_dialog(dlg)),
                     ft.TextButton(
-                        "Save",
+                        content=ft.Text("Cancel"),
+                        on_click=lambda e: close_dialog(dlg),
+                    ),
+                    ft.TextButton(
+                        content=ft.Text("Save"),
                         on_click=lambda e: (
                             show_snackbar("SMTP settings saved!", ft.Colors.GREEN_400),
                             close_dialog(dlg),
@@ -74,9 +77,12 @@ class EmailAccountsView(SettingsSubView):
                     spacing=10,
                 ),
                 actions=[
-                    ft.TextButton("Cancel", on_click=lambda e: close_dialog(dlg)),
                     ft.TextButton(
-                        "Save",
+                        content=ft.Text("Cancel"),
+                        on_click=lambda e: close_dialog(dlg),
+                    ),
+                    ft.TextButton(
+                        content=ft.Text("Save"),
                         on_click=lambda e: (
                             show_snackbar("IMAP settings saved!", ft.Colors.GREEN_400),
                             close_dialog(dlg),
@@ -132,9 +138,15 @@ class EmailAccountsView(SettingsSubView):
                     ft.Row(
                         [
                             ft.OutlinedButton(
-                                "Connect", icon=ft.Icons.CHECK, on_click=connect_account
+                                content=ft.Text("Connect"),
+                                icon=ft.Icons.CHECK,
+                                on_click=connect_account,
                             ),
-                            ft.OutlinedButton("Cancel", icon=ft.Icons.CLOSE, on_click=cancel_add),
+                            ft.OutlinedButton(
+                                content=ft.Text("Cancel"),
+                                icon=ft.Icons.CLOSE,
+                                on_click=cancel_add,
+                            ),
                         ],
                         spacing=10,
                     ),
@@ -220,9 +232,13 @@ class EmailAccountsView(SettingsSubView):
 
         # ---------------- UI Containers ----------------
         add_button = ft.Container(
-            ft.OutlinedButton("Add Email Account", icon=ft.Icons.ADD, on_click=add_account_click),
+            ft.OutlinedButton(
+                content=ft.Text("Add Email Account"),
+                icon=ft.Icons.ADD,
+                on_click=add_account_click,
+            ),
             alignment=ft.Alignment.CENTER,
-            margin=ft.Margin.only(top=20),
+            margin=ft.Margin(top=20),
         )
 
         base = ft.Container()

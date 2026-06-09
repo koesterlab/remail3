@@ -55,7 +55,7 @@ class AppointmentItem(ft.Container):
             bgcolor=ft.Colors.SURFACE,
             padding=ft.Padding.all(14),
             border_radius=16,
-            margin=ft.Margin.only(bottom=10),
+            margin=ft.Margin(bottom=10),
             content=ft.Row(
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 vertical_alignment=ft.CrossAxisAlignment.START,

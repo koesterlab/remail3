@@ -56,8 +56,8 @@ class TodoItem(ft.Container):
         )
 
         quick_reply = ft.Container(
-            margin=ft.Margin.only(top=8),
-            padding=ft.Padding.symmetric(horizontal=12, vertical=8),
+            margin=ft.Margin(top=8),
+            padding=ft.Padding(horizontal=12, vertical=8),
             border_radius=20,
             bgcolor=ft.Colors.SURFACE,
             content=ft.Row(
@@ -100,7 +100,7 @@ class TodoItem(ft.Container):
             bgcolor=ft.Colors.SURFACE,
             padding=ft.Padding.all(15),
             border_radius=16,
-            margin=ft.Margin.only(bottom=12),
+            margin=ft.Margin(bottom=12),
             content=content_column,
         )
 

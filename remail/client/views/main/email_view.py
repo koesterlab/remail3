@@ -94,7 +94,7 @@ class EmailView(ft.Container):
                     ft.Text("No email accounts connected yet", size=18, weight=ft.FontWeight.BOLD),
                     ft.Text("Add an account in Settings to start syncing your inbox."),
                     ft.Button(
-                        "Open Settings",
+                        content=ft.Text("Open Settings"),
                         icon=ft.Icons.SETTINGS,
                         on_click=lambda _: state.set(
                             MainAppStateProperties.ACTIVE_SETTINGS, SettingsSubView.EMAIL_ACCOUNTS
