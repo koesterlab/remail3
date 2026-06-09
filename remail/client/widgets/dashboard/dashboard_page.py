@@ -73,6 +73,16 @@ class DashboardPage(ft.Column):
     def on_user_change(self, acc: UserDTO):
         self.dropdown.value = str(acc.id)
 
+    def _on_dropdown_change(self, e):
+        try:
+            user_id = int(e.data)
+            for a in self.accounts:
+                if a.user_id == user_id:
+                    self.state.set(MainAppStateProperties.ACTIVE_USER, a.get_user())
+                    break
+        except (ValueError, AttributeError):
+            pass
+
     def _rebuild(self) -> None:
         # Compute greeting + name dynamically
         greeting = _time_greeting()
@@ -81,20 +91,18 @@ class DashboardPage(ft.Column):
         first_name = self.accounts[0].get_user().name.split()[0]
 
         self.dropdown = ft.Dropdown(
-            value=self.state.get(MainAppStateProperties.ACTIVE_USER).id,
+            value=str(self.state.get(MainAppStateProperties.ACTIVE_USER).id),
             text_size=10,
             width=250,
             border_radius=24,
             options=[
-                ft.DropdownOption(
-                    content=AccountCard(acc), key=acc.id, text=f"{acc.name} <{acc.email}>"
+                ft.dropdown.Option(
+                    key=str(acc.id),
+                    content=AccountCard(acc),
                 )
                 for acc in [c.get_user() for c in self.accounts]
             ],
-            on_select=lambda user_id: self.state.set(
-                MainAppStateProperties.ACTIVE_USER,
-                [a for a in self.accounts if a.user_id == user_id][0],
-            ),
+            on_change=lambda e: self._on_dropdown_change(e) if e.data else None,
         )
 
         header = ft.Container(
@@ -174,7 +182,7 @@ This should be the summary of the emails since the last login. It could for exam
                 bgcolor=ft.Colors.SURFACE,
                 content=ft.Container(
                     expand=True,
-                    padding=ft.Padding.symmetric(horizontal=10),
+                    padding=ft.Padding(horizontal=10),
                     content=inner_column,
                 ),
             )

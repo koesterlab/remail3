@@ -31,7 +31,7 @@ class ThreadSelection(ft.Container):
                 controls=[
                     # header
                     ft.Container(
-                        padding=ft.Padding.only(left=0, right=5, top=5, bottom=10),
+                        padding=ft.Padding(left=0, right=5, top=5, bottom=10),
                         content=ft.Row(
                             [
                                 ft.IconButton(
@@ -107,7 +107,7 @@ class ThreadSelection(ft.Container):
             hint_text="add Topic",
         )
 
-        self.add_thread_btn = ft.Container(self.add_thread_field, padding=ft.Padding.only(top=5))
+        self.add_thread_btn = ft.Container(self.add_thread_field, padding=ft.Padding(top=5))
 
     def set_content(self, content: ConversationDTO):
         if not content:

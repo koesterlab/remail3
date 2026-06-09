@@ -117,12 +117,12 @@ def create_new_message_dialog(state: MainAppState) -> ft.Container:
         ft.Stack(
             [
                 ft.Column([button_bar, input_field], expand=False),
-                ft.Container(send_btn_bottom, width=40, margin=ft.Margin.only(right=5)),
+                ft.Container(send_btn_bottom, width=40, margin=ft.Margin(right=5)),
             ],
             alignment=ft.Alignment.CENTER_RIGHT,
         ),
         bgcolor=ft.Colors.INVERSE_SURFACE,
-        margin=ft.Margin.all(5),
+        margin=ft.Margin(all=5),
         border_radius=20,
     )
 

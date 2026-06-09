@@ -74,7 +74,7 @@ class ThreadList(ft.Container):
                 alignment=ft.MainAxisAlignment.START,
                 spacing=10,
             ),
-            padding=ft.Padding.only(left=10, top=5, bottom=5, right=10),
+            padding=ft.Padding(left=10, top=5, bottom=5, right=10),
             height=60,
             bgcolor=ft.Colors.SURFACE,
         )

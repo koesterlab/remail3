@@ -31,7 +31,10 @@ def show_snack_bar(elem: ft.Control, **kwargs):
     global application_page
     if not application_page:
         return
-    application_page.show_dialog(ft.SnackBar(elem, **kwargs))
+    snack_bar = ft.SnackBar(elem, **kwargs)
+    application_page.overlay.append(snack_bar)
+    snack_bar.open = True
+    application_page.update()
 
 
 def update_page():
