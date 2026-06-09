@@ -1,6 +1,5 @@
 import datetime
 import logging
-import json
 from collections.abc import Callable, Iterable
 
 from remail import errors as ee
@@ -38,12 +37,7 @@ class AccountController:
 
 
     def get_connection_data(self):
-        connection = UserService.get_connection_by_user_id(self.user_id)
-
-        if not connection:
-            return {}
-
-        return json.loads(connection)
+        return UserService.get_connection_by_user_id(self.user_id)
 
     @session
     def __init__(self, account_id: int):

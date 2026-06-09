@@ -1,7 +1,8 @@
 """User service for managing email account users."""
 
-import logging
 import json
+import logging
+
 from sqlmodel import Session, select
 
 from remail.controllers.dtos.user_dto import UserDTO
@@ -84,7 +85,7 @@ class UserService:
         if not user:
             return None
 
-        return user.connection
+        return json.loads(user.connection)
     @staticmethod
     @session
     def get_user_by_id(user_id: int, session: Session) -> User | None:
