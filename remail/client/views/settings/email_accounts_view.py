@@ -207,6 +207,7 @@ class EmailAccountsView(SettingsSubView):
                 update_account_view()
 
             return handler
+
         # ---------------- Edite Account ----------------
         def edit_account(user):
             controller = AccountController(user.id)
@@ -214,7 +215,7 @@ class EmailAccountsView(SettingsSubView):
 
             name_input.value = user.name
             email_input.value = user.email
-            password_input.value = connection["imap_password"]
+            password_input.value = connection.get("imap_password", "")
 
             dlg = ft.AlertDialog(
                 title=ft.Text("Edit Email Account"),
@@ -223,7 +224,6 @@ class EmailAccountsView(SettingsSubView):
                         name_input,
                         password_input,
                         email_input,
-
                     ],
                     tight=True,
                     spacing=10,
@@ -245,9 +245,6 @@ class EmailAccountsView(SettingsSubView):
             self.page.overlay.append(dlg)
             dlg.open = True
             self.page.update()
-
-
-
 
         def update_account(e, user):
 
@@ -306,7 +303,6 @@ class EmailAccountsView(SettingsSubView):
                                                 tooltip="Edit account",
                                                 on_click=lambda e, u=user: edit_account(u),
                                             ),
-
                                             ft.IconButton(
                                                 icon=ft.Icons.DELETE,
                                                 icon_color=ft.Colors.RED,

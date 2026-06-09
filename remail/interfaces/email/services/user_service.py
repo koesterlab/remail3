@@ -2,6 +2,7 @@
 
 import json
 import logging
+from typing import cast
 
 from sqlmodel import Session, select
 
@@ -19,14 +20,13 @@ _logger = logging.getLogger(__name__)
 class UserService:
     """Service for managing user accounts in the database."""
 
-
     @staticmethod
     @session
     def update_user(
-            user_id: int,
-            name: str,
-            password: str,
-            session: Session,
+        user_id: int,
+        name: str,
+        password: str,
+        session: Session,
     ) -> None:
         user = session.get(User, user_id)
 
@@ -44,7 +44,6 @@ class UserService:
 
         session.add(user)
         session.commit()
-
 
     @staticmethod
     @session
@@ -77,15 +76,17 @@ class UserService:
             raise ValueError("User must have an ID")
 
         return UserDTO.get_from_model(user, UserService.count_unread(user))
+
     @staticmethod
     @session
-    def get_connection_by_user_id(user_id: int, session: Session) -> str | None:
+    def get_connection_by_user_id(user_id: int, session: Session) -> dict[str, str] | None:
         user = session.get(User, user_id)
 
         if not user:
             return None
 
-        return json.loads(user.connection)
+        return cast(dict[str, str], json.loads(user.connection))
+
     @staticmethod
     @session
     def get_user_by_id(user_id: int, session: Session) -> User | None:
