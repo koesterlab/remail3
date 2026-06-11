@@ -25,14 +25,6 @@ class EmailView(ft.Container):
                 right_view.content = dashboard
             right_view.update()
 
-        def on_chatbot_state_change(is_active: bool) -> None:
-            if is_active:
-                chatbot.expand = 4
-            else:
-                chatbot.expand = False
-                chatbot.height = 60
-            self.update()
-
         def on_emails_synced(acting_account: UserDTO, updates: list[ConversationDTO]):
             if acting_account == state.get(
                 MainAppStateProperties.ACTIVE_USER
@@ -102,8 +94,6 @@ class EmailView(ft.Container):
                     )
             if not state.get(MainAppStateProperties.ACTIVE_USER) and new_accounts:
                 state.set(MainAppStateProperties.ACTIVE_USER, new_accounts[0].get_user())
-
-        state.register_observer(MainAppStateProperties.ACTIVE_CHATBOT, on_chatbot_state_change)
         state.register_observer(MainAppStateProperties.ACTIVE_THREAD, on_thread_change)
         state.register_observer(MainAppStateProperties.ACCOUNTS_CHANGED, on_accounts_changed)
 
@@ -137,10 +127,7 @@ class EmailView(ft.Container):
             expand=True,
         )
 
-        # Chatbot
         chatbot = create_chatbot(state)
-        chatbot.height = 60
-        chatbot.expand = False
 
         self.content = ft.ResponsiveRow(
             expand=True,
@@ -148,8 +135,8 @@ class EmailView(ft.Container):
                 ft.Container(
                     content=ft.Column(
                         [
-                            ft.Container(SelectionBar(state), expand=1, bgcolor=ft.Colors.RED),
-                            ft.Container(chatbot, bgcolor=ft.Colors.GREEN),
+                            ft.Container(SelectionBar(state), expand=1),
+                            ft.Container(chatbot),
                         ],
                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                         expand=True,
