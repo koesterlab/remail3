@@ -37,7 +37,6 @@ class ImapProtocol(EmailProtocol):
             "FLAGS",  # flags
             "INTERNALDATE",  # server-date
         ),
-
     ):
         self.fields_to_fetch = list(fields_to_fetch)
         if serialized != "{}":

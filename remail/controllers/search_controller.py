@@ -16,7 +16,6 @@ class SearchController:
         self._register_event_listeners()
         self.init_vector_table()
 
-
     def _register_event_listeners(self):
         # Register event listener for database connection
 
@@ -28,7 +27,6 @@ class SearchController:
             sqlite_vec.load(dbapi_connection)
             # Close the extension
             dbapi_connection.enable_load_extension(False)
-
 
     def init_vector_table(self):
         # Create the vector table if it doesn't exist
@@ -45,9 +43,8 @@ class SearchController:
         with self.engine.begin() as conn:
             conn.execute(text(create_table_sql))
 
-
     def index_email(self, email_id: int, subject: str, body: str):
-        # Prüfe ob Embedding schon existiert
+        # check if embedding already existed
         check_sql = "SELECT COUNT(*) FROM email_embeddings WHERE email_id = :email_id"
 
         with self.engine.begin() as conn:
@@ -55,10 +52,9 @@ class SearchController:
             count = result.fetchone()[0]
 
             if count > 0:
-                print(f"Embedding already exists for email {email_id}, skipping...")
                 return
 
-        # Nur wenn nicht vorhanden berechnen und speichern
+        # If not existed, create a new embedding
         full_text = subject + " " + body
         safe_text = full_text[:10000]
         vector = self.embedding_service.get_embedding(safe_text)
@@ -69,8 +65,6 @@ class SearchController:
 
         with self.engine.begin() as conn:
             conn.execute(text(insert_sql), {"email_id": email_id, "embedding": vector_blob})
-            print(f"Indexed email {email_id}")
-
 
     def search(self, query: str):
         # if query is empty, return nothing
@@ -80,8 +74,6 @@ class SearchController:
         # make a vector from the search query
         query_vector = self.embedding_service.get_embedding(query)
         query_blob = sqlite_vec.serialize_float32(query_vector)
-
-
 
         # find the 10 most similar emails
         search_sql = """
@@ -99,7 +91,6 @@ class SearchController:
         # put the email ids in a list
         email_ids = []
         for row in rows:
-            print("Search result:", row[0], "distance:", row[1])
             email_ids.append(row[0])
 
         return email_ids
@@ -108,17 +99,12 @@ class SearchController:
         with Session(self.engine) as session:
             emails = session.exec(select(Email)).all()
 
-            print("Indexing existing emails:", len(emails))
-
             for email in emails:
                 if email.id is None:
                     continue
 
                 subject = email.thread.title if email.thread else ""
                 body = email.body or ""
-
-                print("Total emails:", len(emails))
-                print("Indexing email:", email.id)
 
                 self.index_email(
                     email_id=email.id,

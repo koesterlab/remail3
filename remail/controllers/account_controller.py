@@ -2,6 +2,8 @@ import datetime
 import logging
 from collections.abc import Callable, Iterable
 
+from sqlmodel import Session
+
 from remail import errors as ee
 from remail.controllers.dtos.conversations import ContactDTO, ConversationDTO, ThreadPreviewDTO
 from remail.controllers.dtos.user_dto import UserDTO
@@ -15,9 +17,9 @@ from remail.interfaces.email.services import (
 )
 from remail.interfaces.email.services.contact_service import ContactService
 from remail.interfaces.email.services.user_service import UserService
-from remail.utils.session_management import session
-from sqlmodel import Session
 from remail.models import Conversation, Email, Thread
+from remail.utils.session_management import session
+
 
 class AccountController:
     """Class for base operations for existing users"""

@@ -8,12 +8,12 @@ from typing import Any, cast
 from pytz import timezone
 from sqlmodel import Session, select
 
+from remail.controllers.search_controller import SearchController
 from remail.enums import ContactType, ConversationType, RecipientKind
 from remail.interfaces.email.services.attachment_service import save_attachment
 from remail.interfaces.email.services.contact_service import ContactService
 from remail.models import Contact, Conversation, Email, EmailReception, User
 from remail.utils.session_management import session
-from remail.controllers.search_controller import SearchController
 
 from . import ConversationService, ThreadService
 
@@ -123,7 +123,7 @@ class EmailParser:
         session.commit()
 
         self.search_controller.index_email(
-            email_id=db_email.id,
+            email_id=db_email.id or -1,
             subject=subject,
             body=db_email.body,
         )

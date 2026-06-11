@@ -295,6 +295,9 @@ def test_account_controller_smoke(monkeypatch):
         "remail.controllers.account_controller.ContactService",
         lambda: Mock(get_contact_by_id=lambda contact_id: contact),
     )
+    monkeypatch.setattr(
+        "remail.controllers.account_controller.SearchController.search", lambda self, query: []
+    )
 
     controller = AccountController(7)
     controller.set_callback_email_changes(lambda updates: None)
