@@ -1,18 +1,23 @@
 """Appearance settings view."""
 
 import flet as ft
-from flet import ThemeMode
 
 from remail.client.views.settings.settings_sub_view import SettingsSubView
 from remail.controllers.dtos import SettingsDTO
-from remail.enums import FontFamily, FontSize
+from remail.enums import FontFamily, FontSize, ThemeMode
+
+_FLET_THEME_MODES: dict[ThemeMode, ft.ThemeMode] = {
+    ThemeMode.LIGHT: ft.ThemeMode.LIGHT,
+    ThemeMode.DARK: ft.ThemeMode.DARK,
+    ThemeMode.SYSTEM: ft.ThemeMode.SYSTEM,
+}
 
 
 class AppearanceView(SettingsSubView):
     def _apply_theme_mode(self, value: str) -> None:
         theme_mode = ThemeMode(value)
         if self.page is not None:
-            self.page.theme_mode = theme_mode or ThemeMode.SYSTEM
+            self.page.theme_mode = _FLET_THEME_MODES.get(theme_mode, ft.ThemeMode.SYSTEM)
         self.apply_settings("theme_mode", theme_mode)
 
     def _apply_font_size(self, value: str) -> None:

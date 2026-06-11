@@ -85,19 +85,19 @@ class DashboardPage(ft.Column):
         first_name = self.accounts[0].get_user().name.split()[0]
 
         self.dropdown = ft.Dropdown(
-            value=self.state.get(MainAppStateProperties.ACTIVE_USER).id,
+            value=str(self.state.get(MainAppStateProperties.ACTIVE_USER).id),
             text_size=10,
             width=250,
             border_radius=24,
             options=[
                 ft.DropdownOption(
-                    content=AccountCard(acc), key=acc.id, text=f"{acc.name} <{acc.email}>"
+                    content=AccountCard(acc), key=str(acc.id), text=f"{acc.name} <{acc.email}>"
                 )
                 for acc in [c.get_user() for c in self.accounts]
             ],
             on_select=lambda user_id: self.state.set(
                 MainAppStateProperties.ACTIVE_USER,
-                [a for a in self.accounts if a.user_id == user_id][0],
+                [a for a in self.accounts if str(a.user_id) == user_id][0],
             ),
         )
 

@@ -72,11 +72,11 @@ class SettingsView(ft.Container):
             if not view:
                 return
             sub_view.content = {
-                SettingsSubView.APPEARANCE: AppearanceView,
-                SettingsSubView.ATTACHMENTS: AttachmentsView,
-                SettingsSubView.EMAIL_ACCOUNTS: EmailAccountsView,
-                SettingsSubView.LANGUAGE: LanguageView,
-                SettingsSubView.NOTIFICATIONS: NotificationsView,
+                SettingsSubView.APPEARANCE: lambda: AppearanceView(),
+                SettingsSubView.ATTACHMENTS: lambda: AttachmentsView(),
+                SettingsSubView.EMAIL_ACCOUNTS: lambda: EmailAccountsView(state),
+                SettingsSubView.LANGUAGE: lambda: LanguageView(),
+                SettingsSubView.NOTIFICATIONS: lambda: NotificationsView(),
             }[view]()
             try:
                 sub_view.update()

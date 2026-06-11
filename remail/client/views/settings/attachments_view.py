@@ -198,8 +198,6 @@ class AttachmentsView(SettingsSubView):
 
         return sorted(
             grouped.values(),
-            key=lambda group: (
-                group.versions[0].sent_at if group.versions else datetime.datetime.min
-            ),
+            key=lambda group: group.versions[0].sent_at or datetime.datetime.min,
             reverse=True,
         )

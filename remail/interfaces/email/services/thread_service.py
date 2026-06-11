@@ -80,40 +80,37 @@ class ThreadService:
         if conversation.id is None:
             return
         conversation_id = conversation.id
-        try:
-            subject = self.normalize_subject(subject)
-            existing_thread = session.exec(
-                select(Thread).where(
-                    and_(
-                        col(Thread.conversation_id) == conversation_id,
-                        func.lower(col(Thread.title)) == subject.lower(),
+        subject = self.normalize_subject(subject)
+        existing_thread = session.exec(
+            select(Thread).where(
+                and_(
+                    col(Thread.conversation_id) == conversation_id,
+                    func.lower(col(Thread.title)) == subject.lower(),
+                )
+            )
+        ).first()
+
+        if existing_thread:
+            if email.thread_id != existing_thread.id and existing_thread.id is not None:
+                email.thread = existing_thread
+                if not email.read:
+                    existing_thread.unread_count = existing_thread.unread_count + 1
+                if existing_thread.last_message_time is None:
+                    existing_thread.last_message_time = email.sent_at
+                else:
+                    existing_thread.last_message_time = max(
+                        existing_thread.last_message_time, email.sent_at
                     )
-                )
-            ).first()
+        else:
+            new_thread = Thread(
+                title=subject,
+                conversation_id=conversation.id,
+                unread_count=0 if email.read else 1,
+                last_message_time=email.sent_at,
+            )
 
-            if existing_thread:
-                if email.thread_id != existing_thread.id and existing_thread.id is not None:
-                    email.thread = existing_thread
-                    if not email.read:
-                        existing_thread.unread_count = existing_thread.unread_count + 1
-                    if existing_thread.last_message_time is None:
-                        existing_thread.last_message_time = email.sent_at
-                    else:
-                        existing_thread.last_message_time = max(
-                            existing_thread.last_message_time, email.sent_at
-                        )
-            else:
-                new_thread = Thread(
-                    title=subject,
-                    conversation_id=conversation.id,
-                    unread_count=0 if email.read else 1,
-                    last_message_time=email.sent_at,
-                )
-
-                session.add(new_thread)
-                email.thread = new_thread
-        except Exception as e:
-            print(e)
+            session.add(new_thread)
+            email.thread = new_thread
 
     # from here with chatgpt
     _PREFIXES = [

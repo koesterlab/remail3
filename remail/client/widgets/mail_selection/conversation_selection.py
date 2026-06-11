@@ -22,7 +22,7 @@ class ConversationSelection(ft.Container):
     def __init__(self, state: MainAppState):
         self.state = state
         self.inner_content = ft.Column(spacing=0)
-        self.elements: dict[int, Control] = {}
+        self.elements: dict[int, tuple[ConversationDTO, Control]] = {}
         self.active_search_cache = None
         state.register_observer(MainAppStateProperties.SEARCH_TERM, self._on_search_change)
         state.register_observer(MainAppStateProperties.DISPLAYED_MAILS, self._on_search_change)
@@ -100,10 +100,14 @@ class ConversationSelection(ft.Container):
         update_bound = 2
         for elem in content:
             if updating and not isinstance(elem, Action):
-                existing = self.elements.get(elem.id, None)
-                if existing:
-                    element_list.append(existing)
-                    continue
+                stored = self.elements.get(elem.id, None)
+                if stored is not None:
+                    stored_dto, stored_widget = stored
+                    if stored_dto == elem:  # DTO unchanged – reuse widget
+                        element_list.append(stored_widget)
+                        continue
+                    # DTO changed (new mail, read-state, …) – drop stale widget
+                    del self.elements[elem.id]
             counter += 1
             element_list.append(self.create_list_item(elem))
             if counter == update_bound:  # showing the list after every
@@ -113,15 +117,16 @@ class ConversationSelection(ft.Container):
                 update_bound <<= 1  # updates after 2,4,8,16,32,... elements
 
         self.inner_content.controls = element_list
+        self.update()
 
     def create_list_item(self, elem: Action | ConversationDTO):
         if isinstance(elem, Action):
             item: ActionPreview | ConversationPreview = ActionPreview(elem)
         elif len(elem.contacts) == 1:
             item = ContactPreview(self.state, elem)
-            self.elements[elem.id] = item
+            self.elements[elem.id] = (elem, item)
         else:
             item = GroupPreview(self.state, elem)
-            self.elements[elem.id] = item
+            self.elements[elem.id] = (elem, item)
 
         return item
