@@ -5,7 +5,7 @@ import flet as ft
 
 from remail.client.widgets.thread import MessageBubble
 from remail.controllers.dtos.conversations import ContactDTO
-from remail.controllers.dtos.threads import MessageContentDTO, MessageDTO, SenderDTO
+from remail.controllers.dtos.threads import AttachmentDTO, MessageContentDTO, MessageDTO, SenderDTO
 from remail.enums import ContactType
 
 
@@ -48,8 +48,8 @@ class TestMessageBubble(unittest.TestCase):
             inner = bubble.content.controls[-1]
 
         self.assertIsInstance(inner, ft.Container)
-        self.assertEqual(inner.bgcolor, ft.Colors.PRIMARY)
-        self.assertEqual(inner.content.value, "Hello me")
+        self.assertEqual(inner.bgcolor, ft.Colors.SURFACE_CONTAINER_HIGHEST)
+        self.assertEqual(inner.content.controls[0].value, "Hello me")
 
     def test_bubble_alignment_other(self) -> None:
         """Message from other user aligns left and uses secondary color."""
@@ -62,4 +62,46 @@ class TestMessageBubble(unittest.TestCase):
         )
         bubble = MessageBubble(message, self.user_contact)
 
-        self.assertEqual(bubble.alignment, ft.alignment.center_left)
+        self.assertEqual(bubble.alignment, ft.Alignment.CENTER_LEFT)
+
+    def test_bubble_displays_sent_date(self) -> None:
+        """Message bubble displays the email sent date."""
+        message = MessageDTO(
+            sender=self.user_contact,
+            content=MessageContentDTO(body="Hello me", attachments=[]),
+            sent_at=datetime(2024, 1, 1, 9, 30),
+            id=0,
+            subject="Test",
+        )
+        bubble = MessageBubble(message, self.user_contact)
+
+        inner = bubble.content
+
+        self.assertIsInstance(inner, ft.Container)
+        self.assertEqual(inner.content.controls[1].value, "01.01.2024 09:30")
+
+    def test_bubble_displays_attachments(self) -> None:
+        """Message bubble displays attachment filenames."""
+        message = MessageDTO(
+            sender=self.user_contact,
+            content=MessageContentDTO(
+                body="Hello me",
+                attachments=[
+                    AttachmentDTO(
+                        file_name="invoice.pdf",
+                        file_size=0,
+                        file_type="application/pdf",
+                        url="/attachments/1",
+                    )
+                ],
+            ),
+            sent_at=datetime(2024, 1, 1, 9, 30),
+            id=0,
+            subject="Test",
+        )
+        bubble = MessageBubble(message, self.user_contact)
+
+        inner = bubble.content
+
+        self.assertIsInstance(inner, ft.Container)
+        self.assertEqual(inner.content.controls[1].value, "invoice.pdf")
