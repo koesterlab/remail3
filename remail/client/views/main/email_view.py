@@ -90,7 +90,8 @@ class EmailView(ft.Container):
                         lambda msg, acc_=acc: on_email_sync_error(acc_.get_user(), msg)  # type:ignore
                     )
                     self.accounts.append(acc)
-                    self.page.run_thread(lambda acc_=acc: asyncio.run(acc_.start_listening()))
+                    assert isinstance(self.page, ft.Page)
+                    self.page.run_thread(lambda acc_=acc: asyncio.run(acc_.start_listening()))  # type: ignore[misc]
             if not state.get(MainAppStateProperties.ACTIVE_USER) and new_accounts:
                 state.set(MainAppStateProperties.ACTIVE_USER, new_accounts[0].get_user())
 
@@ -149,7 +150,8 @@ class EmailView(ft.Container):
         )
 
     def run_sync_threads(self):
+        assert isinstance(self.page, ft.Page)
         for acc in self.accounts:
             self.page.run_thread(
-                lambda acc_=acc: asyncio.run(acc_.start_listening())
+                lambda acc_=acc: asyncio.run(acc_.start_listening())  # type: ignore[misc]
             )  # running sync task in flets own async system
