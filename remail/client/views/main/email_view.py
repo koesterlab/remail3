@@ -77,6 +77,7 @@ class EmailView(ft.Container):
                     lambda msg, acc_=acc: on_email_sync_error(acc_.get_user(), msg)  # type:ignore
                 )
             state.set(MainAppStateProperties.ACTIVE_USER, self.accounts[0].get_user())
+
         def on_accounts_changed(_email: str | None) -> None:
             new_accounts = AccountController.all_client_accounts()
             for acc in new_accounts:
@@ -89,11 +90,10 @@ class EmailView(ft.Container):
                         lambda msg, acc_=acc: on_email_sync_error(acc_.get_user(), msg)  # type:ignore
                     )
                     self.accounts.append(acc)
-                    self.page.run_thread(
-                        lambda acc_=acc: asyncio.run(acc_.start_listening())
-                    )
+                    self.page.run_thread(lambda acc_=acc: asyncio.run(acc_.start_listening()))
             if not state.get(MainAppStateProperties.ACTIVE_USER) and new_accounts:
                 state.set(MainAppStateProperties.ACTIVE_USER, new_accounts[0].get_user())
+
         state.register_observer(MainAppStateProperties.ACTIVE_THREAD, on_thread_change)
         state.register_observer(MainAppStateProperties.ACCOUNTS_CHANGED, on_accounts_changed)
 

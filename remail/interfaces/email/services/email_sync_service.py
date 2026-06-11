@@ -13,7 +13,6 @@ from remail.interfaces.email.services import EmailParser
 from remail.models import (
     Conversation,
     Email,
-    Thread,
     User,
 )
 from remail.utils.session_management import session

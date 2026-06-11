@@ -15,7 +15,7 @@ from remail.interfaces.email.services import (
 )
 from remail.interfaces.email.services.contact_service import ContactService
 from remail.interfaces.email.services.user_service import UserService
-from remail.models import Conversation, Thread
+from remail.models import Conversation
 from remail.utils.session_management import session
 
 

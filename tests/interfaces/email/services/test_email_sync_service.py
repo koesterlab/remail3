@@ -7,7 +7,7 @@ from sqlmodel import Session
 
 from remail.enums import Protocol
 from remail.interfaces.email.services.email_sync_service import EmailSyncService
-from remail.models import Conversation, Email, Thread, User
+from remail.models import Email, Thread, User
 
 
 @pytest.fixture

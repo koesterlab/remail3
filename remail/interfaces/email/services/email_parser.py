@@ -32,7 +32,9 @@ class EmailParser:
         self.thread_service = ThreadService()
 
     @session
-    def parse_mail(self, mail_data: dict, imap_uid: int, session: Session) -> tuple[bool, int, int | None]:
+    def parse_mail(
+        self, mail_data: dict, imap_uid: int, session: Session
+    ) -> tuple[bool, int, int | None]:
         """
         Parses the mail from raw imap data. Updates an existing entry or creates a new one.
 
@@ -46,7 +48,9 @@ class EmailParser:
         existing = session.exec(select(Email).where(Email.message_id == msg_id)).first()
         if existing:
             changed, mail = self._update_mail_data(existing, mail_data)
-            conv_id = mail.thread.conversation_id if changed and mail.thread_id is not None else None
+            conv_id = (
+                mail.thread.conversation_id if changed and mail.thread_id is not None else None
+            )
             return changed, mail.id, conv_id
         else:
             email, conv_id = self.process_new_email(mail_data, imap_uid)
@@ -71,7 +75,9 @@ class EmailParser:
         return changed, existing
 
     @session
-    def process_new_email(self, mail_data: dict[bytes, Any], uid: int, session: Session) -> tuple[Email, int]:
+    def process_new_email(
+        self, mail_data: dict[bytes, Any], uid: int, session: Session
+    ) -> tuple[Email, int]:
         """
         Process a raw email and save to database.
 
@@ -130,7 +136,10 @@ class EmailParser:
             )
         except Exception as exc:
             self._logger.warning(
-                "Thread organization failed for email %s: %s", db_email.message_id, exc, exc_info=True
+                "Thread organization failed for email %s: %s",
+                db_email.message_id,
+                exc,
+                exc_info=True,
             )
 
         # Create EmailReception records for all recipients
