@@ -4,6 +4,7 @@ from remail.client.state import MainAppState, MainAppStateProperties
 from remail.controllers.llm_controller import LLMController
 from remail.controllers.settings_controller import SettingsController
 
+
 def create_new_message_dialog(state: MainAppState) -> ft.Container:
     expanded = False
 
@@ -78,7 +79,7 @@ def create_new_message_dialog(state: MainAppState) -> ft.Container:
         result = llm.generate_reply(last_message_body)
 
         state.set(MainAppStateProperties.DRAFT, result.content)
-   
+
     def send_mail():
         # retrieve data
         thread = state.get(MainAppStateProperties.ACTIVE_THREAD)
@@ -113,14 +114,14 @@ def create_new_message_dialog(state: MainAppState) -> ft.Container:
         icon_color=ft.Colors.ON_INVERSE_SURFACE,
         disabled=True,
     )
-    
+
     generate_btn = ft.IconButton(
         ft.Icons.AUTO_AWESOME,
         on_click=lambda _: generate_ai_reply(),
         icon_color=ft.Colors.ON_INVERSE_SURFACE,
         tooltip="Generate AI reply",
     )
-   
+
     button_bar = ft.Row(
         [
             ft.IconButton(

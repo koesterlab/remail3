@@ -57,7 +57,6 @@ class LLMController:
 
         return LLMResponseDTO.from_completion_text(response_text)
 
-
     def generate_reply(
         self,
         email_body: str,
