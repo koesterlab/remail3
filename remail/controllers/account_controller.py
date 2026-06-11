@@ -76,7 +76,8 @@ class AccountController:
     def _notify_callback(self):
         changed: list[Thread] = self.sync_service.check_for_changed_threads()
         if len(changed) > 0:
-            self.callback(ConversationDTO.from_model(c.conversation) for c in changed)
+            user = self.user_service.get_user_by_id(self.user_id)
+            self.callback(ConversationDTO.from_model(c.conversation, user) for c in changed)
 
     def _notify_error(self, msg: str) -> None:
         self.error_callback(msg)
@@ -107,13 +108,15 @@ class AccountController:
 
     @session
     def create_conversation(self, contacts: list[ContactDTO]):
+        user = self.user_service.get_user_by_id(self.user_id)
         return ConversationDTO.from_model(
             self.conversation_service.create_conversation(
                 conversation_type=ConversationType.GROUP,
                 contacts=[self.contact_service.get_contact_by_id(c.id) for c in contacts],
                 custom_name=None,
-                user=self.user_service.get_user_by_id(self.user_id),
-            )
+                user=user,
+            ),
+            user,
         )
 
     def delete(self):
