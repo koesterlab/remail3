@@ -1,6 +1,8 @@
 """User service for managing email account users."""
 
+import json
 import logging
+from typing import cast
 
 from sqlmodel import Session, select
 
@@ -17,6 +19,31 @@ _logger = logging.getLogger(__name__)
 
 class UserService:
     """Service for managing user accounts in the database."""
+
+    @staticmethod
+    @session
+    def update_user(
+        user_id: int,
+        name: str,
+        password: str,
+        session: Session,
+    ) -> None:
+        user = session.get(User, user_id)
+
+        if not user:
+            raise ValueError("User not found")
+
+        # Update display name
+        user.name = name
+
+        # Update password inside serialized connection
+        connection = json.loads(user.connection)
+        connection["imap_password"] = password
+
+        user.connection = json.dumps(connection)
+
+        session.add(user)
+        session.commit()
 
     @staticmethod
     @session
@@ -49,6 +76,16 @@ class UserService:
             raise ValueError("User must have an ID")
 
         return UserDTO.get_from_model(user, UserService.count_unread(user))
+
+    @staticmethod
+    @session
+    def get_connection_by_user_id(user_id: int, session: Session) -> dict[str, str] | None:
+        user = session.get(User, user_id)
+
+        if not user:
+            return None
+
+        return cast(dict[str, str], json.loads(user.connection))
 
     @staticmethod
     @session
