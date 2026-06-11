@@ -159,10 +159,7 @@ class ImapProtocol(EmailProtocol):
                 criteria = ["ALL"]
             uids = client.search(criteria)
             uids = client.search(criteria)
-            # Only keep the last 100 emails
-            # # uids is a list of email IDs sorted oldest to newest
-            # # [-100:] means "give me only the last 100 items from the list"
-            uids = uids[-100:]
+            
 
             self.fetch_since = int(datetime.datetime.now().timestamp())
             raw = client.fetch(uids, self.fields_to_fetch) if uids else []
