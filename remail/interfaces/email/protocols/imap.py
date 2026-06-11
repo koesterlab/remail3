@@ -153,6 +153,7 @@ class ImapProtocol(EmailProtocol):
             self.fetch_since = modcount  # setze fetch_since auf highest modcount
             return client.fetch(uids, self.fields_to_fetch, criteria)  # type:ignore
         else:
+            client.select_folder("INBOX")
             if self.fetch_since and new_only:
                 criteria = ["SINCE", datetime.datetime.fromtimestamp(self.fetch_since)]  # type:ignore
             else:
@@ -231,8 +232,6 @@ class ImapProtocol(EmailProtocol):
                             if updated_mails:
                                 yield updated_mails
                         await asyncio.sleep(1)
-                except Exception as e:
-                    print(e)
                 finally:
                     client.idle_done()
         else:  # fetch periodically
