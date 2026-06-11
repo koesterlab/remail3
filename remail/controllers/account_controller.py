@@ -76,7 +76,13 @@ class AccountController:
     def _notify_callback(self):
         changed: list[Thread] = self.sync_service.check_for_changed_threads()
         if len(changed) > 0:
-            self.callback(ConversationDTO.from_model(c.conversation) for c in changed)
+            self.callback(
+                ConversationDTO.from_model(
+                    c.conversation,
+                    self.user_service.get_user_by_id(self.user_id),
+                )
+                for c in changed
+            )
 
     def _notify_error(self, msg: str) -> None:
         self.error_callback(msg)
