@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import logging
 from collections.abc import Callable, Iterable
@@ -14,7 +15,7 @@ from remail.interfaces.email.services import (
 )
 from remail.interfaces.email.services.contact_service import ContactService
 from remail.interfaces.email.services.user_service import UserService
-from remail.models import Conversation, Thread
+from remail.models import Conversation
 from remail.utils.session_management import session
 
 
@@ -74,10 +75,9 @@ class AccountController:
 
     @session
     def _notify_callback(self):
-        changed: list[Thread] = self.sync_service.check_for_changed_threads()
-        if len(changed) > 0:
-            user = self.user_service.get_user_by_id(self.user_id)
-            self.callback(ConversationDTO.from_model(c.conversation, user) for c in changed)
+        changed: list[Conversation] = self.sync_service.get_changed_conversations()
+        if changed:
+            self.callback(self._conversation_to_dto(c) for c in changed)
 
     def _notify_error(self, msg: str) -> None:
         self.error_callback(msg)
@@ -89,8 +89,20 @@ class AccountController:
             self.callback(self.get_conversations())
             print("First sync over")
 
-            async for _ in self.sync_service.wait_for_mail_changes_async():
-                self._notify_callback()
+            while True:
+                try:
+                    async for _ in self.sync_service.wait_for_mail_changes_async():
+                        self._notify_callback()
+                except ee.InvalidLoginData:
+                    raise  # propagate – cannot recover from bad credentials
+                except Exception as exc:
+                    self._logger.warning(
+                        "Sync connection lost for %s (%s), reconnecting in 30 s",
+                        self.user.email,
+                        exc,
+                    )
+                    await asyncio.sleep(30)
+                    self.sync_service = EmailSyncService(user_id=self.user.id)
         except ee.InvalidLoginData:
             self._notify_error("Invalid login credentials")
         except Exception as exc:

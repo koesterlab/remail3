@@ -232,8 +232,6 @@ class ImapProtocol(EmailProtocol):
                             if updated_mails:
                                 yield updated_mails
                         await asyncio.sleep(1)
-                except Exception as e:
-                    print(e)
                 finally:
                     client.idle_done()
         else:  # fetch periodically
