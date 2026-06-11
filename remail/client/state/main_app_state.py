@@ -22,6 +22,7 @@ class MainAppStateProperties(Enum):
     SEARCH_TERM = "search_term"
     DISPLAYED_MAILS = "displayed_mails"
     RUNNING_TASKS = "running_tasks"
+    ACCOUNTS_CHANGED = "accounts_changed"
 
 
 class MainAppState(ObservableState[MainAppStateProperties]):

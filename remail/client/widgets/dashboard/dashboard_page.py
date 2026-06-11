@@ -93,7 +93,7 @@ class DashboardPage(ft.Column):
             ],
             on_select=lambda user_id: self.state.set(
                 MainAppStateProperties.ACTIVE_USER,
-                [a for a in self.accounts if a.user_id == user_id][0],
+                [a for a in self.accounts if a.user_id == int(user_id.data)][0].get_user(),
             ),
         )
 
