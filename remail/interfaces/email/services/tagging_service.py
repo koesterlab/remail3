@@ -6,22 +6,22 @@ from typing import Literal
 
 from pydantic import BaseModel, create_model
 
-from remail.interfaces.llm.OllamaTemp import OllamaService
+from remail.interfaces.llm.localLLMService import LocalLLM
 
 
 class TaggingService:
     """
-    Assigns multiple tags to an email from a predefined tag list.
+    manages tags db and llm interaction
 
     Responsibilities:
     - Build the classification prompt.
-    - Delegate to Ollama for structured LLM inference.
+    - Delegate to Ollama for structured LLM inference
 
     """
     _BODY_CHAR_LIMIT = 1500
 
-    def __init__(self, ollama_service: OllamaService) -> None:
-        self._llm = ollama_service
+    def __init__(self, llm: LocalLLM) -> None:
+        self._llm = llm
 
     def _build_result_schema(self, tags: dict[str, str]) -> type[BaseModel]:
         TagLiteral = Literal[tuple(tags.keys())] #for json enums 
@@ -77,3 +77,22 @@ class TaggingService:
             schema=self._build_result_schema(tags),
             temperature=0.0,
         )
+
+    def get_tags_for_email(self, body: str, tags: dict[str, str]) -> list[str]:
+        """
+        Get tags for an email body.
+
+        Args:
+            body: Email body text.
+            tags: Mapping of tag name -> description, e.g.
+                  {"Work": "Professional emails, meetings, ...", ...}
+
+        Returns:
+            List of assigned tag names (each a valid key from `tags`)
+
+        Raises:
+            ValueError: If `tags` is empty.
+            RuntimeError: If the underlying LLM call fails.
+        """
+        result = self._infer_tag_with_llm(body=body, tags=tags)
+        return result.tags
