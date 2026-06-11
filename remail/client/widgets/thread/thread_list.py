@@ -44,6 +44,43 @@ class ThreadList(ft.Container):
         if self.thread is None:
             return  # just for mypy
         # ---------- the information of top contact -------- #
+
+        # This function is called when the user clicks the delete button
+        def on_delete_click(_):
+            # This function is called when the user confirms the deletion
+            def confirm_delete(_):
+                # Delete the thread from the database
+                ThreadController().delete_thread(self.thread.id)
+                # Go back to dashboard by clearing the active thread
+                self.state.set(MainAppStateProperties.ACTIVE_THREAD, None)
+                dialog.open = False
+                self.page.update()
+
+            # This function is called when the user cancels the deletion
+            def cancel_delete(_):
+                # Just close the dialog, do nothing
+                dialog.open = False
+                self.page.update()
+
+            # Show a confirmation popup before deleting
+            dialog = ft.AlertDialog(
+                modal=True,
+                title=ft.Text("Delete Thread"),
+                content=ft.Text(f'Are you sure you want to delete "{self.thread.title}"?'),
+                actions=[
+                    ft.TextButton("Cancel", on_click=cancel_delete),
+                    ft.TextButton(
+                        "Delete",
+                        on_click=confirm_delete,
+                        style=ft.ButtonStyle(color=ft.Colors.ERROR),  # Red color for destructive action
+                    ),
+                ],
+                actions_alignment=ft.MainAxisAlignment.END,
+            )
+            self.page.overlay.append(dialog)
+            dialog.open = True
+            self.page.update()
+
         header = ft.Container(
             ft.Row(
                 controls=[
@@ -69,9 +106,17 @@ class ThreadList(ft.Container):
                             ),
                         ],
                         spacing=0,
+                        expand=True,  # Expand the column to fill available space
+                    ),
+                    ft.IconButton(  # Delete button in the top right corner of the thread header
+                        icon=ft.Icons.DELETE_OUTLINE,
+                        icon_color=ft.Colors.ERROR,  # Red color to indicate a destructive action
+                        tooltip="Delete thread",  # Shown on hover
+                        on_click=on_delete_click,  # Calls the function we defined above
                     ),
                 ],
-                alignment=ft.MainAxisAlignment.START,
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,  # Push column to left, button to right
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,  # Vertically center both items
                 spacing=10,
             ),
             padding=ft.Padding.only(left=10, top=5, bottom=5, right=10),
@@ -79,7 +124,7 @@ class ThreadList(ft.Container):
             bgcolor=ft.Colors.SURFACE,
         )
 
-        # ---------- “Discussing email”  ---------- #
+        # ---------- "Discussing email"  ---------- #
         # title = str(thread.get("title", "")) or ""
         #
         # if messages_raw:
