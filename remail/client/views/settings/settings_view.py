@@ -34,7 +34,7 @@ class SettingsView(ft.Container):
 
         # Create main layout
         sub_view = ft.Container(expand=True)
-        menu_items=[
+        menu_items = [
             ("Appearance", SettingsSubView.APPEARANCE),
             ("Email Accounts", SettingsSubView.EMAIL_ACCOUNTS),
             ("Language", SettingsSubView.LANGUAGE),
@@ -44,8 +44,10 @@ class SettingsView(ft.Container):
         for label, link_name in menu_items:
             btn = ft.TextButton(
                 content=label,
-                on_click=lambda _e, v=link_name: state.set(MainAppStateProperties.ACTIVE_SETTINGS, v),
-                style=ft.ButtonStyle(   color=ft.Colors.ON_SURFACE)
+                on_click=lambda _e, v=link_name: state.set(
+                    MainAppStateProperties.ACTIVE_SETTINGS, v
+                ),
+                style=ft.ButtonStyle(color=ft.Colors.ON_SURFACE),
             )
             nav_buttons.append(btn)
         nav_column = ft.Column(controls=nav_buttons, spacing=16)
@@ -57,9 +59,10 @@ class SettingsView(ft.Container):
             ],
             expand=True,
         )
+
         def update_button_style(active_view):
-            #Update the button style based on the active view.
-            for (label, link_name), btn in zip(menu_items, nav_buttons):
+            # Update the button style based on the active view.
+            for (_label, link_name), btn in zip(menu_items, nav_buttons, strict=True):
                 if active_view == link_name:
                     # Button is active --> highlight
                     btn.style = ft.ButtonStyle(
@@ -68,10 +71,7 @@ class SettingsView(ft.Container):
                     )
                 else:
                     # Button is not active --> default
-                    btn.style = ft.ButtonStyle(
-                        color=ft.Colors.ON_SURFACE,
-                        bgcolor=None
-                    )
+                    btn.style = ft.ButtonStyle(color=ft.Colors.ON_SURFACE, bgcolor=None)
                 try:
                     btn.update()
                 except RuntimeError:

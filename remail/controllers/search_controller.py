@@ -1,8 +1,9 @@
 import sqlite_vec
+from sqlalchemy import event, text
+
 from remail.database import engine
 from remail.interfaces.embeddings import EmbeddingService
-from sqlalchemy import event
-from sqlalchemy import text
+
 
 class SearchController:
     def __init__(self):
@@ -12,7 +13,6 @@ class SearchController:
         # Register event to activate the vector extension
         self._register_event_listeners()
         self.init_vector_table()
-
 
     def _register_event_listeners(self):
         # Register event listener for database connection
@@ -25,7 +25,6 @@ class SearchController:
             sqlite_vec.load(dbapi_connection)
             # Close the extension
             dbapi_connection.enable_load_extension(False)
-
 
     def init_vector_table(self):
         # Create the vector table if it doesn't exist
