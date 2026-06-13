@@ -68,11 +68,15 @@ def create_new_message_dialog(state: MainAppState) -> ft.Container:
         on_change()
 
     def generate_ai_reply() -> None:
-        thread = state.get(MainAppStateProperties.ACTIVE_THREAD)
-        if thread is None or not thread.messages:
+        thread_preview = state.get(MainAppStateProperties.ACTIVE_THREAD)
+        if thread_preview is None or thread_preview.thread_id < 0:
             return
 
-        last_message_body = thread.messages[-1].content.body
+        full_thread = state.thread_controller.get_thread(thread_preview.thread_id)
+        if full_thread is None or not full_thread.messages:
+            return
+
+        last_message_body = full_thread.messages[-1].content.body
 
         settings = SettingsController().get_settings()
         llm = LLMController(settings.llm_url, settings.llm_key)
