@@ -28,27 +28,33 @@ class MessageBubble(ft.Container):
             italic=True,
         )
 
-        # --- Bubble style ---
+        # --- Bubble body ---
         own_border = ft.BorderRadius.only(top_left=18, bottom_left=18, bottom_right=18)
         others_border = ft.BorderRadius.only(top_right=18, bottom_left=18, bottom_right=18)
+
+        bubble_content: list[ft.Control] = [
+            ft.Text(
+                message.content.body,
+                color=ft.Colors.ON_SURFACE,
+                size=15,
+                weight=ft.FontWeight.W_400,
+                selectable=True,
+            )
+        ]
         bubble = ft.Container(
             margin=ft.Margin.only(left=20) if is_me else ft.Margin.only(right=20),
             padding=ft.Padding.symmetric(horizontal=14, vertical=10),
-            border_radius=own_border if is_me else others_border,  # it would be rounder
-            bgcolor=ft.Colors.PRIMARY if is_me else ft.Colors.SECONDARY,
+            border_radius=own_border if is_me else others_border,
+            bgcolor=ft.Colors.SURFACE,
             expand=True,
             shadow=ft.BoxShadow(
                 blur_radius=6,
                 spread_radius=1,
                 color=ft.Colors.with_opacity(0.12, ft.Colors.BLACK),
             ),
-            content=ft.Text(
-                message.content.body,
-                color=ft.Colors.ON_PRIMARY if is_me else ft.Colors.ON_SECONDARY,
-                size=15,
-                weight=ft.FontWeight.W_400,
-            ),
-        )  # --- Row with optional avatar ---
+            content=ft.Column(bubble_content, spacing=6, tight=True),
+        )
+        # --- Row with optional avatar ---
         bubble_row = bubble if is_me else ft.Row([create_contact_picture(message.sender), bubble])
 
         # --- Outer container to control alignment ---
