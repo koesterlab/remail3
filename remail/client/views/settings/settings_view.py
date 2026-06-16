@@ -9,6 +9,7 @@ from remail.client.views.settings import (
     LanguageView,
     NotificationsView,
 )
+from remail.client.views.settings.tags_view import TagsView
 from remail.enums import SettingsSubView
 
 
@@ -53,6 +54,7 @@ class SettingsView(ft.Container):
                                 ("Email Accounts", SettingsSubView.EMAIL_ACCOUNTS),
                                 ("Notification", SettingsSubView.NOTIFICATIONS),
                                 ("Language", SettingsSubView.LANGUAGE),
+                                ("Tags", SettingsSubView.TAGS),
                             ]
                         ],
                         spacing=16,
@@ -74,6 +76,7 @@ class SettingsView(ft.Container):
                 SettingsSubView.EMAIL_ACCOUNTS: lambda: EmailAccountsView(state),
                 SettingsSubView.LANGUAGE: lambda: LanguageView(),
                 SettingsSubView.NOTIFICATIONS: lambda: NotificationsView(),
+                SettingsSubView.TAGS: lambda: TagsView(),
             }[view]()
             try:
                 sub_view.update()

@@ -5,11 +5,13 @@ from sqlmodel import Field, Relationship, SQLModel
 
 # Make target symbol available at runtime so SA can resolve it
 from .contact import Contact  # noqa: F401
+from .tag_email import EmailTag
 from .thread import Thread
 
 if TYPE_CHECKING:
     from .attachment import Attachment
     from .email_reception import EmailReception
+    from .tag import Tag
 
 
 class Email(SQLModel, table=True):
@@ -37,4 +39,8 @@ class Email(SQLModel, table=True):
         back_populates="email",
         cascade_delete=True,
         sa_relationship_kwargs={"cascade": "all, delete-orphan", "single_parent": True},
+    )
+    tags: list["Tag"] = Relationship(
+        back_populates="emails",
+        link_model=EmailTag,
     )

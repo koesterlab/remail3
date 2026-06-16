@@ -6,6 +6,7 @@ class SettingsSubView(Enum):
     EMAIL_ACCOUNTS = "email_accounts"
     LANGUAGE = "language"
     NOTIFICATIONS = "notifications"
+    TAGS = "tags"
 
 
 __all__ = ["SettingsSubView"]
