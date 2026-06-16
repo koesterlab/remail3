@@ -17,6 +17,16 @@ class MessageBubble(ft.Container):
 
         # --- Layout style ---
         alignment = ft.Alignment.CENTER_RIGHT if is_me else ft.Alignment.CENTER_LEFT
+        row_alignment = ft.MainAxisAlignment.END if is_me else ft.MainAxisAlignment.START
+
+        # --- Date/time label ---
+        formatted_time = message.sent_at.strftime("%b %d, %Y  %H:%M")
+        date_label = ft.Text(
+            formatted_time,
+            size=11,
+            color=ft.Colors.OUTLINE,
+            italic=True,
+        )
 
         # --- Bubble style ---
         own_border = ft.BorderRadius.only(top_left=18, bottom_left=18, bottom_right=18)
@@ -38,12 +48,20 @@ class MessageBubble(ft.Container):
                 size=15,
                 weight=ft.FontWeight.W_400,
             ),
-        )
+        )  # --- Row with optional avatar ---
+        bubble_row = bubble if is_me else ft.Row([create_contact_picture(message.sender), bubble])
 
         # --- Outer container to control alignment ---
         super().__init__(
             alignment=alignment,
             padding=ft.Padding.only(left=6, right=6, top=4, bottom=4),
-            content=bubble if is_me else ft.Row([create_contact_picture(message.sender), bubble]),
+            content=ft.Column(
+                [
+                    bubble_row,
+                    ft.Row([date_label], alignment=row_alignment),
+                ],
+                spacing=2,
+                tight=True,
+            ),
             expand=True,
         )
