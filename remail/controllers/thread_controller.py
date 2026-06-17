@@ -1,5 +1,3 @@
-from typing import Any
-
 from remail.controllers.dtos.conversations import ConversationDTO
 from remail.controllers.dtos.threads import ThreadDTO
 from remail.controllers.dtos.user_dto import UserDTO
@@ -54,7 +52,9 @@ class ThreadController:
         return ThreadDTO.from_model(self.service.create_thread(name, conversation_id))
 
     @session
-    def send_message(self, thread_id: int, message: str, attachments: list[str] | None = None) -> None:
+    def send_message(
+        self, thread_id: int, message: str, attachments: list[str] | None = None
+    ) -> None:
         """
         Sends a message to a given thread
 
