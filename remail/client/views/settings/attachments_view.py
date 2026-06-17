@@ -1,8 +1,13 @@
 import datetime
+import inspect
+import mimetypes
+import os
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import flet as ft
 from sqlmodel import Session, select
+from werkzeug.utils import secure_filename
 
 from remail.controllers.dtos import SettingsDTO
 from remail.models import Attachment
@@ -18,6 +23,9 @@ class AttachmentVersion:
     sender_email: str
     thread_title: str
     sent_at: datetime.datetime | None
+    file_path: str
+    file_size: int
+    file_type: str
 
 
 @dataclass
@@ -42,8 +50,82 @@ class AttachmentsView(SettingsSubView):
         def format_date(value: datetime.datetime | None) -> str:
             return value.strftime("%d.%m.%Y %H:%M") if value else "Unknown date"
 
+        def format_size(value: int) -> str:
+            if value <= 0:
+                return "Unknown size"
+            units = ["B", "KB", "MB", "GB"]
+            size = float(value)
+            unit = 0
+            while size >= 1024 and unit < len(units) - 1:
+                size /= 1024
+                unit += 1
+            return f"{size:.1f} {units[unit]}" if unit else f"{int(size)} {units[unit]}"
+
+        def open_attachment(_: object, path: str) -> None:
+            if not path:
+                return
+            page = self.page
+            if page is not None:
+                uri = Path(path).resolve().as_uri()
+
+                async def launch_url() -> None:
+                    result = page.launch_url(uri)
+                    if inspect.isawaitable(result):
+                        await result
+
+                page.run_task(launch_url)
+
+        def build_attachment_row(version: AttachmentVersion) -> ft.Control:
+            is_image = version.file_type.startswith("image/")
+            return ft.Container(
+                padding=ft.Padding.symmetric(horizontal=8, vertical=6),
+                border_radius=4,
+                bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
+                content=ft.Row(
+                    [
+                        ft.Icon(
+                            ft.Icons.IMAGE if is_image else ft.Icons.INSERT_DRIVE_FILE,
+                            color=ft.Colors.ON_SURFACE_VARIANT,
+                            size=20,
+                        ),
+                        ft.Column(
+                            [
+                                ft.Text(
+                                    version.filename,
+                                    weight=ft.FontWeight.W_600,
+                                    overflow=ft.TextOverflow.ELLIPSIS,
+                                ),
+                                ft.Text(
+                                    " | ".join(
+                                        [
+                                            format_date(version.sent_at),
+                                            format_size(version.file_size),
+                                            f"{version.sender_name} <{version.sender_email}>",
+                                        ]
+                                    ),
+                                    size=12,
+                                    color=ft.Colors.ON_SURFACE_VARIANT,
+                                    overflow=ft.TextOverflow.ELLIPSIS,
+                                ),
+                            ],
+                            spacing=2,
+                            expand=True,
+                        ),
+                        ft.IconButton(
+                            icon=ft.Icons.OPEN_IN_NEW,
+                            tooltip="Open attachment",
+                            disabled=not version.file_path,
+                            on_click=lambda event, path=version.file_path: open_attachment(
+                                event, path
+                            ),
+                        ),
+                    ],
+                    spacing=8,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                ),
+            )
+
         def build_group(group: AttachmentGroup) -> ft.Container:
-            latest = group.versions[0] if group.versions else None
             return ft.Container(
                 padding=12,
                 border=ft.Border.all(1, ft.Colors.GREY_400),
@@ -80,29 +162,12 @@ class AttachmentsView(SettingsSubView):
                             spacing=10,
                         ),
                         ft.Text(
-                            f"Latest from {latest.sender_name} <{latest.sender_email}>"
-                            if latest
-                            else "",
+                            f"Latest from {group.sender_name} <{group.sender_email}>",
                             size=12,
                             color=ft.Colors.ON_SURFACE_VARIANT,
                         ),
                         ft.Column(
-                            [
-                                ft.Row(
-                                    [
-                                        ft.Icon(ft.Icons.HISTORY, size=16),
-                                        ft.Text(format_date(version.sent_at), width=130, size=12),
-                                        ft.Text(
-                                            f"{version.sender_name} <{version.sender_email}>",
-                                            size=12,
-                                            expand=True,
-                                            overflow=ft.TextOverflow.ELLIPSIS,
-                                        ),
-                                    ],
-                                    spacing=8,
-                                )
-                                for version in group.versions
-                            ],
+                            [build_attachment_row(version) for version in group.versions],
                             spacing=4,
                         ),
                     ],
@@ -117,11 +182,13 @@ class AttachmentsView(SettingsSubView):
                 for group in groups
                 if not term
                 or term in group.filename.casefold()
+                or term in group.thread_title.casefold()
                 or term in group.sender_name.casefold()
                 or term in group.sender_email.casefold()
                 or any(
                     term in version.sender_name.casefold()
                     or term in version.sender_email.casefold()
+                    or term in version.file_type.casefold()
                     for version in group.versions
                 )
             ]
@@ -148,7 +215,17 @@ class AttachmentsView(SettingsSubView):
             expand=True,
             content=ft.Column(
                 [
-                    ft.Text("Attachments", size=18, weight=ft.FontWeight.BOLD),
+                    ft.Row(
+                        [
+                            ft.Text("Attachments", size=18, weight=ft.FontWeight.BOLD),
+                            ft.Text(
+                                f"{sum(len(group.versions) for group in groups)} files",
+                                size=12,
+                                color=ft.Colors.ON_SURFACE_VARIANT,
+                            ),
+                        ],
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    ),
                     search,
                     results,
                 ],
@@ -157,6 +234,17 @@ class AttachmentsView(SettingsSubView):
             ),
         )
 
+    @staticmethod
+    def _attachment_path(attachment: Attachment) -> str:
+        email = attachment.email
+        message_id = secure_filename(email.message_id or "").replace(".", "_")
+        name, ext = os.path.splitext(attachment.filename)
+        safe_name = secure_filename((name.replace(".", "")[:50] + ext).strip())
+        path = os.path.abspath(
+            os.path.join("remail", "database", "attachments", message_id, safe_name)
+        )
+        return path if os.path.exists(path) else ""
+
     @session
     def _load_attachment_groups(self, session: Session) -> list[AttachmentGroup]:
         grouped: dict[tuple[int, str], AttachmentGroup] = {}
@@ -164,9 +252,10 @@ class AttachmentsView(SettingsSubView):
 
         for attachment in attachments:
             email = attachment.email
-            thread = email.thread
             sender = email.sender
+            thread = email.thread
             filename = attachment.filename
+            path = self._attachment_path(attachment)
             key = (thread.id if thread and thread.id is not None else -1, filename.casefold())
             version = AttachmentVersion(
                 filename=filename,
@@ -177,6 +266,9 @@ class AttachmentsView(SettingsSubView):
                 sender_email=sender.email_address,
                 thread_title=thread.title if thread else "No thread",
                 sent_at=email.sent_at,
+                file_path=path,
+                file_size=os.path.getsize(path) if path else 0,
+                file_type=mimetypes.guess_type(filename)[0] or "application/octet-stream",
             )
 
             if key not in grouped:

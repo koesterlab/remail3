@@ -68,7 +68,7 @@ class MessageBubble(ft.Container):
                             src=attachment.url,
                             width=260,
                             height=160,
-                            fit=ft.ImageFit.CONTAIN,
+                            fit=ft.BoxFit.CONTAIN,
                         ),
                     )
                 )
