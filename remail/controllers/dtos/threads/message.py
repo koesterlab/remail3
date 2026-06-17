@@ -30,7 +30,9 @@ class MessageDTO:
         message_id = secure_filename(mail.message_id or "").replace(".", "_")
         name, ext = os.path.splitext(filename)
         safe_name = secure_filename((name.replace(".", "")[:50] + ext).strip())
-        path = os.path.abspath(os.path.join("remail", "database", "attachments", message_id, safe_name))
+        path = os.path.abspath(
+            os.path.join("remail", "database", "attachments", message_id, safe_name)
+        )
         return path if os.path.exists(path) else ""
 
     @staticmethod
