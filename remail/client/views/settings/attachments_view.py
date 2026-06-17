@@ -75,8 +75,9 @@ class AttachmentsView(SettingsSubView):
 
                 page.run_task(launch_url)
 
-        def build_attachment_row(version: AttachmentVersion) -> ft.Control:
+        def build_attachment_row(version: AttachmentVersion, version_number: int) -> ft.Control:
             is_image = version.file_type.startswith("image/")
+            version_label = "Latest version" if version_number == 1 else f"Version {version_number}"
             return ft.Container(
                 padding=ft.Padding.symmetric(horizontal=8, vertical=6),
                 border_radius=4,
@@ -91,7 +92,7 @@ class AttachmentsView(SettingsSubView):
                         ft.Column(
                             [
                                 ft.Text(
-                                    version.filename,
+                                    f"{version_label}: {version.filename}",
                                     weight=ft.FontWeight.W_600,
                                     overflow=ft.TextOverflow.ELLIPSIS,
                                 ),
@@ -167,7 +168,10 @@ class AttachmentsView(SettingsSubView):
                             color=ft.Colors.ON_SURFACE_VARIANT,
                         ),
                         ft.Column(
-                            [build_attachment_row(version) for version in group.versions],
+                            [
+                                build_attachment_row(version, index + 1)
+                                for index, version in enumerate(group.versions)
+                            ],
                             spacing=4,
                         ),
                     ],

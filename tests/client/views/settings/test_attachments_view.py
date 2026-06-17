@@ -47,3 +47,47 @@ def test_load_attachment_groups_groups_versions_by_thread_and_filename(session: 
     assert groups[0].thread_title == "Budget"
     assert [version.sent_at for version in groups[0].versions] == [newer.sent_at, older.sent_at]
     assert groups[0].sender_email == "alice@example.com"
+
+
+def test_load_attachment_groups_keeps_same_filename_separate_across_threads(session: Session):
+    contact = Contact(name="Alice Sender", email_address="alice@example.com")
+    conversation = Conversation(custom_name="Project")
+    session.add(contact)
+    session.add(conversation)
+    session.commit()
+
+    budget_thread = Thread(title="Budget", conversation_id=conversation.id)
+    invoice_thread = Thread(title="Invoice", conversation_id=conversation.id)
+    session.add(budget_thread)
+    session.add(invoice_thread)
+    session.commit()
+
+    budget_email = Email(
+        message_id="budget",
+        body="budget",
+        sent_at=datetime(2026, 1, 1),
+        sender_id=contact.id,
+        thread_id=budget_thread.id,
+    )
+    invoice_email = Email(
+        message_id="invoice",
+        body="invoice",
+        sent_at=datetime(2026, 1, 2),
+        sender_id=contact.id,
+        thread_id=invoice_thread.id,
+    )
+    session.add(budget_email)
+    session.add(invoice_email)
+    session.commit()
+
+    session.add(Attachment(filename="offer.pdf", email_id=budget_email.id))
+    session.add(Attachment(filename="offer.pdf", email_id=invoice_email.id))
+    session.commit()
+
+    view = object.__new__(AttachmentsView)
+    groups = AttachmentsView._load_attachment_groups(view, session=session)
+
+    assert len(groups) == 2
+    assert {group.thread_title for group in groups} == {"Budget", "Invoice"}
+    assert [group.thread_title for group in groups] == ["Invoice", "Budget"]
+    assert all(len(group.versions) == 1 for group in groups)
