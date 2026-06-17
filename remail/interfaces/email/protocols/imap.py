@@ -152,7 +152,7 @@ class ImapProtocol(EmailProtocol):
                 criteria = None
             result = client.fetch(uids, self.fields_to_fetch, criteria)  # type:ignore
             self.fetch_since = modcount
-            return result
+            return result  # type: ignore[no-any-return]
         else:
             client.select_folder("INBOX")
             if self.fetch_since and new_only:
