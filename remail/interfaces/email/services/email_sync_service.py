@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING
 
@@ -37,6 +38,7 @@ class EmailSyncService:
 
         self.changed_conversation_ids: list[int] = []
         self.user_id = user_id
+        self._logger = logging.getLogger(__name__)
         self.email_parser = EmailParser(user_id)
         self.protocol = self._create_protocol()
         self.changed_threads: list[
@@ -84,7 +86,7 @@ class EmailSyncService:
                 else:
                     skipped_count += 1
             except Exception:  # nosec
-                pass
+                self._logger.warning("Failed to parse email uid=%s", uid, exc_info=True)
         self._save_connection_data()
 
     async def wait_for_mail_changes_async(self) -> AsyncGenerator[None, None]:
@@ -97,8 +99,9 @@ class EmailSyncService:
                         changed = True
                         self.changed_conversation_ids.append(conv_id)
                 except Exception:  # nosec
-                    pass
+                    self._logger.warning("Failed to parse email uid=%s", uid, exc_info=True)
             if changed:
+                self._save_connection_data()
                 yield None
 
     @session

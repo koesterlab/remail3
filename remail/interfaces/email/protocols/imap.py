@@ -150,8 +150,9 @@ class ImapProtocol(EmailProtocol):
                 criteria = ["CHANGEDSINCE", str(self.fetch_since)]
             else:
                 criteria = None
-            self.fetch_since = modcount  # setze fetch_since auf highest modcount
-            return client.fetch(uids, self.fields_to_fetch, criteria)  # type:ignore
+            result = client.fetch(uids, self.fields_to_fetch, criteria)  # type:ignore
+            self.fetch_since = modcount
+            return result
         else:
             client.select_folder("INBOX")
             if self.fetch_since and new_only:
@@ -159,8 +160,8 @@ class ImapProtocol(EmailProtocol):
             else:
                 criteria = ["ALL"]
             uids = client.search(criteria)
-            self.fetch_since = int(datetime.datetime.now().timestamp())
             raw = client.fetch(uids, self.fields_to_fetch) if uids else {}
+            self.fetch_since = int(datetime.datetime.now().timestamp())
             return raw  # type:ignore
 
     @smtp
