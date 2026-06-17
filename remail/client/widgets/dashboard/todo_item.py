@@ -14,6 +14,38 @@ from remail.controllers.dtos.user_dto import UserDTO
 
 TodoDict = dict[str, Any]
 
+_TAG_COLORS: dict[str, str] = {
+    "Work": ft.Colors.BLUE,
+    "Urgent": ft.Colors.RED,
+    "Newsletter": ft.Colors.ORANGE,
+    "Finance": ft.Colors.PURPLE,
+}
+
+
+def _tag_chip(name: str) -> ft.Container:
+    return ft.Container(
+        content=ft.Text(name, size=11, weight=ft.FontWeight.W_500, color=ft.Colors.WHITE),
+        bgcolor=_TAG_COLORS.get(name, ft.Colors.TEAL),
+        border_radius=8,
+        padding=ft.Padding.symmetric(horizontal=8, vertical=3),
+    )
+
+
+def _preview_tags(title: str, body: str, sent_at: datetime) -> list[str]:
+    text = f"{title} {body}".casefold()
+    tags: list[str] = []
+
+    if any(keyword in text for keyword in ["newsletter", "jackpot", "rabatt", "aktion"]):
+        tags.append("Newsletter")
+    if any(keyword in text for keyword in ["invoice", "rechnung", "bank", "finance"]):
+        tags.append("Finance")
+    if (datetime.now() - sent_at).days >= 3:
+        tags.append("Urgent")
+    if not tags:
+        tags.append("Work")
+
+    return tags[:2]
+
 
 class TodoItem(ft.Container):
     def __init__(self, state: MainAppState, thread: ThreadDTO, account: UserDTO) -> None:
@@ -55,6 +87,15 @@ class TodoItem(ft.Container):
             overflow=ft.TextOverflow.ELLIPSIS,
         )
 
+        tags_row = ft.Row(
+            controls=[
+                _tag_chip(tag)
+                for tag in _preview_tags(thread.title, todo.content.body, todo.sent_at)
+            ],
+            spacing=6,
+            wrap=True,
+        )
+
         quick_reply = ft.Container(
             margin=ft.Margin.only(top=8),
             padding=ft.Padding.symmetric(horizontal=12, vertical=8),
@@ -92,6 +133,7 @@ class TodoItem(ft.Container):
             controls=[
                 top_row,
                 meta_row,
+                tags_row,
                 bottom_row,
             ],
         )
