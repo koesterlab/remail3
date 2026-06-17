@@ -88,7 +88,12 @@ class ConversationSelection(ft.Container):
                     time = datetime.datetime.min
                 else:
                     time = max([t.last_message_datetime for t in elem.threads])
-                category = "B" if elem.is_favorite else "A"
+                if elem.is_favorite:
+                    category = "B"
+                elif sum(t.unread_count for t in elem.threads) > 0:
+                    category = "AB"
+                else:
+                    category = "A"
             return category, time
 
         content.sort(key=compute_order_value, reverse=True)

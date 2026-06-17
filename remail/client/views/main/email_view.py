@@ -42,6 +42,15 @@ class EmailView(ft.Container):
             except RuntimeError:
                 pass
 
+        def on_active_user_change(user: UserDTO):
+            if user is None:
+                return
+            controller = state.account_controllers.get(user.email)
+            if controller is None:
+                return
+            state.set(MainAppStateProperties.DISPLAYED_MAILS, [])
+            on_emails_synced(user, list(controller.get_conversations()))
+
         def on_emails_synced(acting_account: UserDTO, updates: list[ConversationDTO]):
             if acting_account == state.get(
                 MainAppStateProperties.ACTIVE_USER
@@ -115,6 +124,7 @@ class EmailView(ft.Container):
 
         state.register_observer(MainAppStateProperties.ACTIVE_THREAD, on_thread_change)
         state.register_observer(MainAppStateProperties.ACTIVE_ATTACHMENTS, on_attachments_change)
+        state.register_observer(MainAppStateProperties.ACTIVE_USER, on_active_user_change)
         state.register_observer(MainAppStateProperties.ACCOUNTS_CHANGED, on_accounts_changed)
 
         empty_accounts_view = ft.Container(
