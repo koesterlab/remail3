@@ -99,6 +99,10 @@ class DashboardPage(ft.Column):
             except Exception:  # nosec B110
                 pass
 
+    def _open_attachments(self, _: object) -> None:
+        self.state.set(MainAppStateProperties.ACTIVE_THREAD, None)
+        self.state.set(MainAppStateProperties.ACTIVE_ATTACHMENTS, True)
+
     def _rebuild(self) -> None:
         # Compute greeting + name dynamically
         greeting = _time_greeting()
@@ -115,13 +119,13 @@ class DashboardPage(ft.Column):
             border_radius=24,
             options=[
                 ft.DropdownOption(
-                    content=AccountCard(acc), key=acc.id, text=f"{acc.name} <{acc.email}>"
+                    content=AccountCard(acc), key=str(acc.id), text=f"{acc.name} <{acc.email}>"
                 )
                 for acc in [c.get_user() for c in self.accounts]
             ],
             on_select=lambda user_id: self.state.set(
                 MainAppStateProperties.ACTIVE_USER,
-                [a for a in self.accounts if a.user_id == int(user_id.data)][0].get_user(),
+                [a for a in self.accounts if str(a.user_id) == str(user_id.data)][0].get_user(),
             ),
         )
 
@@ -137,13 +141,26 @@ class DashboardPage(ft.Column):
                     ft.Column(
                         [
                             self.dropdown,
-                            ft.IconButton(
-                                icon_color=ft.Colors.ON_SURFACE_VARIANT,
-                                icon=ft.Icons.SETTINGS,
-                                on_click=lambda _: self.state.set(
-                                    MainAppStateProperties.ACTIVE_SETTINGS,
-                                    SettingsSubView.APPEARANCE,
-                                ),
+                            ft.Row(
+                                [
+                                    ft.IconButton(
+                                        icon_color=ft.Colors.ON_SURFACE_VARIANT,
+                                        icon=ft.Icons.ATTACH_FILE,
+                                        tooltip="Attachments",
+                                        on_click=self._open_attachments,
+                                    ),
+                                    ft.IconButton(
+                                        icon_color=ft.Colors.ON_SURFACE_VARIANT,
+                                        icon=ft.Icons.SETTINGS,
+                                        tooltip="Settings",
+                                        on_click=lambda _: self.state.set(
+                                            MainAppStateProperties.ACTIVE_SETTINGS,
+                                            SettingsSubView.APPEARANCE,
+                                        ),
+                                    ),
+                                ],
+                                spacing=0,
+                                alignment=ft.MainAxisAlignment.END,
                             ),
                         ],
                         horizontal_alignment=ft.CrossAxisAlignment.END,

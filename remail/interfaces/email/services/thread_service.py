@@ -10,9 +10,6 @@ from sqlalchemy import and_, func
 from sqlalchemy.orm import selectinload
 from sqlmodel import Session, col, select
 
-from remail.controllers.dtos.conversations import ConversationDTO
-from remail.controllers.dtos.threads import ThreadDTO
-from remail.controllers.dtos.user_dto import UserDTO
 from remail.database import engine
 from remail.interfaces.email.services.user_service import UserService
 from remail.models import Conversation, Email, Thread
@@ -20,9 +17,11 @@ from remail.models.user import User
 from remail.utils.session_management import session
 
 if TYPE_CHECKING:
+    from remail.controllers.dtos.conversations import ConversationDTO
     from remail.controllers.dtos.threads import (
         ThreadDTO,
     )
+    from remail.controllers.dtos.user_dto import UserDTO
 
 
 class ThreadService:
@@ -214,6 +213,17 @@ class ThreadService:
         session: Session,
         count: int = 5,
     ) -> list[tuple[ThreadDTO, ConversationDTO, UserDTO]]:
+        """
+        Calculates the most urgent threads from the database for all accounts
+        Currently by time, later by ai
+
+        returns: (thread_id, ConversationDTO, UserDTO)
+        """
+        # todo ai valuing of mails
+        from remail.controllers.dtos.conversations import ConversationDTO
+        from remail.controllers.dtos.threads import ThreadDTO
+        from remail.controllers.dtos.user_dto import UserDTO
+
         threads = session.exec(
             select(Thread)
             .options(
