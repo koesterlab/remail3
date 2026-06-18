@@ -1,6 +1,5 @@
-from typing import Any
-
 import logging
+from typing import Any
 
 from remail.controllers.dtos.conversations import ConversationDTO
 from remail.controllers.dtos.threads import ThreadDTO
@@ -28,7 +27,9 @@ class ThreadController:
         res = self.service.get_thread_by_id(thread_id)
         if res:
             dto = ThreadDTO.from_model(res)
-            _logger.info("Thread %d loaded: %d message(s). (%s)", thread_id, len(dto.messages), t.elapsed())
+            _logger.info(
+                "Thread %d loaded: %d message(s). (%s)", thread_id, len(dto.messages), t.elapsed()
+            )
             return dto
         return None
 

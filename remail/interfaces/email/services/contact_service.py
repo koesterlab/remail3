@@ -7,9 +7,6 @@ from remail.models import Contact, User
 from remail.utils.session_management import session
 
 
-
-
-
 class ContactService:
     """Service for managing contacts."""
 

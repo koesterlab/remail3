@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable
 from email.header import decode_header
 from typing import TYPE_CHECKING
 
@@ -35,10 +34,10 @@ class ThreadService:
 
     @session
     def get_thread_by_id(self, thread_id: int, session: Session) -> Thread | None:
-        from remail.models.email import Email
-        from remail.models.contact import Contact
-        from remail.models.attachment import Attachment
         from sqlalchemy.orm import selectinload
+
+        from remail.models.email import Email
+
         return session.exec(
             select(Thread)
             .where(Thread.id == thread_id)
@@ -234,9 +233,11 @@ class ThreadService:
             user: User = t.conversation.user
             if user.id not in unread_cache:
                 unread_cache[user.id] = UserService.count_unread(user)
-            result.append((
-                ThreadDTO.from_model(t),
-                ConversationDTO.from_model(t.conversation, user),
-                UserDTO.get_from_model(user, unread_cache[user.id]),
-            ))
+            result.append(
+                (
+                    ThreadDTO.from_model(t),
+                    ConversationDTO.from_model(t.conversation, user),
+                    UserDTO.get_from_model(user, unread_cache[user.id]),
+                )
+            )
         return result

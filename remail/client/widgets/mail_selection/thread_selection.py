@@ -132,7 +132,9 @@ class ThreadSelection(ft.Container):
         self._content.controls = [
             ThreadPreview(self._state, elem, self.conversation) for elem in sorted_threads
         ] + [self.add_thread_btn]  # type: ignore
-        _logger.info("ThreadSelection built %d thread widget(s). (%s)", len(sorted_threads), t.elapsed())
+        _logger.info(
+            "ThreadSelection built %d thread widget(s). (%s)", len(sorted_threads), t.elapsed()
+        )
         t2 = Timer()
         self.update()
         _logger.info("ThreadSelection.update() done. (%s)", t2.elapsed())

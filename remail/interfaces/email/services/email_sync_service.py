@@ -101,7 +101,10 @@ class EmailSyncService:
                 self._logger.info("  ... %d / %d processed (%s)", i, total, t.elapsed())
         if total > 0:
             self._logger.info(
-                "Sync complete: %d new/updated, %d unchanged. (%s)", synced_count, skipped_count, t.elapsed()
+                "Sync complete: %d new/updated, %d unchanged. (%s)",
+                synced_count,
+                skipped_count,
+                t.elapsed(),
             )
         self._save_connection_data()
 

@@ -84,6 +84,7 @@ class ConversationSelection(ft.Container):
     async def set_content(self, content: list[ConversationDTO | Action]):
         t = Timer()
         _logger.info("Rendering %d conversation(s) in UI...", len(content))
+
         # sort
         def compute_order_value(elem: ConversationDTO | Action):
             time = datetime.datetime.min

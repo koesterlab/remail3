@@ -162,6 +162,7 @@ class EmailView(ft.Container):
 
     def _init_accounts(self):
         from remail.utils.timer import Timer
+
         page = cast(ft.Page, self.page)
         _logger.info("Loading accounts...")
         t = Timer()

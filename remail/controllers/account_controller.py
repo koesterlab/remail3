@@ -71,7 +71,12 @@ class AccountController:
         if not user:
             return []
         result = [self._conversation_to_dto(c) for c in user.conversations]
-        self._logger.info("[%s] Loaded %d conversation(s) from DB. (%s)", self.user.email, len(result), t.elapsed())
+        self._logger.info(
+            "[%s] Loaded %d conversation(s) from DB. (%s)",
+            self.user.email,
+            len(result),
+            t.elapsed(),
+        )
         return result
 
     @session
@@ -98,9 +103,13 @@ class AccountController:
     def _notify_callback(self):
         changed: list[Conversation] = self.sync_service.get_changed_conversations()
         if changed:
-            self._logger.info("[%s] Building DTOs for %d changed conversation(s)...", self.user.email, len(changed))
+            self._logger.info(
+                "[%s] Building DTOs for %d changed conversation(s)...",
+                self.user.email,
+                len(changed),
+            )
             t = Timer()
-            dtos = list(self._conversation_to_dto(c) for c in changed)
+            dtos = [self._conversation_to_dto(c) for c in changed]
             self._logger.info("[%s] DTO build done. (%s)", self.user.email, t.elapsed())
             self.callback(dtos)
 

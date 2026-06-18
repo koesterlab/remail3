@@ -1,6 +1,7 @@
 """Main entry point for the Remail client application."""
 
 import logging
+
 import flet as ft
 
 from remail.client.views.index_view import IndexView

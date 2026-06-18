@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 import flet as ft
 
@@ -121,7 +120,9 @@ class ThreadList(ft.Container):
             ),
             expand=True,
         )
-        _logger.info("Built %d message bubble(s). (%s)", len(self.thread.messages), t_widgets.elapsed())
+        _logger.info(
+            "Built %d message bubble(s). (%s)", len(self.thread.messages), t_widgets.elapsed()
+        )
 
         self.content = ft.Column(
             [

@@ -75,6 +75,7 @@ class DashboardPage(ft.Column):
 
     def on_user_change(self, acc: UserDTO):
         from remail.utils.timer import Timer
+
         new_accounts = list(self.state.account_controllers.values())
         if new_accounts != self.accounts:
             self.accounts = new_accounts
@@ -106,7 +107,9 @@ class DashboardPage(ft.Column):
         first_name = self.accounts[0].get_user().name.split()[0]
 
         self.dropdown = ft.Dropdown(
-            value=str(self.state.get(MainAppStateProperties.ACTIVE_USER).id) if self.state.get(MainAppStateProperties.ACTIVE_USER) else None,
+            value=str(self.state.get(MainAppStateProperties.ACTIVE_USER).id)
+            if self.state.get(MainAppStateProperties.ACTIVE_USER)
+            else None,
             text_size=10,
             width=250,
             border_radius=24,
