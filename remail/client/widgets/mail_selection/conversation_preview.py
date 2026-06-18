@@ -72,6 +72,20 @@ class ConversationPreview(ft.Container, ABC):
                 fav_button.visible = conversation.is_favorite or e.data == "true"
                 fav_button.update()
 
+        total_unread = sum(t.unread_count for t in conversation.threads)
+        unread_badge = ft.Container(
+            content=ft.Text(
+                str(total_unread),
+                size=11,
+                color=ft.Colors.ON_PRIMARY,
+                weight=ft.FontWeight.BOLD,
+            ),
+            bgcolor=ft.Colors.PRIMARY,
+            border_radius=ft.BorderRadius.all(10),
+            padding=ft.Padding.symmetric(horizontal=6, vertical=2),
+            visible=total_unread > 0,
+        )
+
         profile_picture = ft.Container()
         profile_picture.on_click = lambda e: state.toggle_selection(conversation)
 
@@ -133,6 +147,7 @@ class ConversationPreview(ft.Container, ABC):
                         alignment=ft.MainAxisAlignment.START,
                         expand=True,
                     ),
+                    unread_badge,
                     icon_btn,
                 ],
                 spacing=12,

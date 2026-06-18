@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from email import message_from_bytes
 from email.header import decode_header, make_header
@@ -25,19 +26,20 @@ class EmailParser:
     def __init__(self, user_id: int):
         """Initialize email parser."""
         self.user_id = user_id
+        self._logger = logging.getLogger(__name__)
         self.contact_service = ContactService()
         self.conversation_service = ConversationService()
         self.thread_service = ThreadService()
 
     @session
-    def parse_mail(self, mail_data: dict, imap_uid: int, session: Session) -> tuple[bool, int]:
+    def parse_mail(
+        self, mail_data: dict, imap_uid: int, session: Session
+    ) -> tuple[bool, int, int | None]:
         """
-        Parses the mail from raw imap data. Updates an existing entry or creates a new one (with thread and conversation if necessary)
+        Parses the mail from raw imap data. Updates an existing entry or creates a new one.
 
-        Args:
-            mail_data: the imap response with at least body, flags, internaldate,
-            imap_uid: the imap uid of the mail (not included in the data!)
-            session: DB Session with @session
+        Returns:
+            Tuple of (changed, email_id, conversation_id). conversation_id is None if not determinable.
         """
         msg_id = message_from_bytes(mail_data[b"BODY[]"]).get("Message-ID")
         if not msg_id:
@@ -46,9 +48,13 @@ class EmailParser:
         existing = session.exec(select(Email).where(Email.message_id == msg_id)).first()
         if existing:
             changed, mail = self._update_mail_data(existing, mail_data)
-            return changed, mail.id
+            conv_id = (
+                mail.thread.conversation_id if changed and mail.thread_id is not None else None
+            )
+            return changed, mail.id, conv_id
         else:
-            return True, self.process_new_email(mail_data, imap_uid).id
+            email, conv_id = self.process_new_email(mail_data, imap_uid)
+            return True, email.id, conv_id
 
     @session
     def _update_mail_data(self, existing: Email, mail_data: dict) -> tuple[bool, Email]:
@@ -69,7 +75,9 @@ class EmailParser:
         return changed, existing
 
     @session
-    def process_new_email(self, mail_data: dict[bytes, Any], uid: int, session: Session) -> Email:
+    def process_new_email(
+        self, mail_data: dict[bytes, Any], uid: int, session: Session
+    ) -> tuple[Email, int]:
         """
         Process a raw email and save to database.
 
@@ -84,13 +92,26 @@ class EmailParser:
         raw_email = message_from_bytes(mail_data[b"BODY[]"])
         flags = mail_data[b"FLAGS"]
 
-        # Extract sender info
-        [sender_contact] = self._extract_participant(raw_email, "From")
+        from_addrs = self._parse_addresses(raw_email, "From")
+        to_addrs = self._parse_addresses(raw_email, "To")
+        cc_addrs = self._parse_addresses(raw_email, "CC")
+        bcc_addrs = self._parse_addresses(raw_email, "BCC")
 
-        # Extract recipients
-        to_recipients = self._extract_participant(raw_email, "To")
-        cc_recipients = self._extract_participant(raw_email, "CC")
-        bcc_recipients = self._extract_participant(raw_email, "BCC")
+        contact_map = self.contact_service.get_or_create_contacts_batch(
+            from_addrs + to_addrs + cc_addrs + bcc_addrs
+        )
+
+        def to_contacts(addrs: list[tuple[str, str | None]]) -> list[Contact]:
+            return [contact_map[e] for e, _ in addrs if e in contact_map]
+
+        from_contacts = to_contacts(from_addrs)
+        to_recipients = to_contacts(to_addrs)
+        cc_recipients = to_contacts(cc_addrs)
+        bcc_recipients = to_contacts(bcc_addrs)
+
+        if not from_contacts:
+            raise ValueError("Email has no valid sender")
+        sender_contact = from_contacts[0]
 
         # Get all participant contacts (excluding the user themselves)
         all_participants = set([sender_contact] + to_recipients + cc_recipients + bcc_recipients)
@@ -118,29 +139,28 @@ class EmailParser:
         session.add(db_email)
         # Ensure email has a primary key before creating dependent rows
         session.commit()
+        conv_id: int = conversation.id  # type: ignore[assignment]
 
-        self.thread_service.organize_email_into_thread(
-            email=db_email,
-            conversation=conversation,
-            subject=self.sanitize(raw_email.get("Subject", "unknown")),
-        )
+        try:
+            self.thread_service.organize_email_into_thread(
+                email=db_email,
+                conversation=conversation,
+                subject=self.sanitize(raw_email.get("Subject", "unknown")),
+            )
+        except Exception as exc:
+            self._logger.warning(
+                "Thread organization failed for email %s: %s",
+                db_email.message_id,
+                exc,
+                exc_info=True,
+            )
 
         # Create EmailReception records for all recipients
         self._create_email_receptions(db_email, to_recipients, cc_recipients, bcc_recipients)
 
-        return db_email
+        return db_email, conv_id
 
-    def _extract_participant(self, raw_email: Message, key: str) -> list[Contact]:
-        """
-        Extract email account information from raw email header.
-
-        Args:
-            raw_email: Raw email object
-            key: header key where to search for user(s)
-
-        Returns:
-            Contact objects from the database that was found or new created
-        """
+    def _parse_addresses(self, raw_email: Message, key: str) -> list[tuple[str, str | None]]:
         raw_values = raw_email.get_all(key, [])
         if not raw_values:
             return []
@@ -149,7 +169,7 @@ class EmailParser:
         if not addr:
             return []
 
-        participants: list[Contact] = []
+        result: list[tuple[str, str | None]] = []
         for name, email in addr:
             decoded_name = self.sanitize(self._decode_header_value(name).strip()) if name else ""
             decoded_email = self.sanitize(self._decode_header_value(email).strip()) if email else ""
@@ -158,11 +178,8 @@ class EmailParser:
                 decoded_name = ""
             if not decoded_email or "@" not in decoded_email:
                 continue
-            participants.append(
-                self.contact_service.get_or_create_contact(decoded_email, name=decoded_name or None)
-            )
-
-        return participants
+            result.append((decoded_email, decoded_name or None))
+        return result
 
     @staticmethod
     def _decode_header_value(value: str) -> str:
