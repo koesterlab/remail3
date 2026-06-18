@@ -87,7 +87,7 @@ class DashboardPage(ft.Column):
                 t2 = Timer()
                 self.update()
                 _logger.info("DashboardPage: update done. (%s)", t2.elapsed())
-            except Exception:
+            except Exception:  # nosec B110
                 pass
             return
         if not hasattr(self, "dropdown") or self.dropdown is None:
@@ -96,7 +96,7 @@ class DashboardPage(ft.Column):
             self.dropdown.value = str(acc.id)
             try:
                 self.dropdown.update()
-            except Exception:
+            except Exception:  # nosec B110
                 pass
 
     def _rebuild(self) -> None:

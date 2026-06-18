@@ -34,17 +34,16 @@ class ThreadService:
 
     @session
     def get_thread_by_id(self, thread_id: int, session: Session) -> Thread | None:
-        from sqlalchemy.orm import selectinload
-
+        from remail.models.attachment import Attachment  # noqa: F401
         from remail.models.email import Email
 
         return session.exec(
             select(Thread)
             .where(Thread.id == thread_id)
             .options(
-                selectinload(Thread.messages).options(
-                    selectinload(Email.sender),
-                    selectinload(Email.attachments),
+                selectinload(Thread.messages).options(  # type: ignore[arg-type]
+                    selectinload(Email.sender),  # type: ignore[arg-type]
+                    selectinload(Email.attachments),  # type: ignore[arg-type]
                 )
             )
         ).first()
@@ -218,10 +217,10 @@ class ThreadService:
         threads = session.exec(
             select(Thread)
             .options(
-                selectinload(Thread.conversation).options(
-                    selectinload(Conversation.threads).selectinload(Thread.messages),
-                    selectinload(Conversation.contacts),
-                    selectinload(Conversation.user),
+                selectinload(Thread.conversation).options(  # type: ignore[arg-type]
+                    selectinload(Conversation.threads).selectinload(Thread.messages),  # type: ignore[arg-type]
+                    selectinload(Conversation.contacts),  # type: ignore[arg-type]
+                    selectinload(Conversation.user),  # type: ignore[arg-type]
                 )
             )
             .order_by(Thread.last_message_time.desc())  # type: ignore
@@ -231,13 +230,16 @@ class ThreadService:
         result = []
         for t in threads:
             user: User = t.conversation.user
-            if user.id not in unread_cache:
-                unread_cache[user.id] = UserService.count_unread(user)
+            user_id = user.id
+            if user_id is None:
+                continue
+            if user_id not in unread_cache:
+                unread_cache[user_id] = UserService.count_unread(user)
             result.append(
                 (
                     ThreadDTO.from_model(t),
                     ConversationDTO.from_model(t.conversation, user),
-                    UserDTO.get_from_model(user, unread_cache[user.id]),
+                    UserDTO.get_from_model(user, unread_cache[user_id]),
                 )
             )
         return result

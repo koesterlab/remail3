@@ -62,9 +62,9 @@ class AccountController:
             select(User)
             .where(User.id == self.user_id)
             .options(
-                selectinload(User.conversations).options(
-                    selectinload(Conversation.threads).selectinload(Thread.messages),
-                    selectinload(Conversation.contacts),
+                selectinload(User.conversations).options(  # type: ignore[arg-type]
+                    selectinload(Conversation.threads).selectinload(Thread.messages),  # type: ignore[arg-type]
+                    selectinload(Conversation.contacts),  # type: ignore[arg-type]
                 )
             )
         ).first()
@@ -87,7 +87,8 @@ class AccountController:
         self.sync_service.sync_emails()
         self._logger.info("[%s] IMAP sync complete. (%s)", self.user.email, t.elapsed())
         self._notify_callback()
-        return self._get_conversations_from_db()
+        result: list[ConversationDTO] = self._get_conversations_from_db()
+        return result
 
     def set_callback_email_changes(
         self, callback: Callable[[Iterable[ConversationDTO]], None]

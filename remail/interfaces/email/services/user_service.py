@@ -24,7 +24,7 @@ class UserService:
     @session
     def count_unread(user: User, session: Session) -> int:
         stmt = (
-            select(func.count(Thread.id))
+            select(func.count(Thread.id))  # type: ignore[arg-type]
             .join(Conversation)
             .where(Conversation.user_id == user.id)
             .where(Thread.unread_count > 0)

@@ -1,6 +1,6 @@
 from typing import cast
 
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from remail.database import engine
 from remail.models import Contact, User
@@ -60,7 +60,7 @@ class ContactService:
             return {}
         existing = {
             c.email_address: c
-            for c in session.exec(select(Contact).where(Contact.email_address.in_(emails))).all()
+            for c in session.exec(select(Contact).where(col(Contact.email_address).in_(emails))).all()
         }
         for email, name in emails_names:
             if not email or email in existing:
