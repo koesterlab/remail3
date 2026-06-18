@@ -159,6 +159,9 @@ class ImapProtocol(EmailProtocol):
             else:
                 criteria = ["ALL"]
             uids = client.search(criteria)
+            uids = client.search(criteria)
+            
+
             self.fetch_since = int(datetime.datetime.now().timestamp())
             raw = client.fetch(uids, self.fields_to_fetch) if uids else {}
             return raw  # type:ignore
