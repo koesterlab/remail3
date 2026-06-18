@@ -2,6 +2,8 @@ import datetime
 import inspect
 import mimetypes
 import os
+import subprocess
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -35,6 +37,7 @@ class AttachmentGroup:
     sender_name: str
     sender_email: str
     versions: list[AttachmentVersion] = field(default_factory=list)
+    search_text: str = ""
 
 
 class AttachmentsView(SettingsSubView):
@@ -64,6 +67,8 @@ class AttachmentsView(SettingsSubView):
         def open_attachment(_: object, path: str) -> None:
             if not path:
                 return
+            if self._open_attachment_file(path):
+                return
             page = self.page
             if page is not None:
                 uri = Path(path).resolve().as_uri()
@@ -82,6 +87,8 @@ class AttachmentsView(SettingsSubView):
                 padding=ft.Padding.symmetric(horizontal=8, vertical=6),
                 border_radius=4,
                 bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
+                ink=bool(version.file_path),
+                on_click=lambda event, path=version.file_path: open_attachment(event, path),
                 content=ft.Row(
                     [
                         ft.Icon(
@@ -179,33 +186,24 @@ class AttachmentsView(SettingsSubView):
                 ),
             )
 
+        group_controls = [(group, build_group(group)) for group in groups]
+        empty_results = ft.Container(
+            ft.Text("No attachments found", color=ft.Colors.ON_SURFACE_VARIANT),
+            padding=12,
+        )
+
         def apply_filter(_=None) -> None:
             term = (search.value or "").strip().casefold()
             filtered = [
-                group
-                for group in groups
-                if not term
-                or term in group.filename.casefold()
-                or term in group.thread_title.casefold()
-                or term in group.sender_name.casefold()
-                or term in group.sender_email.casefold()
-                or any(
-                    term in version.sender_name.casefold()
-                    or term in version.sender_email.casefold()
-                    or term in version.file_type.casefold()
-                    for version in group.versions
-                )
+                control
+                for group, control in group_controls
+                if not term or term in group.search_text
             ]
 
             if filtered:
-                results.controls = [build_group(group) for group in filtered]
+                results.controls = filtered
             else:
-                results.controls = [
-                    ft.Container(
-                        ft.Text("No attachments found", color=ft.Colors.ON_SURFACE_VARIANT),
-                        padding=12,
-                    )
-                ]
+                results.controls = [empty_results]
             try:
                 results.update()
             except RuntimeError:
@@ -249,6 +247,41 @@ class AttachmentsView(SettingsSubView):
         )
         return path if os.path.exists(path) else ""
 
+    @staticmethod
+    def _open_attachment_file(path: str) -> bool:
+        if not os.path.exists(path):
+            return False
+        try:
+            if os.name == "nt":
+                os.startfile(path)  # type: ignore[attr-defined]
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", path])
+            else:
+                subprocess.Popen(["xdg-open", path])
+            return True
+        except OSError:
+            return False
+
+    @staticmethod
+    def _attachment_search_text(group: AttachmentGroup) -> str:
+        values = [
+            group.filename,
+            group.thread_title,
+            group.sender_name,
+            group.sender_email,
+        ]
+        for version in group.versions:
+            values.extend(
+                [
+                    version.filename,
+                    version.sender_name,
+                    version.sender_email,
+                    version.thread_title,
+                    version.file_type,
+                ]
+            )
+        return " ".join(values).casefold()
+
     @session
     def _load_attachment_groups(self, session: Session) -> list[AttachmentGroup]:
         grouped: dict[tuple[int, str], AttachmentGroup] = {}
@@ -291,6 +324,7 @@ class AttachmentsView(SettingsSubView):
             latest = group.versions[0]
             group.sender_name = latest.sender_name
             group.sender_email = latest.sender_email
+            group.search_text = self._attachment_search_text(group)
 
         return sorted(
             grouped.values(),

@@ -2,7 +2,11 @@ from datetime import datetime, timedelta
 
 from sqlmodel import Session
 
-from remail.client.views.settings.attachments_view import AttachmentsView
+from remail.client.views.settings.attachments_view import (
+    AttachmentGroup,
+    AttachmentsView,
+    AttachmentVersion,
+)
 from remail.models import Attachment, Contact, Conversation, Email, Thread
 
 
@@ -91,3 +95,34 @@ def test_load_attachment_groups_keeps_same_filename_separate_across_threads(sess
     assert {group.thread_title for group in groups} == {"Budget", "Invoice"}
     assert [group.thread_title for group in groups] == ["Invoice", "Budget"]
     assert all(len(group.versions) == 1 for group in groups)
+
+
+def test_attachment_group_prepares_search_text():
+    group = AttachmentGroup(
+        filename="Offer.pdf",
+        thread_title="Budget",
+        sender_name="Alice Sender",
+        sender_email="alice@example.com",
+        versions=[
+            AttachmentVersion(
+                filename="Offer.pdf",
+                sender_name="Alice Sender",
+                sender_email="alice@example.com",
+                thread_title="Budget",
+                sent_at=datetime(2026, 1, 1),
+                file_path="",
+                file_size=0,
+                file_type="application/pdf",
+            )
+        ],
+    )
+
+    search_text = AttachmentsView._attachment_search_text(group)
+
+    assert "offer.pdf" in search_text
+    assert "alice@example.com" in search_text
+    assert "application/pdf" in search_text
+
+
+def test_open_attachment_file_returns_false_for_missing_path():
+    assert AttachmentsView._open_attachment_file("missing-file-that-should-not-exist.pdf") is False
