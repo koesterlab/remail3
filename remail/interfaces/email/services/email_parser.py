@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from email import message_from_bytes
 from email.header import decode_header, make_header
@@ -31,6 +32,10 @@ class EmailParser:
         self.thread_service = ThreadService()
         self.search_controller = SearchController()
 
+        self.embedding_executor = ThreadPoolExecutor(
+            max_workers=3, thread_name_prefix="Embedding-Worker"
+        )
+
     @session
     def parse_mail(self, mail_data: dict, imap_uid: int, session: Session) -> tuple[bool, int]:
         """
@@ -50,7 +55,8 @@ class EmailParser:
             changed, mail = self._update_mail_data(existing, mail_data)
             return changed, mail.id
         else:
-            return True, self.process_new_email(mail_data, imap_uid).id
+            result = (True, self.process_new_email(mail_data, imap_uid).id)
+            return result
 
     @session
     def _update_mail_data(self, existing: Email, mail_data: dict) -> tuple[bool, Email]:
@@ -122,7 +128,8 @@ class EmailParser:
         # Ensure email has a primary key before creating dependent rows
         session.commit()
 
-        self.search_controller.index_email(
+        self.embedding_executor.submit(
+            self.search_controller.index_email,
             email_id=db_email.id or -1,
             subject=subject,
             body=db_email.body,

@@ -1,3 +1,6 @@
+import threading
+from datetime import datetime
+
 import sqlite_vec
 from sqlalchemy import event, text
 from sqlmodel import Session, select
@@ -46,12 +49,9 @@ class SearchController:
     def index_email(self, email_id: int, subject: str, body: str):
         # check if embedding already existed
         check_sql = "SELECT COUNT(*) FROM email_embeddings WHERE email_id = :email_id"
-
         with self.engine.begin() as conn:
             result = conn.execute(text(check_sql), {"email_id": email_id})
-            count = result.fetchone()[0]
-
-            if count > 0:
+            if result.fetchone()[0] > 0:
                 return
 
         # If not existed, create a new embedding
@@ -95,6 +95,12 @@ class SearchController:
 
         return email_ids
 
+    def get_embedding_count(self) -> int:
+        count_sql = "SELECT COUNT(*) FROM email_embeddings"
+        with self.engine.begin() as conn:
+            result = conn.execute(text(count_sql))
+            return int(result.fetchone()[0])
+
     def index_existing_emails(self):
         with Session(self.engine) as session:
             emails = session.exec(select(Email)).all()
@@ -106,8 +112,8 @@ class SearchController:
                 subject = email.thread.title if email.thread else ""
                 body = email.body or ""
 
-                self.index_email(
-                    email_id=email.id,
-                    subject=subject,
-                    body=body,
-                )
+                self.index_email(email_id=email.id, subject=subject, body=body)
+
+            print(
+                f"[{datetime.now().strftime('%H:%M:%S.%f')}] [Thread: {threading.current_thread().name}] -> Embeddings finished!"
+            )

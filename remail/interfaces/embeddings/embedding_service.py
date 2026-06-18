@@ -8,4 +8,5 @@ class EmbeddingService:
 
     def get_embedding(self, text: str):
         # Get the embedding for the given text
-        return self.embedding_model.get_text_embedding(text)
+        result = self.embedding_model.get_text_embedding(text)
+        return result

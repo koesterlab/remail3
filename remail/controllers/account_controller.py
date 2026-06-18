@@ -1,5 +1,6 @@
 import datetime
 import logging
+import threading
 from collections.abc import Callable, Iterable
 
 from sqlmodel import Session
@@ -29,7 +30,8 @@ class AccountController:
     @staticmethod
     def all_client_accounts() -> list["AccountController"]:
         users = UserService().get_all_users()
-        return [AccountController(dto.id) for dto in users]
+        result = [AccountController(dto.id) for dto in users]
+        return result
 
     @staticmethod
     def create_new_account(clearname: str, email: str, connection: EmailProtocol, method: Protocol):
@@ -50,22 +52,26 @@ class AccountController:
         self.callback: Callable[[Iterable[ConversationDTO]], None] = lambda _: None
         self.error_callback: Callable[[str], None] = lambda _: None
         self.search_controller = SearchController()
-        self.search_controller.index_existing_emails()
+
+        threading.Thread(
+            target=self.search_controller.index_existing_emails,
+            daemon=True,
+            name="Old-Emails-Worker",
+        ).start()
 
     @session
     def get_conversations(self) -> Iterable[ConversationDTO]:
         """Returns all conversations from the users inbox"""
         # re-sync via imap
         self.sync_service.sync_emails()
-
         # notify callback if something has changed
         self._notify_callback()
-
         # return all conversation DTOs
-        return [
+        result = [
             self._conversation_to_dto(e)
             for e in self.user_service.get_user_by_id(self.user_id).conversations
         ]
+        return result
 
     def set_callback_email_changes(
         self, callback: Callable[[Iterable[ConversationDTO]], None]
@@ -90,11 +96,13 @@ class AccountController:
         """Starts background task to wait for email changes in imap idle mode. Calls callback if something changes"""
         try:
             print("Starting sync service")
+
             self.callback(self.get_conversations())
             print("First sync over")
 
             async for _ in self.sync_service.wait_for_mail_changes_async():
                 self._notify_callback()
+
         except ee.InvalidLoginData:
             self._notify_error("Invalid login credentials")
         except Exception as exc:
