@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from typing import Any
 
@@ -15,6 +16,8 @@ from remail.enums import SettingsSubView
 AccountDict = dict[str, Any]
 TodoDict = dict[str, Any]
 AppointmentDict = dict[str, Any]
+
+_logger = logging.getLogger(__name__)
 
 
 def _time_greeting(now: datetime | None = None) -> str:
@@ -71,7 +74,30 @@ class DashboardPage(ft.Column):
         self._rebuild()
 
     def on_user_change(self, acc: UserDTO):
-        self.dropdown.value = str(acc.id)
+        from remail.utils.timer import Timer
+
+        new_accounts = list(self.state.account_controllers.values())
+        if new_accounts != self.accounts:
+            self.accounts = new_accounts
+            _logger.info("DashboardPage: rebuilding...")
+            t = Timer()
+            self._rebuild()
+            _logger.info("DashboardPage: _rebuild done. (%s)", t.elapsed())
+            try:
+                t2 = Timer()
+                self.update()
+                _logger.info("DashboardPage: update done. (%s)", t2.elapsed())
+            except Exception:  # nosec B110
+                pass
+            return
+        if not hasattr(self, "dropdown") or self.dropdown is None:
+            return
+        if acc is not None:
+            self.dropdown.value = str(acc.id)
+            try:
+                self.dropdown.update()
+            except Exception:  # nosec B110
+                pass
 
     def _rebuild(self) -> None:
         # Compute greeting + name dynamically
@@ -81,7 +107,9 @@ class DashboardPage(ft.Column):
         first_name = self.accounts[0].get_user().name.split()[0]
 
         self.dropdown = ft.Dropdown(
-            value=self.state.get(MainAppStateProperties.ACTIVE_USER).id,
+            value=str(self.state.get(MainAppStateProperties.ACTIVE_USER).id)
+            if self.state.get(MainAppStateProperties.ACTIVE_USER)
+            else None,
             text_size=10,
             width=250,
             border_radius=24,

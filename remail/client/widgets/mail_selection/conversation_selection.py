@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import logging
 import re
 
 import flet as ft
@@ -12,6 +13,9 @@ from remail.client.widgets.mail_selection.contact_preview import ContactPreview
 from remail.client.widgets.mail_selection.conversation_preview import ConversationPreview
 from remail.client.widgets.mail_selection.group_preview import GroupPreview
 from remail.controllers.dtos.conversations import ConversationDTO
+from remail.utils.timer import Timer
+
+_logger = logging.getLogger(__name__)
 
 """
 Subwidget of selectionBar to choose between different contacts (+groups) and actions
@@ -78,6 +82,9 @@ class ConversationSelection(ft.Container):
         self.page.run_task(u)
 
     async def set_content(self, content: list[ConversationDTO | Action]):
+        t = Timer()
+        _logger.info("Rendering %d conversation(s) in UI...", len(content))
+
         # sort
         def compute_order_value(elem: ConversationDTO | Action):
             time = datetime.datetime.min
@@ -123,6 +130,7 @@ class ConversationSelection(ft.Container):
 
         self.inner_content.controls = element_list
         self.update()
+        _logger.info("UI render done: %d widget(s) shown. (%s)", len(element_list), t.elapsed())
 
     def create_list_item(self, elem: Action | ConversationDTO):
         if isinstance(elem, Action):

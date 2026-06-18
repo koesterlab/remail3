@@ -3,6 +3,9 @@ import datetime
 import logging
 from collections.abc import Callable, Iterable
 
+from sqlalchemy.orm import selectinload
+from sqlmodel import Session, select
+
 from remail import errors as ee
 from remail.controllers.dtos.conversations import ContactDTO, ConversationDTO, ThreadPreviewDTO
 from remail.controllers.dtos.user_dto import UserDTO
@@ -16,7 +19,10 @@ from remail.interfaces.email.services import (
 from remail.interfaces.email.services.contact_service import ContactService
 from remail.interfaces.email.services.user_service import UserService
 from remail.models import Conversation
+from remail.models.thread import Thread
+from remail.models.user import User
 from remail.utils.session_management import session
+from remail.utils.timer import Timer
 
 
 class AccountController:
@@ -49,19 +55,40 @@ class AccountController:
         self.error_callback: Callable[[str], None] = lambda _: None
 
     @session
-    def get_conversations(self) -> Iterable[ConversationDTO]:
+    def _get_conversations_from_db(self, session: Session) -> list[ConversationDTO]:
+        self._logger.info("[%s] Loading conversations from DB...", self.user.email)
+        t = Timer()
+        user = session.exec(
+            select(User)
+            .where(User.id == self.user_id)
+            .options(
+                selectinload(User.conversations).options(  # type: ignore[arg-type]
+                    selectinload(Conversation.threads).selectinload(Thread.messages),  # type: ignore[arg-type]
+                    selectinload(Conversation.contacts),  # type: ignore[arg-type]
+                )
+            )
+        ).first()
+        if not user:
+            return []
+        result = [self._conversation_to_dto(c) for c in user.conversations]
+        self._logger.info(
+            "[%s] Loaded %d conversation(s) from DB. (%s)",
+            self.user.email,
+            len(result),
+            t.elapsed(),
+        )
+        return result
+
+    @session
+    def get_conversations(self) -> list[ConversationDTO]:
         """Returns all conversations from the users inbox"""
-        # re-sync via imap
+        self._logger.info("[%s] Syncing emails via IMAP...", self.user.email)
+        t = Timer()
         self.sync_service.sync_emails()
-
-        # notify callback if something has changed
+        self._logger.info("[%s] IMAP sync complete. (%s)", self.user.email, t.elapsed())
         self._notify_callback()
-
-        # return all conversation DTOs
-        return [
-            self._conversation_to_dto(e)
-            for e in self.user_service.get_user_by_id(self.user_id).conversations
-        ]
+        result: list[ConversationDTO] = self._get_conversations_from_db()
+        return result
 
     def set_callback_email_changes(
         self, callback: Callable[[Iterable[ConversationDTO]], None]
@@ -77,7 +104,15 @@ class AccountController:
     def _notify_callback(self):
         changed: list[Conversation] = self.sync_service.get_changed_conversations()
         if changed:
-            self.callback(self._conversation_to_dto(c) for c in changed)
+            self._logger.info(
+                "[%s] Building DTOs for %d changed conversation(s)...",
+                self.user.email,
+                len(changed),
+            )
+            t = Timer()
+            dtos = [self._conversation_to_dto(c) for c in changed]
+            self._logger.info("[%s] DTO build done. (%s)", self.user.email, t.elapsed())
+            self.callback(dtos)
 
     def _notify_error(self, msg: str) -> None:
         self.error_callback(msg)
@@ -85,13 +120,18 @@ class AccountController:
     async def start_listening(self):
         """Starts background task to wait for email changes in imap idle mode. Calls callback if something changes"""
         try:
-            print("Starting sync service")
-            self.callback(self.get_conversations())
-            print("First sync over")
+            self._logger.info("[%s] Showing cached emails from DB.", self.user.email)
+            self.callback(self._get_conversations_from_db())
 
             while True:
                 try:
+                    self._logger.info("[%s] Starting IMAP sync...", self.user.email)
+                    t = Timer()
+                    await asyncio.to_thread(self.sync_service.sync_emails)
+                    self._logger.info("[%s] IMAP sync done. (%s)", self.user.email, t.elapsed())
+                    self._notify_callback()
                     async for _ in self.sync_service.wait_for_mail_changes_async():
+                        self._logger.info("[%s] IMAP IDLE: new mail detected.", self.user.email)
                         self._notify_callback()
                 except ee.InvalidLoginData:
                     raise  # propagate – cannot recover from bad credentials

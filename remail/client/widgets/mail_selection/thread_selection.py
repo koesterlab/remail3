@@ -1,13 +1,17 @@
 import datetime
+import logging
 from typing import Any
 
 import flet as ft
 
 from remail.controllers.dtos.conversations import ConversationDTO, ThreadPreviewDTO
+from remail.utils.timer import Timer
 
 from ...state.main_app_state import MainAppState, MainAppStateProperties
 from .profile_picture import create_profile_picture
 from .thread_preview import ThreadPreview
+
+_logger = logging.getLogger(__name__)
 
 """
 Subwidget of selectionBar to choose between different conversations of a contact
@@ -112,6 +116,7 @@ class ThreadSelection(ft.Container):
     def set_content(self, content: ConversationDTO):
         if not content:
             return
+        t = Timer()
         self._image.content = create_profile_picture(content)
         self.conversation = content
         if len(content.contacts) == 1:
@@ -127,4 +132,9 @@ class ThreadSelection(ft.Container):
         self._content.controls = [
             ThreadPreview(self._state, elem, self.conversation) for elem in sorted_threads
         ] + [self.add_thread_btn]  # type: ignore
+        _logger.info(
+            "ThreadSelection built %d thread widget(s). (%s)", len(sorted_threads), t.elapsed()
+        )
+        t2 = Timer()
         self.update()
+        _logger.info("ThreadSelection.update() done. (%s)", t2.elapsed())
