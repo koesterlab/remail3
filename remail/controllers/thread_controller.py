@@ -1,5 +1,4 @@
 import logging
-from typing import Any
 
 from remail.controllers.dtos.conversations import ConversationDTO
 from remail.controllers.dtos.threads import ThreadDTO
