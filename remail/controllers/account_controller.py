@@ -2,9 +2,12 @@ import datetime
 import logging
 from collections.abc import Callable, Iterable
 
+from sqlmodel import Session
+
 from remail import errors as ee
 from remail.controllers.dtos.conversations import ContactDTO, ConversationDTO, ThreadPreviewDTO
 from remail.controllers.dtos.user_dto import UserDTO
+from remail.controllers.search_controller import SearchController
 from remail.enums import ConversationType, Protocol
 from remail.interfaces.email import EmailProtocol
 from remail.interfaces.email.services import (
@@ -14,7 +17,7 @@ from remail.interfaces.email.services import (
 )
 from remail.interfaces.email.services.contact_service import ContactService
 from remail.interfaces.email.services.user_service import UserService
-from remail.models import Conversation, Thread
+from remail.models import Conversation, Email, Thread
 from remail.utils.session_management import session
 
 
@@ -46,6 +49,8 @@ class AccountController:
         self.contact_service = ContactService()
         self.callback: Callable[[Iterable[ConversationDTO]], None] = lambda _: None
         self.error_callback: Callable[[str], None] = lambda _: None
+        self.search_controller = SearchController()
+        self.search_controller.index_existing_emails()
 
     @session
     def get_conversations(self) -> Iterable[ConversationDTO]:
@@ -164,5 +169,23 @@ class AccountController:
             threads=threads,
         )
 
-    def search(self, search_string: str) -> list[ConversationDTO]:
-        return []  # todo
+    @session
+    def search(self, search_string: str, session: Session) -> list[ConversationDTO]:
+        email_ids = self.search_controller.search(search_string)
+        if not email_ids:
+            return []
+
+        result_dtos = []
+        seen_conversation_ids = set()
+
+        for email_id in email_ids:
+            email = session.get(Email, email_id)
+            if not email or not email.thread:
+                continue
+
+            conversation = email.thread.conversation
+            if conversation and conversation.id not in seen_conversation_ids:
+                seen_conversation_ids.add(conversation.id)
+                result_dtos.append(self._conversation_to_dto(conversation))
+
+        return result_dtos

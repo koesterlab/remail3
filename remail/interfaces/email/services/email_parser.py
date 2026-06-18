@@ -8,6 +8,7 @@ from typing import Any, cast
 from pytz import timezone
 from sqlmodel import Session, select
 
+from remail.controllers.search_controller import SearchController
 from remail.enums import ContactType, ConversationType, RecipientKind
 from remail.interfaces.email.services.attachment_service import save_attachment
 from remail.interfaces.email.services.contact_service import ContactService
@@ -28,6 +29,7 @@ class EmailParser:
         self.contact_service = ContactService()
         self.conversation_service = ConversationService()
         self.thread_service = ThreadService()
+        self.search_controller = SearchController()
 
     @session
     def parse_mail(self, mail_data: dict, imap_uid: int, session: Session) -> tuple[bool, int]:
@@ -104,6 +106,7 @@ class EmailParser:
         sent_at = self.extract_msg_date(raw_email)
         body = self._get_body(raw_email)
         message_id = (raw_email.get("Message-ID") or "").strip().lower()
+        subject = self.sanitize(raw_email.get("Subject", "unknown"))
 
         db_email = Email(
             imap_uid=uid,
@@ -119,10 +122,16 @@ class EmailParser:
         # Ensure email has a primary key before creating dependent rows
         session.commit()
 
+        self.search_controller.index_email(
+            email_id=db_email.id or -1,
+            subject=subject,
+            body=db_email.body,
+        )
+
         self.thread_service.organize_email_into_thread(
             email=db_email,
             conversation=conversation,
-            subject=self.sanitize(raw_email.get("Subject", "unknown")),
+            subject=subject,
         )
 
         # Create EmailReception records for all recipients

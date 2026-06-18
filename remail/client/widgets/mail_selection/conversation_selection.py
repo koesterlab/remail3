@@ -44,6 +44,7 @@ class ConversationSelection(ft.Container):
         else:
             if search == self.active_search_cache:
                 return  # same search -> no change needed
+            self.active_search_cache = search
             content: list[ConversationDTO | Action] = self.state.get_active_email_account().search(
                 search
             )
@@ -113,6 +114,7 @@ class ConversationSelection(ft.Container):
                 update_bound <<= 1  # updates after 2,4,8,16,32,... elements
 
         self.inner_content.controls = element_list
+        self.update()
 
     def create_list_item(self, elem: Action | ConversationDTO):
         if isinstance(elem, Action):
