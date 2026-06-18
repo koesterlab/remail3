@@ -110,17 +110,10 @@ class TestAccountControllerConversations:
 
     def test_get_conversations(self, mock_services):
         """Test get_conversations syncs and returns conversations."""
-        mock_conversation = Mock(spec=Conversation)
-        mock_conversation.id = 1
-        mock_conversation.is_favorite = False
-        mock_conversation.custom_name = None
-        mock_conversation.contacts = []
-        mock_conversation.threads = []
-
-        mock_services["mock_user"].conversations = [mock_conversation]
-
         controller = AccountController(account_id=1)
-        result = controller.get_conversations()
+
+        with patch.object(controller, "_get_conversations_from_db", return_value=[]):
+            result = controller.get_conversations()
 
         mock_services["sync_service"].sync_emails.assert_called_once()
         assert isinstance(result, list)

@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from typing import cast
 
 import flet as ft
@@ -13,6 +14,8 @@ from remail.enums import SettingsSubView
 from ...state.main_app_state import MainAppState, MainAppStateProperties
 from ...widgets.dashboard.dashboard_page import DashboardPage
 from ...widgets.thread.thread_list import ThreadList
+
+_logger = logging.getLogger(__name__)
 
 
 class EmailView(ft.Container):
@@ -32,8 +35,10 @@ class EmailView(ft.Container):
             controller = state.account_controllers.get(user.email)
             if controller is None:
                 return
+            right_view.content = dashboard
+            right_view.update()
             state.set(MainAppStateProperties.DISPLAYED_MAILS, [])
-            on_emails_synced(user, list(controller.get_conversations()))
+            on_emails_synced(user, list(controller._get_conversations_from_db()))
 
         def on_emails_synced(acting_account: UserDTO, updates: list[ConversationDTO]):
             if acting_account == state.get(
@@ -73,20 +78,11 @@ class EmailView(ft.Container):
         for t in state.sync_threads:
             t.cancel()
 
-        # register new accounts and start listening
-        self.accounts = AccountController.all_client_accounts()
-        if not self.accounts:
-            state.set(MainAppStateProperties.ACTIVE_USER, None)
-        else:
-            for acc in self.accounts:
-                state.account_controllers[acc.get_email_address()] = acc
-                acc.set_callback_email_changes(
-                    lambda updates, acc_=acc: on_emails_synced(acc_.get_user(), updates)  # type:ignore
-                )
-                acc.set_callback_email_errors(
-                    lambda msg, acc_=acc: on_email_sync_error(acc_.get_user(), msg)  # type:ignore
-                )
-            state.set(MainAppStateProperties.ACTIVE_USER, self.accounts[0].get_user())
+        self.accounts: list[AccountController] = []
+        self._state = state
+        self._on_emails_synced = on_emails_synced
+        self._on_email_sync_error = on_email_sync_error
+        state.set(MainAppStateProperties.ACTIVE_USER, None)
 
         def on_accounts_changed(_email: str | None) -> None:
             new_accounts = AccountController.all_client_accounts()
@@ -135,7 +131,7 @@ class EmailView(ft.Container):
         dashboard = ft.Container(content=DashboardPage(state), padding=10)
 
         right_view = ft.Container(
-            DashboardPage(state) if state.account_controllers else empty_accounts_view,
+            empty_accounts_view,
             col={"xs": 6, "md": 8, "lg": 9},
             expand=True,
         )
@@ -162,8 +158,32 @@ class EmailView(ft.Container):
         )
 
     def run_sync_threads(self):
+        cast(ft.Page, self.page).run_thread(self._init_accounts)
+
+    def _init_accounts(self):
+        from remail.utils.timer import Timer
         page = cast(ft.Page, self.page)
+        _logger.info("Loading accounts...")
+        t = Timer()
+        accounts = AccountController.all_client_accounts()
+        _logger.info("Accounts loaded: %d account(s). (%s)", len(accounts), t.elapsed())
+        if accounts:
+            self.accounts = accounts
+            for acc in accounts:
+                self._state.account_controllers[acc.get_email_address()] = acc
+                acc.set_callback_email_changes(
+                    lambda updates, acc_=acc: self._on_emails_synced(acc_.get_user(), updates)  # type:ignore
+                )
+                acc.set_callback_email_errors(
+                    lambda msg, acc_=acc: self._on_email_sync_error(acc_.get_user(), msg)  # type:ignore
+                )
+            _logger.info("Setting ACTIVE_USER, triggering observers...")
+            t2 = Timer()
+            self._state.set(MainAppStateProperties.ACTIVE_USER, accounts[0].get_user())
+            _logger.info("Observers done. (%s)", t2.elapsed())
+        _logger.info("Scheduling sync threads...")
         for acc in self.accounts:
             page.run_thread(
                 lambda acc_=acc: asyncio.run(acc_.start_listening())  # type: ignore[misc]
-            )  # running sync task in flets own async system
+            )
+        _logger.info("_init_accounts done. Total: (%s)", t.elapsed())

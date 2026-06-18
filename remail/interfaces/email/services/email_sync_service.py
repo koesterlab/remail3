@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING
 
@@ -16,6 +17,7 @@ from remail.models import (
     User,
 )
 from remail.utils.session_management import session
+from remail.utils.timer import Timer
 
 if TYPE_CHECKING:
     from remail.interfaces.email.services.email_parser import EmailParser
@@ -23,6 +25,8 @@ if TYPE_CHECKING:
 
 class EmailSyncService:
     """Service for syncing emails from IMAP server to the local database."""
+
+    _logger = logging.getLogger(__name__)
 
     def __init__(
         self,
@@ -75,7 +79,15 @@ class EmailSyncService:
 
         synced_count = 0
         skipped_count = 0
-        for uid, data in self.protocol.fetch_emails(new_only=new_only).items():
+        mails = self.protocol.fetch_emails(new_only=new_only)
+        total = len(mails)
+        if total == 0:
+            self._logger.info("No new emails to sync.")
+        else:
+            self._logger.info("Fetched %d email(s) from IMAP, processing...", total)
+        log_every = max(1, total // 10)
+        t = Timer()
+        for i, (uid, data) in enumerate(mails.items(), start=1):
             try:
                 changed, mail_id, conv_id = self.email_parser.parse_mail(data, uid)
                 if changed and conv_id is not None:
@@ -85,6 +97,12 @@ class EmailSyncService:
                     skipped_count += 1
             except Exception:  # nosec
                 pass
+            if total > 0 and i % log_every == 0 and i < total:
+                self._logger.info("  ... %d / %d processed (%s)", i, total, t.elapsed())
+        if total > 0:
+            self._logger.info(
+                "Sync complete: %d new/updated, %d unchanged. (%s)", synced_count, skipped_count, t.elapsed()
+            )
         self._save_connection_data()
 
     async def wait_for_mail_changes_async(self) -> AsyncGenerator[None, None]:

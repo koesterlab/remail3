@@ -2,11 +2,13 @@
 
 import logging
 
-from sqlmodel import Session, select
+from sqlmodel import Session, func, select
 
 from remail.controllers.dtos.user_dto import UserDTO
 from remail.enums import Protocol
 from remail.interfaces.email import EmailProtocol
+from remail.models.conversation import Conversation
+from remail.models.thread import Thread
 from remail.models.user import User
 from remail.utils.session_management import session
 
@@ -21,19 +23,13 @@ class UserService:
     @staticmethod
     @session
     def count_unread(user: User, session: Session) -> int:
-        """
-        Count unread conversations for a user.
-
-        Args:
-            user: User object
-
-        Returns:
-            Number of unread conversations (placeholder, implement later)
-        """
-        u = session.get(User, user.id)
-        if not u:
-            return 0
-        return len([t for c in u.conversations for t in c.threads if t.unread_count > 0])
+        stmt = (
+            select(func.count(Thread.id))
+            .join(Conversation)
+            .where(Conversation.user_id == user.id)
+            .where(Thread.unread_count > 0)
+        )
+        return session.exec(stmt).one() or 0
 
     @staticmethod
     def user_to_dto(user: User) -> UserDTO:
