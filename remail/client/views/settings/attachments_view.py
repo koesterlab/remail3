@@ -2,10 +2,10 @@ import datetime
 import inspect
 import mimetypes
 import os
-import subprocess
-import sys
+import webbrowser
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any, cast
 
 import flet as ft
 from sqlmodel import Session, select
@@ -69,16 +69,23 @@ class AttachmentsView(SettingsSubView):
                 return
             if self._open_attachment_file(path):
                 return
-            page = self.page
-            if page is not None:
-                uri = Path(path).resolve().as_uri()
+            page: Any = getattr(self, "page", None)
+            if page is None:
+                return
 
-                async def launch_url() -> None:
-                    result = page.launch_url(uri)
-                    if inspect.isawaitable(result):
-                        await result
+            launch_url = getattr(page, "launch_url", None)
+            run_task = getattr(page, "run_task", None)
+            if not callable(launch_url) or not callable(run_task):
+                return
 
-                page.run_task(launch_url)
+            uri = Path(path).resolve().as_uri()
+
+            async def launch_url_task() -> None:
+                result = launch_url(uri)
+                if inspect.isawaitable(result):
+                    await result
+
+            run_task(launch_url_task)
 
         def build_attachment_row(version: AttachmentVersion, version_number: int) -> ft.Control:
             is_image = version.file_type.startswith("image/")
@@ -186,22 +193,24 @@ class AttachmentsView(SettingsSubView):
                 ),
             )
 
-        group_controls = [(group, build_group(group)) for group in groups]
-        empty_results = ft.Container(
+        group_controls: list[tuple[AttachmentGroup, ft.Control]] = [
+            (group, build_group(group)) for group in groups
+        ]
+        empty_results: ft.Control = ft.Container(
             ft.Text("No attachments found", color=ft.Colors.ON_SURFACE_VARIANT),
             padding=12,
         )
 
         def apply_filter(_=None) -> None:
             term = (search.value or "").strip().casefold()
-            filtered = [
+            filtered: list[ft.Control] = [
                 control
                 for group, control in group_controls
                 if not term or term in group.search_text
             ]
 
             if filtered:
-                results.controls = filtered
+                results.controls = cast(list[ft.Control], filtered)
             else:
                 results.controls = [empty_results]
             try:
@@ -249,16 +258,14 @@ class AttachmentsView(SettingsSubView):
 
     @staticmethod
     def _open_attachment_file(path: str) -> bool:
-        if not os.path.exists(path):
+        attachment_path = Path(path).resolve()
+        if not attachment_path.exists():
             return False
         try:
             if os.name == "nt":
-                os.startfile(path)  # type: ignore[attr-defined]
-            elif sys.platform == "darwin":
-                subprocess.Popen(["open", path])
-            else:
-                subprocess.Popen(["xdg-open", path])
-            return True
+                os.startfile(str(attachment_path))  # type: ignore[attr-defined] # nosec B606
+                return True
+            return webbrowser.open(attachment_path.as_uri())
         except OSError:
             return False
 
