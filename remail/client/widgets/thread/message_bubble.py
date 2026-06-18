@@ -63,7 +63,15 @@ class MessageBubble(ft.Container):
         super().__init__(
             alignment=alignment,
             padding=ft.Padding.only(left=6, right=6, top=4, bottom=4),
-            content=bubble if is_me else ft.Row([create_contact_picture(message.sender), bubble]),
+            content=ft.Column(
+                [
+                    bubble_row,
+                    ft.Row([date_label], alignment=row_alignment),
+                ],
+                spacing=2,
+                tight=True,
+            ),
+            expand=True,
         )
 
     @staticmethod
