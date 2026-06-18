@@ -60,7 +60,9 @@ class ContactService:
             return {}
         existing = {
             c.email_address: c
-            for c in session.exec(select(Contact).where(col(Contact.email_address).in_(emails))).all()
+            for c in session.exec(
+                select(Contact).where(col(Contact.email_address).in_(emails))
+            ).all()
         }
         for email, name in emails_names:
             if not email or email in existing:
