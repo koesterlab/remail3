@@ -24,7 +24,7 @@ class MessageBubble(ft.Container):
         text_color = ft.Colors.ON_PRIMARY if is_me else ft.Colors.ON_SECONDARY
         bubble_content: list[ft.Control] = [
             ft.Text(
-                message.content.body,
+                message.content.body.strip(),
                 color=text_color,
                 size=15,
                 weight=ft.FontWeight.W_400,
@@ -52,7 +52,6 @@ class MessageBubble(ft.Container):
             alignment=alignment,
             padding=ft.Padding.only(left=6, right=6, top=4, bottom=4),
             content=bubble if is_me else ft.Row([create_contact_picture(message.sender), bubble]),
-            expand=True,
         )
 
     @staticmethod
