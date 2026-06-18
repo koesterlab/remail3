@@ -17,7 +17,10 @@ _logger = logging.getLogger(__name__)
 
 class ThreadList(ft.Container):
     def __init__(self, state: MainAppState) -> None:
-        super().__init__(expand=True, bgcolor=ft.Colors.TERTIARY)
+        super().__init__(
+            expand=True,
+            bgcolor=ft.Colors.SURFACE,
+        )
         self.state = state
         self.thread: ThreadDTO | None = None
         state.register_observer(
