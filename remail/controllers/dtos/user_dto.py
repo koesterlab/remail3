@@ -14,6 +14,8 @@ class UserDTO:
     unread_conversations: int
 
     def __eq__(self, other):
+        if not isinstance(other, UserDTO):
+            return False
         return self.id == other.id
 
     @staticmethod

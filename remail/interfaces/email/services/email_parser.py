@@ -92,13 +92,26 @@ class EmailParser:
         raw_email = message_from_bytes(mail_data[b"BODY[]"])
         flags = mail_data[b"FLAGS"]
 
-        # Extract sender info
-        [sender_contact] = self._extract_participant(raw_email, "From")
+        from_addrs = self._parse_addresses(raw_email, "From")
+        to_addrs = self._parse_addresses(raw_email, "To")
+        cc_addrs = self._parse_addresses(raw_email, "CC")
+        bcc_addrs = self._parse_addresses(raw_email, "BCC")
 
-        # Extract recipients
-        to_recipients = self._extract_participant(raw_email, "To")
-        cc_recipients = self._extract_participant(raw_email, "CC")
-        bcc_recipients = self._extract_participant(raw_email, "BCC")
+        contact_map = self.contact_service.get_or_create_contacts_batch(
+            from_addrs + to_addrs + cc_addrs + bcc_addrs
+        )
+
+        def to_contacts(addrs: list[tuple[str, str | None]]) -> list[Contact]:
+            return [contact_map[e] for e, _ in addrs if e in contact_map]
+
+        from_contacts = to_contacts(from_addrs)
+        to_recipients = to_contacts(to_addrs)
+        cc_recipients = to_contacts(cc_addrs)
+        bcc_recipients = to_contacts(bcc_addrs)
+
+        if not from_contacts:
+            raise ValueError("Email has no valid sender")
+        sender_contact = from_contacts[0]
 
         # Get all participant contacts (excluding the user themselves)
         all_participants = set([sender_contact] + to_recipients + cc_recipients + bcc_recipients)
@@ -148,17 +161,7 @@ class EmailParser:
 
         return db_email, conv_id
 
-    def _extract_participant(self, raw_email: Message, key: str) -> list[Contact]:
-        """
-        Extract email account information from raw email header.
-
-        Args:
-            raw_email: Raw email object
-            key: header key where to search for user(s)
-
-        Returns:
-            Contact objects from the database that was found or new created
-        """
+    def _parse_addresses(self, raw_email: Message, key: str) -> list[tuple[str, str | None]]:
         raw_values = raw_email.get_all(key, [])
         if not raw_values:
             return []
@@ -167,7 +170,7 @@ class EmailParser:
         if not addr:
             return []
 
-        participants: list[Contact] = []
+        result: list[tuple[str, str | None]] = []
         for name, email in addr:
             decoded_name = self.sanitize(self._decode_header_value(name).strip()) if name else ""
             decoded_email = self.sanitize(self._decode_header_value(email).strip()) if email else ""
@@ -176,11 +179,8 @@ class EmailParser:
                 decoded_name = ""
             if not decoded_email or "@" not in decoded_email:
                 continue
-            participants.append(
-                self.contact_service.get_or_create_contact(decoded_email, name=decoded_name or None)
-            )
-
-        return participants
+            result.append((decoded_email, decoded_name or None))
+        return result
 
     @staticmethod
     def _decode_header_value(value: str) -> str:
