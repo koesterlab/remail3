@@ -22,7 +22,8 @@ dependencies = [
     "llama-cpp-python>=0.3.16,<0.4",
     "llama-index-embeddings-huggingface>=0.6.1,<0.7",
     "llama-index-readers-database>=0.5.1,<0.6",
-    "faker>=30.8.2,<31"
+    "faker>=30.8.2,<31",
+    "sphinx-rtd-theme>=3.1.0,<4",
 ]
 
 [tool.pixi.workspace]
@@ -78,8 +79,13 @@ app = "python -m remail.client.index"
 # 11) Seed demo / UI test data
 seed-demo = "python -m remail.scripts.seed_demo_data"
 
+[tool.pixi.feature.dev.tasks]
+build-docs = "sphinx-apidoc -o docs/api remail && sphinx-build -b html . _build/docs/html"
+
 [tool.pixi.dependencies]
 pixi-pycharm = ">=0.0.10,<0.0.11"
+sphinx = ">=9.1.0,<10"
+myst-parser = ">=5.1.0,<6"
 
 [tool.ruff]
 line-length = 100
