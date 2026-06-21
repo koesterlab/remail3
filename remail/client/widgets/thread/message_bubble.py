@@ -28,6 +28,26 @@ class MessageBubble(ft.Container):
             italic=True,
         )
 
+           # --- Attachments ---
+        attachment_chips: list[ft.Control] = []
+        for att in message.content.attachments:
+            attachment_chips.append(
+                ft.Container(
+                    content=ft.Row(
+                        [
+                            ft.Icon(ft.Icons.ATTACHMENT, size=14),
+                            ft.Text(att.file_name, size=12, no_wrap=True, overflow=ft.TextOverflow.ELLIPSIS),
+                        ],
+                        spacing=4,
+                        tight=True,
+                    ),
+                    padding=ft.Padding.symmetric(horizontal=8, vertical=4),
+                    border_radius=ft.BorderRadius.all(8),
+                    border=ft.border.all(1, ft.Colors.OUTLINE_VARIANT),
+                    margin=ft.Margin.only(top=4),
+                )
+            )
+
         # --- Bubble body ---
         own_border = ft.BorderRadius.only(top_left=18, bottom_left=18, bottom_right=18)
         others_border = ft.BorderRadius.only(top_right=18, bottom_left=18, bottom_right=18)
@@ -41,6 +61,10 @@ class MessageBubble(ft.Container):
                 selectable=True,
             )
         ]
+
+        if attachment_chips:
+            bubble_content.append(ft.Column(attachment_chips, spacing=0, tight=True))
+
         bubble = ft.Container(
             margin=ft.Margin.only(left=20) if is_me else ft.Margin.only(right=20),
             padding=ft.Padding.symmetric(horizontal=14, vertical=10),
