@@ -79,12 +79,14 @@ def create_new_message_dialog(state: MainAppState) -> ft.Container:
                 conversation.contacts
             )
             thread = state.thread_controller.create_thread(conversation, thread.title)
-        elif thread.id < 0:
+        elif thread.thread_id < 0:
             thread = state.thread_controller.create_thread(conversation, thread.title)
-        state.thread_controller.send_message(thread, message, [])
+        state.thread_controller.send_message(thread.thread_id, message, [])
 
         # clear
         state.set(MainAppStateProperties.DRAFT, "")
+        input_field.value = ""
+        input_field.update()
 
     state.register_observer(MainAppStateProperties.DRAFT, on_draft_change)
     send_btn_bottom = ft.IconButton(

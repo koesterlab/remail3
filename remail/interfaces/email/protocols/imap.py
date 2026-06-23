@@ -116,7 +116,8 @@ class ImapProtocol(EmailProtocol):
                 if self.smtp_security == ConnectionSecurity.STARTTLS:
                     server.starttls()
             if self.smtp_method == AuthMethods.PASSWORD:
-                server.login(self.smtp_username, self.smtp_password)
+                smtp_password = self.smtp_password or self.imap_password
+                server.login(self.smtp_username, smtp_password)
             try:
                 return func(self, server, *args, **kwargs)
             finally:
@@ -253,6 +254,7 @@ class ImapProtocol(EmailProtocol):
                 "imap_method": self.imap_method.name,
                 "imap_security": self.imap_security.name,
                 "smtp_username": self.smtp_username,
+                "smtp_password": self.smtp_password,
                 "smtp_host": self.smtp_host,
                 "smtp_port": self.smtp_port,
                 "smtp_method": self.smtp_method.name if self.smtp_method else "password",
@@ -274,6 +276,7 @@ class ImapProtocol(EmailProtocol):
         self.imap_method = AuthMethods[data["imap_method"]]
         self.imap_security = ConnectionSecurity[data["imap_security"]]
         self.smtp_username = data["smtp_username"]
+        self.smtp_password = data.get("smtp_password")
         self.smtp_host = data["smtp_host"]
         self.smtp_port = data["smtp_port"]
         self.smtp_method = AuthMethods[data["smtp_method"]]
