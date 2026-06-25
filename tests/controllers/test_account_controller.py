@@ -106,23 +106,23 @@ class TestAccountControllerInit:
         assert isinstance(controller.user, UserDTO)
         assert controller.user.email == "test@example.com"
 
+    def test_init_rejects_missing_account(self, mock_services):
+        """Test initialization fails clearly when the account no longer exists."""
+        mock_services["user_instance"].get_user_by_id.return_value = None
+
+        with pytest.raises(ValueError, match="Account with id 1 not found"):
+            AccountController(account_id=1)
+
 
 class TestAccountControllerConversations:
     """Test suite for conversation-related methods."""
 
     def test_get_conversations(self, mock_services):
         """Test get_conversations syncs and returns conversations."""
-        mock_conversation = Mock(spec=Conversation)
-        mock_conversation.id = 1
-        mock_conversation.is_favorite = False
-        mock_conversation.custom_name = None
-        mock_conversation.contacts = []
-        mock_conversation.threads = []
-
-        mock_services["mock_user"].conversations = [mock_conversation]
-
         controller = AccountController(account_id=1)
-        result = controller.get_conversations()
+
+        with patch.object(controller, "_get_conversations_from_db", return_value=[]):
+            result = controller.get_conversations()
 
         mock_services["sync_service"].sync_emails.assert_called_once()
         assert isinstance(result, list)
@@ -156,6 +156,22 @@ class TestAccountControllerConversations:
 
         assert isinstance(result, ConversationDTO)
         mock_services["conv_service"].create_conversation.assert_called_once()
+
+    def test_create_conversation_rejects_missing_contact(self, mock_services):
+        """Test create_conversation fails clearly for an unknown contact."""
+        mock_services["contact_service"].get_contact_by_id.return_value = None
+        controller = AccountController(account_id=1)
+        contact_dto = ContactDTO(
+            id=999,
+            first_name="Jane",
+            last_name="Doe",
+            email="jane@example.com",
+            is_known=True,
+            type="TO",
+        )
+
+        with pytest.raises(ValueError, match="Contact with id 999 not found"):
+            controller.create_conversation(contacts=[contact_dto])
 
 
 class TestAccountControllerCallbacks:

@@ -5,6 +5,7 @@ import flet as ft
 from remail.client.state import MainAppState, MainAppStateProperties
 from remail.client.views.settings import (
     AppearanceView,
+    AttachmentsView,
     EmailAccountsView,
     LanguageView,
     NotificationsView,
@@ -50,6 +51,7 @@ class SettingsView(ft.Container):
                             )
                             for label, link_name in [
                                 ("Appearance", SettingsSubView.APPEARANCE),
+                                ("Attachments", SettingsSubView.ATTACHMENTS),
                                 ("Email Accounts", SettingsSubView.EMAIL_ACCOUNTS),
                                 ("Notification", SettingsSubView.NOTIFICATIONS),
                                 ("Language", SettingsSubView.LANGUAGE),
@@ -70,10 +72,11 @@ class SettingsView(ft.Container):
             if not view:
                 return
             sub_view.content = {
-                SettingsSubView.APPEARANCE: AppearanceView,
-                SettingsSubView.EMAIL_ACCOUNTS: EmailAccountsView,
-                SettingsSubView.LANGUAGE: LanguageView,
-                SettingsSubView.NOTIFICATIONS: NotificationsView,
+                SettingsSubView.APPEARANCE: lambda: AppearanceView(),
+                SettingsSubView.ATTACHMENTS: lambda: AttachmentsView(),
+                SettingsSubView.EMAIL_ACCOUNTS: lambda: EmailAccountsView(state),
+                SettingsSubView.LANGUAGE: lambda: LanguageView(),
+                SettingsSubView.NOTIFICATIONS: lambda: NotificationsView(),
             }[view]()
             try:
                 sub_view.update()
