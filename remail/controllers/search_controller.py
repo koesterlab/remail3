@@ -45,7 +45,7 @@ class SearchController:
             conn.execute(text(create_table_sql))
 
     def index_email(self, email_id: int, subject: str, body: str):
-        # Prüfen, ob für diese E-Mail schon Chunks existieren
+        # Check whether chunks already exist for this email
         check_sql = "SELECT COUNT(*) FROM email_chunks WHERE email_id = :email_id"
 
         with self.engine.begin() as conn:
@@ -55,7 +55,7 @@ class SearchController:
 
         chunks = self.chunker.chunk_text(body)
 
-        # Fallback: Wenn der Body leer ist (z.B. nur ein Betreff existiert)
+        # Fallback: Use the subject if the body is empty
         if not chunks and subject:
             chunks = [subject]
 
@@ -71,12 +71,15 @@ class SearchController:
                              VALUES (:email_id, :chunk_index, :content, :embedding) \
                              """
 
-                conn.execute(text(insert_sql), {
-                    "email_id": email_id,
-                    "chunk_index": index,
-                    "content": enriched_content,
-                    "embedding": vector_blob
-                })
+                conn.execute(
+                    text(insert_sql),
+                    {
+                        "email_id": email_id,
+                        "chunk_index": index,
+                        "content": enriched_content,
+                        "embedding": vector_blob,
+                    },
+                )
 
     def search(self, query: str):
         if query == "":
@@ -136,8 +139,8 @@ class SearchController:
                     subject=subject,
                     body=body,
                 )
-                # Ein winziger Puffer (50 Millisekunden), damit der IMAP-Sync
-                # im Haupt-Thread zwischendurch auch in die Datenbank schreiben darf.
+                # A tiny buffer (50 milliseconds) so the IMAP sync
+                # in the main thread can occasionally write to the database.
                 time.sleep(0.05)
 
             except sqlite_vec.OperationalError:

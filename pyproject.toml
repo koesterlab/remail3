@@ -81,6 +81,7 @@ seed-demo = "python -m remail.scripts.seed_demo_data"
 [tool.pixi.dependencies]
 pixi-pycharm = ">=0.0.10,<0.0.11"
 python = "3.12.*"
+cffi = ">=2.0.0,<3"
 
 [tool.ruff]
 line-length = 100

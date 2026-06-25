@@ -131,9 +131,8 @@ class ConversationSelection(ft.Container):
 
         self.inner_content.controls = element_list
         self.update()
-        
-        _logger.info("UI render done: %d widget(s) shown. (%s)", len(element_list), t.elapsed())
 
+        _logger.info("UI render done: %d widget(s) shown. (%s)", len(element_list), t.elapsed())
 
     def create_list_item(self, elem: Action | ConversationDTO):
         if isinstance(elem, Action):

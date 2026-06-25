@@ -8,8 +8,6 @@ from typing import cast
 from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
-from sqlmodel import Session
-
 from remail import errors as ee
 from remail.controllers.dtos.conversations import ContactDTO, ConversationDTO, ThreadPreviewDTO
 from remail.controllers.dtos.user_dto import UserDTO
@@ -23,7 +21,7 @@ from remail.interfaces.email.services import (
 )
 from remail.interfaces.email.services.contact_service import ContactService
 from remail.interfaces.email.services.user_service import UserService
-from remail.models import Contact, Conversation, Thread, User, Email
+from remail.models import Contact, Conversation, Email, Thread, User
 from remail.utils.session_management import session
 from remail.utils.timer import Timer
 
@@ -135,7 +133,6 @@ class AccountController:
     async def start_listening(self) -> None:
         """Starts background task to wait for email changes in imap idle mode. Calls callback if something changes"""
         try:
-
             self._logger.info("[%s] Showing cached emails from DB.", self.user.email)
             self.callback(self._get_conversations_from_db())
 

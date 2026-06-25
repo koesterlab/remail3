@@ -31,8 +31,6 @@ class EmailParser:
         self._logger = logging.getLogger(__name__)
         self.contact_service = ContactService()
         self.conversation_service = ConversationService()
-
-        self.thread_service = ThreadService()
         self.search_controller = SearchController()
 
         self.embedding_executor = ThreadPoolExecutor(
