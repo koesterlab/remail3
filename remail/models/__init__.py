@@ -3,6 +3,7 @@ from .contact import Contact
 from .conversation import Conversation
 from .conversation_contact import ConversationContact
 from .email import Email
+from .email_chunk import EmailChunk
 from .email_reception import EmailReception
 from .settings import Settings
 from .thread import Thread
