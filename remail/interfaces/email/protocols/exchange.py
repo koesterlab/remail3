@@ -6,6 +6,7 @@ from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
 from email import message_from_bytes
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from exchangelib import (
     DELEGATE,
@@ -25,18 +26,23 @@ from remail.models.email import Email  # angenommen, dein Email-Datentyp
 class ExchangeProtocol(EmailProtocol):
     """Exchange email protocol implementation using exchangelib."""
 
-    def __init__(self, username: str, password: str, server: str):
-        self.username = username
-        self.password = password
-        self.server = server
-        self.tz = EWSTimeZone.timezone("UTC")
-        self.last_fetch = datetime.min
-
-        creds = Credentials(username=username, password=password)
-        config = Configuration(server=server, credentials=creds)
-        self.account = Account(
-            primary_smtp_address=username, config=config, autodiscover=False, access_type=DELEGATE
-        )
+    def __init__(self, username="", password="", server="", serialized="{}"):
+        if serialized != "{}":
+            self.deserialize(serialized)
+        else:
+            self.username = username
+            self.password = password
+            self.server = server
+            self.tz = ZoneInfo("UTC")
+            self.last_fetch = datetime.min
+            creds = Credentials(username=username, password=password)
+            config = Configuration(server=server, credentials=creds)
+            self.account = Account(
+                primary_smtp_address=username,
+                config=config,
+                autodiscover=False,
+                access_type=DELEGATE,
+            )
 
     # ------------------------
     # Interface Methods
@@ -48,28 +54,20 @@ class ExchangeProtocol(EmailProtocol):
         except Exception:
             return False
 
-    def fetch_emails(self, new_only=True) -> dict[Any, Any]:
-        """
-        Retrieve emails since `since_date`.
-        Returns list of (item_id, email.message.Message)
-        """
-        if new_only is None:
-            since_date = self.last_fetch
-            ex_since = EWSDateTime.from_datetime(since_date).astimezone(self.tz)
-            items = self.account.inbox.filter(datetime_received__gte=ex_since).order_by(
+    def fetch_emails(self, new_only: bool = True) -> dict[Any, Any]:
+        if new_only and self.last_fetch != datetime.min:
+            items = self.account.inbox.filter(datetime_received__gte=self.last_fetch).order_by(
                 "datetime_received"
             )
         else:
-            items = self.account.inbox.order_by("datetime_received")
-        # Convert to Exchange DateTime
-
+            items = self.account.inbox.all()
         messages: dict[Any, Any] = {}
         for item in items:
-            # raw MIME message
             raw_bytes = item.mime_content
-            msg = message_from_bytes(raw_bytes)
-            messages[str(item.id)] = msg
-
+            messages[str(item.id)] = {
+                b"BODY[]": raw_bytes,
+                b"FLAGS": (b"\\Seen",) if item.is_read else (),
+            }
         self.last_fetch = datetime.now(tz=UTC)
         return messages
 
@@ -100,12 +98,17 @@ class ExchangeProtocol(EmailProtocol):
             await asyncio.sleep(30)  # check alle 30 Sekunden
 
     def serialize(self) -> str:
-        return json.dumps({"username": self.username, "server": self.server})
+        return json.dumps(
+            {"username": self.username, "password": self.password, "server": self.server}
+        )
 
     def deserialize(self, string: str) -> None:
         data = json.loads(string)
         self.username = data["username"]
+        self.password = data["password"]
         self.server = data["server"]
+        self.tz = ZoneInfo("UTC")
+        self.last_fetch = datetime.min
         creds = Credentials(username=self.username, password=self.password)
         config = Configuration(server=self.server, credentials=creds)
         self.account = Account(

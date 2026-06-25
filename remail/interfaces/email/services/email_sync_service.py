@@ -59,6 +59,15 @@ class EmailSyncService:
                 raise RuntimeError(
                     f"User (id={user.id}) has invalid protocol string: {str(e)}"
                 ) from e
+        elif user.protocol == Protocol.EXCHANGE:
+            try:
+                from remail.interfaces.email.protocols.exchange import ExchangeProtocol
+
+                return ExchangeProtocol(serialized=user.connection)
+            except Exception as e:
+                raise RuntimeError(
+                    f"User (id={user.id}) has invalid protocol string: {str(e)}"
+                ) from e
         else:
             raise NotImplementedError("Fetching with exchange accounts not implemented")
 
