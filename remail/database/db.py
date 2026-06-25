@@ -18,7 +18,6 @@ database_url = f"sqlite:///{DB_PATH}"
 # Create an engine (with multi-threading support for Flet)
 engine = create_engine(database_url, echo=False, connect_args={"check_same_thread": False})
 
-
 # Set up the event listener
 @event.listens_for(engine, "connect")
 def load_sqlite_vec_extension(dbapi_conn, connection_record):

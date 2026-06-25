@@ -281,7 +281,7 @@ def test_account_controller_smoke(monkeypatch):
         "remail.controllers.account_controller.EmailSyncService",
         lambda user_id: Mock(
             sync_emails=Mock(),
-            check_for_changed_threads=lambda: [thread],
+            get_changed_conversations=lambda: [conversation],
             wait_for_mail_changes_async=AsyncMock(),
         ),
     )

@@ -37,11 +37,11 @@ class SettingsController:
 
         settings_obj = self.service.load_settings()
 
-        settings_obj.theme_mode = str(settings.theme_mode)
-        settings_obj.font_size = str(settings.font_size)
-        settings_obj.font_family = str(settings.font_family)
-        settings_obj.language = str(settings.language)
-        settings_obj.timezone = str(settings.timezone)
+        settings_obj.theme_mode = settings.theme_mode.value
+        settings_obj.font_size = settings.font_size.value
+        settings_obj.font_family = settings.font_family.value
+        settings_obj.language = settings.language.value
+        settings_obj.timezone = settings.timezone.value
         settings_obj.desktop_notifications = settings.desktop_notifications
         settings_obj.email_notifications = settings.email_notifications
         settings_obj.quiet_hours = settings.quiet_hours
