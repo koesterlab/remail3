@@ -11,8 +11,8 @@ from remail.enums import Protocol
 from remail.interfaces.email import EmailProtocol, ImapProtocol
 from remail.interfaces.email.services import EmailParser
 from remail.models import (
+    Conversation,
     Email,
-    Thread,
     User,
 )
 from remail.utils.session_management import session
@@ -35,7 +35,7 @@ class EmailSyncService:
             user_id: Database user id (preferred if available)
         """
 
-        self.changed_mails: list[int] = []
+        self.changed_conversation_ids: list[int] = []
         self.user_id = user_id
         self.email_parser = EmailParser(user_id)
         self.protocol = self._create_protocol()
@@ -77,9 +77,9 @@ class EmailSyncService:
         skipped_count = 0
         for uid, data in self.protocol.fetch_emails(new_only=new_only).items():
             try:
-                changed, mail = self.email_parser.parse_mail(data, uid)
-                if changed:
-                    self.changed_mails.append(mail)
+                changed, mail_id, conv_id = self.email_parser.parse_mail(data, uid)
+                if changed and conv_id is not None:
+                    self.changed_conversation_ids.append(conv_id)
                     synced_count += 1
                 else:
                     skipped_count += 1
@@ -87,15 +87,17 @@ class EmailSyncService:
                 pass
         self._save_connection_data()
 
-    @session
-    async def wait_for_mail_changes_async(self, session: Session) -> AsyncGenerator[None, None]:
+    async def wait_for_mail_changes_async(self) -> AsyncGenerator[None, None]:
         async for mails in self.protocol.wait_for_changes():
             changed = False
             for uid, data in mails.items():
-                changed_mail, mail = self.email_parser.parse_mail(data, uid)
-                if changed_mail:
-                    changed = True
-                    self.changed_mails.append(mail)
+                try:
+                    changed_mail, mail_id, conv_id = self.email_parser.parse_mail(data, uid)
+                    if changed_mail and conv_id is not None:
+                        changed = True
+                        self.changed_conversation_ids.append(conv_id)
+                except Exception:  # nosec
+                    pass
             if changed:
                 yield None
 
@@ -123,16 +125,11 @@ class EmailSyncService:
         return session.exec(select(Email).where(Email.message_id == message_id)).first() is not None
 
     @session
-    def check_for_changed_threads(self, session: Session) -> list[Thread]:
-        if self.changed_mails == []:
+    def get_changed_conversations(self, session: Session) -> list[Conversation]:
+        if not self.changed_conversation_ids:
             return []
-
         result = session.exec(
-            select(Thread)
-            .distinct()
-            .join(Email, onclause=(col(Thread.id) == col(Email.thread_id)))
-            .where(col(Email.imap_uid).in_(self.changed_mails))
+            select(Conversation).where(col(Conversation.id).in_(self.changed_conversation_ids))
         ).all()
-
-        self.changed_mails = []
+        self.changed_conversation_ids = []
         return list(result)

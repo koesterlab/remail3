@@ -1,5 +1,6 @@
 import flet as ft
 
+from remail.client.state import MainAppState, MainAppStateProperties
 from remail.client.views.settings.settings_sub_view import SettingsSubView
 from remail.controllers.account_controller import AccountController
 from remail.controllers.dtos import SettingsDTO
@@ -9,6 +10,10 @@ from remail.enums import AuthMethods, ConnectionSecurity, Protocol
 
 
 class EmailAccountsView(SettingsSubView):
+    def __init__(self, state: MainAppState | None = None):
+        self._app_state = state
+        super().__init__()
+
     def create_page(self, settings: SettingsDTO) -> ft.Container:
         """Create the email accounts settings view."""
 
@@ -185,6 +190,11 @@ class EmailAccountsView(SettingsSubView):
                         conn,
                         Protocol.IMAP,
                     )
+                    if self._app_state is not None:
+                        self._app_state.set(
+                            MainAppStateProperties.ACCOUNTS_CHANGED,
+                            email_input.value.strip().lower(),
+                        )
                     show_snackbar("Account added", ft.Colors.PRIMARY_CONTAINER)
                 else:
                     show_snackbar("Connection failed", ft.Colors.ERROR)

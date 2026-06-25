@@ -160,7 +160,7 @@ class ImapProtocol(EmailProtocol):
                 criteria = ["ALL"]
             uids = client.search(criteria)
             self.fetch_since = int(datetime.datetime.now().timestamp())
-            raw = client.fetch(uids, self.fields_to_fetch) if uids else []
+            raw = client.fetch(uids, self.fields_to_fetch) if uids else {}
             return raw  # type:ignore
 
     @smtp
@@ -232,8 +232,6 @@ class ImapProtocol(EmailProtocol):
                             if updated_mails:
                                 yield updated_mails
                         await asyncio.sleep(1)
-                except Exception as e:
-                    print(e)
                 finally:
                     client.idle_done()
         else:  # fetch periodically
