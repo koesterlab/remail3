@@ -12,7 +12,7 @@ MemStorage.txt
 
 # Pixi
 .pixi/
-
+database_backup_before_ollama.db
 # Testing
 .pytest_cache/
 test-results.xml
