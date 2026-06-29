@@ -73,3 +73,38 @@ class LocalModelsView(ft.Container):
 
         if update:
             self.update()
+    def download_model(self, e):
+        model_name = self.model_name_input.value.strip()
+
+        if not model_name:
+            self.status_text.value = "Please enter a model name first."
+            self.update()
+            return
+
+        self.status_text.value = f"Downloading model '{model_name}'..."
+        self.update()
+
+        try:
+            for event in self.ollama_service.pull_model(model_name):
+                status = event.get("status", "Downloading model...")
+
+                completed = event.get("completed")
+                total = event.get("total")
+
+                if completed and total:
+                    percentage = round((completed / total) * 100, 1)
+                    self.status_text.value = (
+                        f"{status} ({percentage}%)"
+                    )
+                else:
+                    self.status_text.value = status
+
+                self.update()
+
+            self.status_text.value = f"Model '{model_name}' downloaded successfully."
+            self.refresh_models(update=False)
+            self.update()
+
+        except Exception as exc:
+            self.status_text.value = f"Failed to download model: {exc}"
+            self.update()

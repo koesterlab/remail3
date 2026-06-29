@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterator
 from dataclasses import dataclass
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -56,3 +57,25 @@ class OllamaService:
             for model in models
             if model.get("name")
         ]
+    def pull_model(self, model_name: str) -> Iterator[dict]:
+        """Download a model through the local Ollama server."""
+        payload = json.dumps({"model": model_name}).encode("utf-8")
+
+        request = Request(
+            url=f"{self.base_url}/api/pull",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+
+        with urlopen(request, timeout=None) as response:
+            for line in response:
+                if not line:
+                    continue
+
+                decoded_line = line.decode("utf-8").strip()
+
+                if not decoded_line:
+                    continue
+
+                yield json.loads(decoded_line)
