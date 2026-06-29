@@ -19,3 +19,5 @@ class Settings(SQLModel, table=True):
     quiet_hours: bool = Field(default=False)
     llm_url: str = Field(default="https://chat-ai.academiccloud.de/v1")
     llm_key: str = Field(default="##api-key##")
+    ollama_base_url: str = "http://localhost:11434"
+    selected_local_model: str | None = None

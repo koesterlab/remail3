@@ -3,6 +3,7 @@
 import flet as ft
 
 from remail.interfaces.llm import OllamaService
+from remail.controllers.settings_controller import SettingsController
 
 
 class LocalModelsView(ft.Container):
@@ -10,6 +11,9 @@ class LocalModelsView(ft.Container):
         super().__init__()
 
         self.ollama_service = OllamaService()
+        self.settings_controller = SettingsController()
+        self.settings = self.settings_controller.get_settings()
+        self.ollama_service = OllamaService(self.settings.ollama_base_url)
 
         self.status_text = ft.Text()
         self.models_dropdown = ft.Dropdown(
@@ -17,7 +21,6 @@ class LocalModelsView(ft.Container):
             options=[],
             width=400,
         )
-
         self.content = ft.Column(
             controls=[
                 ft.Text(
@@ -35,6 +38,10 @@ class LocalModelsView(ft.Container):
                         ft.ElevatedButton(
                             content=ft.Text("Refresh models"),
                             on_click=self.refresh_models,
+                        ),
+                        ft.ElevatedButton(
+                           content=ft.Text("Save selected model"),
+                           on_click=self.save_selected_model,
                         ),
                     ],
                 ),
@@ -65,8 +72,15 @@ class LocalModelsView(ft.Container):
         ]
 
         if models:
-            self.models_dropdown.value = models[0].name
+            model_names = [model.name for model in models]
+
+            if self.settings.selected_local_model in model_names:
+                self.models_dropdown.value = self.settings.selected_local_model
+            else:
+                self.models_dropdown.value = model_names[0]
+
             self.status_text.value = f"Found {len(models)} local model(s)."
+
         else:
             self.models_dropdown.value = None
             self.status_text.value = "Ollama is running, but no local models were found."
@@ -108,3 +122,16 @@ class LocalModelsView(ft.Container):
         except Exception as exc:
             self.status_text.value = f"Failed to download model: {exc}"
             self.update()
+
+
+    def save_selected_model(self, e=None):
+        selected_model = self.models_dropdown.value
+
+        if not selected_model:
+            return
+
+        self.settings.selected_local_model = selected_model
+        self.settings_controller.update_settings(self.settings)
+
+        self.status_text.value = f"Selected local model saved: {selected_model}"
+        self.update()
