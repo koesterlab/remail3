@@ -15,6 +15,11 @@ class LocalModelsView(ft.Container):
         self.ollama_service = OllamaService(self.settings.ollama_base_url)
 
         self.status_text = ft.Text()
+        self.ollama_base_url_input=ft.TextField(
+            label="Ollama base URL",
+            value=self.settings.ollama_base_url,
+            width=400,
+        )
 
         self.models_dropdown = ft.Dropdown(
             label="Installed local models",
@@ -49,6 +54,15 @@ class LocalModelsView(ft.Container):
                 ),
                 ft.Text(
                     "Manage local Ollama models that can be used by the app.",
+                ),
+                self.ollama_base_url_input,
+                ft.Row(
+                    controls=[
+                       ft.ElevatedButton(
+                            content=ft.Text("Save Ollama URL"),
+                            on_click=self.save_ollama_base_url,
+                        ),
+                    ],
                 ),
                 self.status_text,
                 self.models_dropdown,
@@ -227,4 +241,21 @@ class LocalModelsView(ft.Container):
 
         self.models_dropdown.value = None
         self.status_text.value = "Local model selection cleared. The default LLM will be used."
+        self.update()
+
+    def save_ollama_base_url(self, e=None):
+        ollama_base_url = self.ollama_base_url_input.value.strip()
+
+        if not ollama_base_url:
+           self.status_text.value = "Please enter an Ollama base URL."
+           self.update()
+           return
+
+        self.settings.ollama_base_url = ollama_base_url
+        self.settings_controller.update_settings(self.settings)
+
+        self.ollama_service = OllamaService(ollama_base_url)
+
+        self.status_text.value = f"Ollama base URL saved: {ollama_base_url}"
+        self.refresh_models(update=False)
         self.update()
