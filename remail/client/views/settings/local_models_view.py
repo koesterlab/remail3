@@ -62,6 +62,10 @@ class LocalModelsView(ft.Container):
                             content=ft.Text("Save selected model"),
                             on_click=self.save_selected_model,
                         ),
+                         ft.ElevatedButton(
+                            content=ft.Text("Use cloud/default LLM"),
+                            on_click=self.clear_selected_model,
+                        ),
                     ],
                 ),
                 ft.Divider(),
@@ -215,4 +219,12 @@ class LocalModelsView(ft.Container):
         except Exception as exc:
             self.status_text.value = f"Failed to generate response: {exc}"
 
+        self.update()
+
+    def clear_selected_model(self, e=None):
+        self.settings.selected_local_model = None
+        self.settings_controller.update_settings(self.settings)
+
+        self.models_dropdown.value = None
+        self.status_text.value = "Local model selection cleared. The default LLM will be used."
         self.update()
