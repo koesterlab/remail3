@@ -23,7 +23,7 @@ htmlcov/
 test.db
 test.db-wal
 test.db-shm
-
+remail/database/__init__.py
 # IDE
 .vscode/
 .idea/
