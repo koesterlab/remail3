@@ -16,7 +16,7 @@ from remail.interfaces.llm.response import LLMCompletionResponse
 class LLMService(LLMBase):
     """LLM service implementation using OpenAI client."""
 
-    def __init__(self, base_url: str, api_key: str, model: str | None = None):
+    def __init__(self, base_url: str | None=None, api_key: str | None=None, model: str | None = None):
         """Initialize LLM service."""
 
         self.api_key = api_key

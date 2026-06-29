@@ -2,6 +2,7 @@ from remail.controllers.dtos import LLMResponseDTO
 from remail.interfaces.llm.dto import LLMMessage
 from remail.interfaces.llm.enums.llm_message_role import LLMMessageRole
 from remail.interfaces.llm.llm_service import LLMService
+from remail.controllers.settings_controller import SettingsController
 
 
 class LLMController:
@@ -10,7 +11,18 @@ class LLMController:
     def __init__(self, base_url: str, api_key: str) -> None:
         """Initialize LLM controller."""
 
-        self.service = LLMService(base_url, api_key)
+        settings = SettingsController().get_settings()
+
+        if settings.selected_local_model:
+            ollama_base_url = settings.ollama_base_url.rstrip("/")
+            self.service = LLMService(
+                base_url=f"{ollama_base_url}/v1",
+                api_key="ollama",
+                model=settings.selected_local_model,
+            )
+        else:
+            self.service = LLMService(base_url, api_key)
+        
         self.conversation_history: list[LLMMessage] = []
 
         system_msg = LLMMessage(
