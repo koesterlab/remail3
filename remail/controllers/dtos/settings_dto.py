@@ -35,8 +35,8 @@ class SettingsDTO:
     quiet_hours: bool
     llm_url: str
     llm_key: str
-    ollama_base_url: str
-    selected_local_model: str | None
+    ollama_base_url: str = "http://localhost:11434"
+    selected_local_model: str | None=None
 
     @classmethod
     @session
