@@ -117,7 +117,10 @@ class LocalModelsView(ft.Container):
             spacing=16,
         )
 
-        self.refresh_models(update=False)
+        #self.refresh_models(update=False)
+        self.status_text.value = (
+             "Click 'Refresh models' to check the local Ollama server and load models."
+        )
 
     def refresh_models(self, e=None, update: bool = True):
         try:
