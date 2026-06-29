@@ -8,6 +8,7 @@ from remail.client.views.settings import (
     AttachmentsView,
     EmailAccountsView,
     LanguageView,
+    LocalModelsView,
     NotificationsView,
 )
 from remail.enums import SettingsSubView
@@ -55,7 +56,8 @@ class SettingsView(ft.Container):
                                 ("Email Accounts", SettingsSubView.EMAIL_ACCOUNTS),
                                 ("Notification", SettingsSubView.NOTIFICATIONS),
                                 ("Language", SettingsSubView.LANGUAGE),
-                            ]
+                                ("Local Models", SettingsSubView.LOCAL_MODELS),
+                        ]
                         ],
                         spacing=16,
                     ),
@@ -76,6 +78,7 @@ class SettingsView(ft.Container):
                 SettingsSubView.ATTACHMENTS: lambda: AttachmentsView(),
                 SettingsSubView.EMAIL_ACCOUNTS: lambda: EmailAccountsView(state),
                 SettingsSubView.LANGUAGE: lambda: LanguageView(),
+                SettingsSubView.LOCAL_MODELS: lambda: LocalModelsView(),
                 SettingsSubView.NOTIFICATIONS: lambda: NotificationsView(),
             }[view]()
             try:
@@ -94,3 +97,4 @@ class SettingsView(ft.Container):
             ],
             expand=True,
         )
+
