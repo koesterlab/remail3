@@ -16,12 +16,12 @@ from remail.interfaces.llm.response import LLMCompletionResponse
 class LLMService(LLMBase):
     """LLM service implementation using OpenAI client."""
 
-    def __init__(self, base_url: str, api_key: str):
+    def __init__(self, base_url: str, api_key: str, model: str | None = None):
         """Initialize LLM service."""
 
         self.api_key = api_key
         self.base_url = base_url
-        self.model = LLMModel.META_LLAMA_3_1_8B_INSTRUCT
+        self.model = model or LLMModel.META_LLAMA_3_1_8B_INSTRUCT
         self.default_max_tokens = 150
         self.default_temperature = 0.7
         self.default_top_p = 1.0
@@ -90,7 +90,7 @@ class LLMService(LLMBase):
 
         try:
             response = self.client.chat.completions.create(
-                model=self.model.value,
+                model=self.model,
                 messages=[msg.to_dict() for msg in messages],  # type:ignore
                 max_tokens=max_tokens or self.default_max_tokens,
                 temperature=temperature or self.default_temperature,
