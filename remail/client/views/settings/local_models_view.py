@@ -2,25 +2,44 @@
 
 import flet as ft
 
-from remail.interfaces.llm import OllamaService
 from remail.controllers.settings_controller import SettingsController
+from remail.interfaces.llm import OllamaService
 
 
 class LocalModelsView(ft.Container):
     def __init__(self):
         super().__init__()
 
-        self.ollama_service = OllamaService()
         self.settings_controller = SettingsController()
         self.settings = self.settings_controller.get_settings()
         self.ollama_service = OllamaService(self.settings.ollama_base_url)
 
         self.status_text = ft.Text()
+
         self.models_dropdown = ft.Dropdown(
             label="Installed local models",
             options=[],
             width=400,
         )
+
+        self.model_name_input = ft.TextField(
+            label="Model to download",
+            hint_text="e.g. gemma3:1b",
+            width=400,
+        )
+
+        self.test_prompt_input = ft.TextField(
+            label="Test prompt",
+            hint_text="e.g. Write a short hello message.",
+            width=600,
+            multiline=True,
+        )
+
+        self.test_response_text = ft.Text(
+            value="",
+            selectable=True,
+        )
+
         self.content = ft.Column(
             controls=[
                 ft.Text(
@@ -40,11 +59,42 @@ class LocalModelsView(ft.Container):
                             on_click=self.refresh_models,
                         ),
                         ft.ElevatedButton(
-                           content=ft.Text("Save selected model"),
-                           on_click=self.save_selected_model,
+                            content=ft.Text("Save selected model"),
+                            on_click=self.save_selected_model,
                         ),
                     ],
                 ),
+                ft.Divider(),
+                ft.Text(
+                    "Download model",
+                    size=16,
+                    weight=ft.FontWeight.BOLD,
+                ),
+                self.model_name_input,
+                ft.Row(
+                    controls=[
+                        ft.ElevatedButton(
+                            content=ft.Text("Download model"),
+                            on_click=self.download_model,
+                        ),
+                    ],
+                ),
+                ft.Divider(),
+                ft.Text(
+                    "Test selected model",
+                    size=16,
+                    weight=ft.FontWeight.BOLD,
+                ),
+                self.test_prompt_input,
+                ft.Row(
+                    controls=[
+                        ft.ElevatedButton(
+                            content=ft.Text("Run test prompt"),
+                            on_click=self.test_selected_model,
+                        ),
+                    ],
+                ),
+                self.test_response_text,
             ],
             spacing=16,
         )
@@ -80,14 +130,28 @@ class LocalModelsView(ft.Container):
                 self.models_dropdown.value = model_names[0]
 
             self.status_text.value = f"Found {len(models)} local model(s)."
-
         else:
             self.models_dropdown.value = None
             self.status_text.value = "Ollama is running, but no local models were found."
 
         if update:
             self.update()
-    def download_model(self, e):
+
+    def save_selected_model(self, e=None):
+        selected_model = self.models_dropdown.value
+
+        if not selected_model:
+            self.status_text.value = "Please select a local model first."
+            self.update()
+            return
+
+        self.settings.selected_local_model = selected_model
+        self.settings_controller.update_settings(self.settings)
+
+        self.status_text.value = f"Selected local model saved: {selected_model}"
+        self.update()
+
+    def download_model(self, e=None):
         model_name = self.model_name_input.value.strip()
 
         if not model_name:
@@ -107,9 +171,7 @@ class LocalModelsView(ft.Container):
 
                 if completed and total:
                     percentage = round((completed / total) * 100, 1)
-                    self.status_text.value = (
-                        f"{status} ({percentage}%)"
-                    )
+                    self.status_text.value = f"{status} ({percentage}%)"
                 else:
                     self.status_text.value = status
 
@@ -123,15 +185,34 @@ class LocalModelsView(ft.Container):
             self.status_text.value = f"Failed to download model: {exc}"
             self.update()
 
-
-    def save_selected_model(self, e=None):
-        selected_model = self.models_dropdown.value
+    def test_selected_model(self, e=None):
+        selected_model = self.models_dropdown.value or self.settings.selected_local_model
+        prompt = self.test_prompt_input.value.strip()
 
         if not selected_model:
+            self.status_text.value = "Please select and save a local model first."
+            self.update()
             return
 
-        self.settings.selected_local_model = selected_model
-        self.settings_controller.update_settings(self.settings)
+        if not prompt:
+            self.status_text.value = "Please enter a test prompt first."
+            self.update()
+            return
 
-        self.status_text.value = f"Selected local model saved: {selected_model}"
+        self.status_text.value = f"Generating response with '{selected_model}'..."
+        self.test_response_text.value = ""
+        self.update()
+
+        try:
+            response = self.ollama_service.generate_response(
+                model_name=selected_model,
+                prompt=prompt,
+            )
+
+            self.status_text.value = "Test prompt completed successfully."
+            self.test_response_text.value = response
+
+        except Exception as exc:
+            self.status_text.value = f"Failed to generate response: {exc}"
+
         self.update()

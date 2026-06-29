@@ -79,3 +79,26 @@ class OllamaService:
                     continue
 
                 yield json.loads(decoded_line)
+
+    def generate_response(self, model_name: str, prompt: str) -> str:
+        """Generate a response with a local Ollama model."""
+        payload = json.dumps(
+            {
+                "model": model_name,
+                "prompt": prompt,
+                "stream": False,
+            },
+        ).encode("utf-8")
+
+        request = Request(
+            url=f"{self.base_url}/api/generate",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+
+        with urlopen(request, timeout=None) as response:
+            response_body = response.read().decode("utf-8")
+
+        data = json.loads(response_body)
+        return data.get("response", "")
