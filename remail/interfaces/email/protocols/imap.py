@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import email as py_email
 import smtplib
 from collections.abc import AsyncGenerator, Sequence
 from email.message import EmailMessage
@@ -8,10 +9,17 @@ from functools import wraps
 from typing import Any
 
 from imapclient import IMAPClient
+from imapclient.exceptions import LoginError
 
+from remail import errors as ee
 from remail.enums.auth_methods import AuthMethods
 from remail.enums.connection_security import ConnectionSecurity
+from remail.errors import email_error_handler
 from remail.interfaces.email import EmailProtocol
+from remail.interfaces.email.services.email_parser import EmailParser
+from remail.interfaces.email.services.folder_service import FolderService
+from remail.interfaces.email.services.message_builder import MessageBuilder
+from remail.interfaces.email.services.smtp_sender import SmtpSender
 
 
 class ImapProtocol(EmailProtocol):
@@ -37,10 +45,43 @@ class ImapProtocol(EmailProtocol):
             "FLAGS",  # flags
             "INTERNALDATE",  # server-date
         ),
+        username: str | None = None,
+        password: str | None = None,
+        host: str | None = None,
     ):
         self.fields_to_fetch = list(fields_to_fetch)
         if serialized != "{}":
             self.deserialize(serialized)
+            self.user_username = self.imap_username
+            self.user_password = self.imap_password
+            self._logged_in = True
+            self._smtp = SmtpSender(
+                self.smtp_host,
+                self.smtp_username or self.imap_username,
+                self.smtp_password or self.imap_password,
+            )
+        elif username and password and host:
+            self.imap_username = username
+            self.imap_password = password
+            self.imap_host = host
+            self.imap_port = 993
+            self.imap_method = AuthMethods.PASSWORD
+            self.imap_security = ConnectionSecurity.SSL_TLS
+            self.smtp_username = username
+            self.smtp_password = password
+            self.smtp_host = host
+            self.smtp_port = 587
+            self.smtp_method = AuthMethods.PASSWORD
+            self.smtp_security = ConnectionSecurity.SSL_TLS
+            self.fetch_since = 0
+            self.use_modcount = False
+            self.use_idle = False
+            self.user_username = username
+            self.user_password = password
+            self._logged_in = False
+            self._client = IMAPClient(host, port=993)
+            self._smtp = SmtpSender(host, username, password)
+            self._folder_service = FolderService(self._client)
         elif (
             imap_username
             and imap_password
@@ -68,8 +109,27 @@ class ImapProtocol(EmailProtocol):
             self.use_idle = False
             self.fetch_since: int = 0
 
+            self.user_username = imap_username
+            self.user_password = imap_password
+            self._logged_in = True
+            self._smtp = SmtpSender(
+                smtp_host,
+                smtp_username or imap_username,
+                smtp_password or imap_password,
+            )
         else:
             raise ValueError("Imap Protocol without data or user")
+
+    @property
+    def logged_in(self) -> bool:
+        return self._logged_in
+
+    @email_error_handler
+    def login(self) -> None:
+        if not self.user_username or not self.user_password:
+            raise ee.InvalidLoginData()
+        self._client.login(self.user_username, self.user_password)
+        self._logged_in = True
 
     # ------------------------
     # IMAP decorator
@@ -164,41 +224,27 @@ class ImapProtocol(EmailProtocol):
             raw = client.fetch(uids, self.fields_to_fetch) if uids else {}
             return raw  # type:ignore
 
-    @smtp
-    def send_email(
-        self,
-        server: smtplib.SMTP,
-        sender: tuple[str, str],
-        recipients: list[tuple[str, str]],
-        subject: str,
-        msg: str,
-    ) -> None:
+    @email_error_handler
+    def send_email(self, mail: Any) -> None:
         """
-        Sends a mail
-        #todo not tested
-        #todo support cc, bcc
-        #todo support attachments
+        Sends a mail via SMTP.
 
         Args:
-            server: The SMTP-Server (filled by annotation)
-            sender: The sender (name, mail)
-            recipients: the accounts to send the mail to [(name, mail)]
-            subject: The mail subject
-            msg: The (plaintext) message
+            mail: Object with .thread.title, .thread.conversation.contacts,
+                  .body (str), and .attachments (list with .filename).
         """
-        email = EmailMessage()
-
-        # Header
-        email["From"] = formataddr(sender)
-        email["To"] = ", ".join(formataddr(r) for r in recipients)
-        email["Subject"] = subject
-        email["Message-ID"] = make_msgid()
-
-        # Body (plain text)
-        email.set_content(msg)
-
-        # SMTP send
-        server.send_message(email)
+        self._smtp.validate_send_state(self.logged_in)
+        contacts = mail.thread.conversation.contacts
+        to = [f"{c.first_name} {c.last_name} <{c.email_address}>" for c in contacts]
+        msg = MessageBuilder.build_message(
+            subject=mail.thread.title,
+            body=mail.body,
+            from_addr=self.user_username,
+            to=to,
+            cc=[],
+        )
+        MessageBuilder.attach_files(msg, [a.filename for a in mail.attachments])
+        self._smtp.send(msg, [c.email_address for c in contacts])
 
     def clone(self) -> "EmailProtocol":
         return ImapProtocol(

@@ -1,4 +1,5 @@
 import logging
+from types import SimpleNamespace
 from typing import Any
 
 from remail.controllers.dtos.conversations import ConversationDTO
@@ -66,9 +67,13 @@ class ThreadController:
         thread = self.service.get_thread_by_id(thread_id)
         user = thread.conversation.user
         protocol = ImapProtocol(serialized=user.connection)
-        protocol.send_email(
-            sender=(user.name, user.email),
-            recipients=[(c.name, c.email_address) for c in thread.conversation.contacts],
-            subject=("Re: " if thread.messages else "") + thread.title,
-            msg=message,
+        subject = ("Re: " if thread.messages else "") + thread.title
+        mail = SimpleNamespace(
+            thread=SimpleNamespace(
+                title=subject,
+                conversation=thread.conversation,
+            ),
+            body=message,
+            attachments=[],
         )
+        protocol.send_email(mail)

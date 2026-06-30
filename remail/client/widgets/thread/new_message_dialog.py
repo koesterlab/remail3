@@ -1,5 +1,6 @@
 import flet as ft
 
+from remail import errors as ee
 from remail.client.state import MainAppState, MainAppStateProperties
 
 
@@ -81,7 +82,12 @@ def create_new_message_dialog(state: MainAppState) -> ft.Container:
             thread = state.thread_controller.create_thread(conversation, thread.title)
         elif thread.thread_id < 0:
             thread = state.thread_controller.create_thread(conversation, thread.title)
-        state.thread_controller.send_message(thread.thread_id, message, [])
+        try:
+            state.thread_controller.send_message(thread.thread_id, message, [])
+        except ee.EmailError:
+            from remail.client import show_snack_bar
+            show_snack_bar(ft.Text("Failed to send message. Please check your connection and try again."))
+            return
 
         # clear
         state.set(MainAppStateProperties.DRAFT, "")
