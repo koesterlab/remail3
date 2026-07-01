@@ -5,7 +5,7 @@ from inspect import signature
 
 from sqlmodel import Session
 
-from remail.database import engine
+
 
 # ContextVar speichert die aktuell aktive Session pro Task / Thread
 _current_session: contextvars.ContextVar[Session | None] = contextvars.ContextVar(
@@ -39,7 +39,11 @@ def session(func: Callable) -> Callable:
 
         # Fall 3: Neue Root-Session erzeugen
         else:
-            active_session = Session(engine)
+            # Import the engine dynamically so tests can monkeypatch
+            # `remail.database.engine` (conftest.patch_db_engine).
+            import remail.database as _database
+
+            active_session = Session(_database.engine)
             if "session" in sig.parameters:
                 kwargs["session"] = active_session
             owns_session = True

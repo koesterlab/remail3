@@ -23,6 +23,7 @@ dependencies = [
     "llama-index-embeddings-huggingface>=0.6.1,<0.7",
     "llama-index-readers-database>=0.5.1,<0.6",
     "faker>=30.8.2,<31"
+    ,"pattern-kit>=0.1.0"
 ]
 
 [tool.pixi.workspace]
