@@ -12,8 +12,7 @@ def ensure_settings_columns(engine: Engine) -> None:
     """
     with engine.begin() as connection:
         existing_columns = {
-            row[1]
-            for row in connection.execute(text("PRAGMA table_info(settings)"))
+            row[1] for row in connection.execute(text("PRAGMA table_info(settings)"))
         }
 
         if not existing_columns:
@@ -29,9 +28,4 @@ def ensure_settings_columns(engine: Engine) -> None:
             )
 
         if "selected_local_model" not in existing_columns:
-            connection.execute(
-                text(
-                    "ALTER TABLE settings "
-                    "ADD COLUMN selected_local_model TEXT"
-                )
-            )
+            connection.execute(text("ALTER TABLE settings ADD COLUMN selected_local_model TEXT"))

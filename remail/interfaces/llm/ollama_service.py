@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-
 DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
 
 
@@ -57,6 +56,7 @@ class OllamaService:
             for model in models
             if model.get("name")
         ]
+
     def pull_model(self, model_name: str) -> Iterator[dict]:
         """Download a model through the local Ollama server."""
         payload = json.dumps({"model": model_name}).encode("utf-8")

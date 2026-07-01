@@ -57,7 +57,7 @@ class SettingsView(ft.Container):
                                 ("Notification", SettingsSubView.NOTIFICATIONS),
                                 ("Language", SettingsSubView.LANGUAGE),
                                 ("Local Models", SettingsSubView.LOCAL_MODELS),
-                        ]
+                            ]
                         ],
                         spacing=16,
                     ),
@@ -97,4 +97,3 @@ class SettingsView(ft.Container):
             ],
             expand=True,
         )
-

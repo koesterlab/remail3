@@ -1,8 +1,8 @@
 from remail.controllers.dtos import LLMResponseDTO
+from remail.controllers.settings_controller import SettingsController
 from remail.interfaces.llm.dto import LLMMessage
 from remail.interfaces.llm.enums.llm_message_role import LLMMessageRole
 from remail.interfaces.llm.llm_service import LLMService
-from remail.controllers.settings_controller import SettingsController
 
 
 class LLMController:
@@ -22,7 +22,7 @@ class LLMController:
             )
         else:
             self.service = LLMService(base_url, api_key)
-        
+
         self.conversation_history: list[LLMMessage] = []
 
         system_msg = LLMMessage(

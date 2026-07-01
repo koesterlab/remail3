@@ -15,7 +15,7 @@ class LocalModelsView(ft.Container):
         self.ollama_service = OllamaService(self.settings.ollama_base_url)
 
         self.status_text = ft.Text()
-        self.ollama_base_url_input=ft.TextField(
+        self.ollama_base_url_input = ft.TextField(
             label="Ollama base URL",
             value=self.settings.ollama_base_url,
             width=400,
@@ -58,7 +58,7 @@ class LocalModelsView(ft.Container):
                 self.ollama_base_url_input,
                 ft.Row(
                     controls=[
-                       ft.ElevatedButton(
+                        ft.ElevatedButton(
                             content=ft.Text("Save Ollama URL"),
                             on_click=self.save_ollama_base_url,
                         ),
@@ -76,7 +76,7 @@ class LocalModelsView(ft.Container):
                             content=ft.Text("Save selected model"),
                             on_click=self.save_selected_model,
                         ),
-                         ft.ElevatedButton(
+                        ft.ElevatedButton(
                             content=ft.Text("Use cloud/default LLM"),
                             on_click=self.clear_selected_model,
                         ),
@@ -117,18 +117,16 @@ class LocalModelsView(ft.Container):
             spacing=16,
         )
 
-        #self.refresh_models(update=False)
+        # self.refresh_models(update=False)
         self.status_text.value = (
-             "Click 'Refresh models' to check the local Ollama server and load models."
+            "Click 'Refresh models' to check the local Ollama server and load models."
         )
 
     def refresh_models(self, e=None, update: bool = True):
         try:
             models = self.ollama_service.list_models()
         except Exception:
-            self.status_text.value = (
-                "Ollama is not running. Please start Ollama and try again."
-            )
+            self.status_text.value = "Ollama is not running. Please start Ollama and try again."
             self.models_dropdown.options = []
             self.models_dropdown.value = None
 
@@ -137,10 +135,7 @@ class LocalModelsView(ft.Container):
 
             return
 
-        self.models_dropdown.options = [
-            ft.dropdown.Option(model.name)
-            for model in models
-        ]
+        self.models_dropdown.options = [ft.dropdown.Option(model.name) for model in models]
 
         if models:
             model_names = [model.name for model in models]
@@ -250,9 +245,9 @@ class LocalModelsView(ft.Container):
         ollama_base_url = self.ollama_base_url_input.value.strip()
 
         if not ollama_base_url:
-           self.status_text.value = "Please enter an Ollama base URL."
-           self.update()
-           return
+            self.status_text.value = "Please enter an Ollama base URL."
+            self.update()
+            return
 
         self.settings.ollama_base_url = ollama_base_url
         self.settings_controller.update_settings(self.settings)
