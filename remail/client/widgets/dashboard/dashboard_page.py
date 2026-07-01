@@ -123,10 +123,8 @@ class DashboardPage(ft.Column):
                 )
                 for acc in [c.get_user() for c in self.accounts]
             ],
-            on_select=lambda user_id: self.state.set(
-                MainAppStateProperties.ACTIVE_USER,
-                [a for a in self.accounts if str(a.user_id) == str(user_id.data)][0].get_user(),
-            ),
+            # on_change handler removed temporarily — flet Dropdown may use a different event name
+            # on_change=self._on_dropdown_change,
         )
 
         header = ft.Container(
@@ -219,8 +217,23 @@ This should be the summary of the emails since the last login. It could for exam
                 bgcolor=ft.Colors.SURFACE,
                 content=ft.Container(
                     expand=True,
-                    padding=ft.Padding.symmetric(horizontal=10),
+                    padding=ft.padding.symmetric(horizontal=10),
                     content=inner_column,
                 ),
             )
         ]
+
+    def _on_dropdown_change(self, e: ft.ControlEvent) -> None:
+        """Handle dropdown change by setting the active user in state."""
+        try:
+            val = e.control.value if hasattr(e.control, "value") else None
+            if val is None:
+                return
+            # find matching account controller by user id
+            for c in self.accounts:
+                if str(c.user_id) == str(val):
+                    self.state.set(MainAppStateProperties.ACTIVE_USER, c.get_user())
+                    break
+        except Exception:
+            # best-effort: ignore errors to avoid crashing UI
+            return

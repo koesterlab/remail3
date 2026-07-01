@@ -122,7 +122,7 @@ def create_new_message_dialog(state: MainAppState) -> ft.Container:
             alignment=ft.Alignment.CENTER_RIGHT,
         ),
         bgcolor=ft.Colors.INVERSE_SURFACE,
-        margin=ft.Margin.all(5),
+        margin=ft.margin.all(5),
         border_radius=20,
     )
 

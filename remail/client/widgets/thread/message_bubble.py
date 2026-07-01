@@ -45,7 +45,7 @@ class MessageBubble(ft.Container):
 
         bubble = ft.Container(
             margin=ft.Margin.only(left=20) if is_me else ft.Margin.only(right=20),
-            padding=ft.Padding.symmetric(horizontal=14, vertical=10),
+            padding=ft.padding.symmetric(horizontal=14, vertical=10),
             border_radius=own_border if is_me else others_border,
             bgcolor=ft.Colors.SURFACE,
             expand=True,
@@ -62,7 +62,7 @@ class MessageBubble(ft.Container):
         # --- Outer container to control alignment ---
         super().__init__(
             alignment=alignment,
-            padding=ft.Padding.only(left=6, right=6, top=4, bottom=4),
+            padding=ft.padding.only(left=6, right=6, top=4, bottom=4),
             content=ft.Column(
                 [
                     bubble_row,
