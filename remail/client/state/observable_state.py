@@ -44,7 +44,11 @@ class ObservableState(Generic[E]):  # noqa: UP046
                     tmp = subj_cls()
                     has_subscribe = callable(getattr(tmp, "subscribe", None))
                     has_on_next = callable(getattr(tmp, "on_next", None))
-                    has_get = callable(getattr(tmp, "get", None)) or hasattr(tmp, "value") or hasattr(tmp, "current")
+                    has_get = (
+                        callable(getattr(tmp, "get", None))
+                        or hasattr(tmp, "value")
+                        or hasattr(tmp, "current")
+                    )
                     if has_subscribe and (has_on_next or has_get):
                         self._pk_subjects = {}
                         self._pk_subject_cls = subj_cls

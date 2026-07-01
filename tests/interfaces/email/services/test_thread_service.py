@@ -326,7 +326,9 @@ class TestThreadService:
             session.flush()
 
             service = ThreadService()
-            service.organize_email_into_thread(email, "Re: Team Meeting - Notes", conv, session=session)
+            service.organize_email_into_thread(
+                email, "Re: Team Meeting - Notes", conv, session=session
+            )
             session.commit()
 
             assert email.thread == thread
