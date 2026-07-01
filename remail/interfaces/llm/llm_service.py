@@ -23,7 +23,7 @@ class LLMService(LLMBase):
 
         self.api_key = api_key
         self.base_url = base_url
-        self.model = model or LLMModel.META_LLAMA_3_1_8B_INSTRUCT
+        self.model: str = model or LLMModel.META_LLAMA_3_1_8B_INSTRUCT.value
         self.default_max_tokens = 150
         self.default_temperature = 0.7
         self.default_top_p = 1.0

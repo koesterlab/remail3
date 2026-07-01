@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from collections.abc import Iterator
 from dataclasses import dataclass
+from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -100,5 +101,10 @@ class OllamaService:
         with urlopen(request, timeout=None) as response:
             response_body = response.read().decode("utf-8")
 
-        data = json.loads(response_body)
-        return data.get("response", "")
+        data: dict[str, Any] = json.loads(response_body)
+        response_text = data.get("response", "")
+
+        if isinstance(response_text, str):
+            return response_text
+
+        return str(response_text)
