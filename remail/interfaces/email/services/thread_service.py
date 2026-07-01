@@ -43,7 +43,11 @@ class ThreadService:
                 selectinload(Thread.messages).options(  # type: ignore[arg-type]
                     selectinload(Email.sender),  # type: ignore[arg-type]
                     selectinload(Email.attachments),  # type: ignore[arg-type]
-                )
+                ),
+                selectinload(Thread.conversation).options(  # type: ignore[arg-type]
+                    selectinload(Conversation.user),  # type: ignore[arg-type]
+                    selectinload(Conversation.contacts),  # type: ignore[arg-type]
+                ),
             )
         ).first()
 

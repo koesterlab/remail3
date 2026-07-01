@@ -161,6 +161,12 @@ class AccountController:
         return self.user
 
     @session
+    def find_or_create_contact_by_email(self, email: str, session: Session) -> ContactDTO:
+        contact = self.contact_service.get_or_create_contact(email)
+        session.flush()
+        return ContactDTO.from_model(contact)
+
+    @session
     def create_conversation(self, contacts: list[ContactDTO]) -> ConversationDTO:
         user = self._get_user_model()
         contact_models = self._get_contact_models(contacts)
