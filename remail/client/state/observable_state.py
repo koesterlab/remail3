@@ -125,7 +125,7 @@ class ObservableState(Generic[E]):  # noqa: UP046
                     return fn()
             # try attribute access
             if hasattr(subj, "value"):
-                return getattr(subj, "value")
+                return subj.value
         return self._values.get(prop, None)
 
     def trigger(self, prop: E) -> None:

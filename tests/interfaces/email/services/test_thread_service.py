@@ -1,11 +1,13 @@
 """Tests for ThreadService."""
 
+from datetime import datetime
+
 import pytest
 from sqlmodel import Session
 
-from remail.enums import Protocol
+from remail.enums import ConversationType, Protocol
 from remail.interfaces.email.services.thread_service import ThreadService
-from remail.models import Conversation, Email, Thread, User
+from remail.models import Contact, Conversation, Email, Thread, User
 
 
 @pytest.fixture
@@ -29,7 +31,7 @@ def test_conversation(test_engine, test_user):
     """Create a test conversation."""
     with Session(test_engine) as session:
         user = session.get(User, test_user)
-        conv = Conversation(type="conversation", user=user)
+        conv = Conversation(type=ConversationType.CONVERSATION, user=user)
         session.add(conv)
         session.commit()
         session.refresh(conv)
@@ -135,18 +137,23 @@ class TestThreadService:
         with Session(test_engine) as session:
             conv = session.get(Conversation, test_conversation)
 
+            contact_sender = Contact(name="sender", email_address="sender@example.com")
+            session.add(contact_sender)
+            session.flush()
+
             email = Email(
                 message_id="<test@example.com>",
                 subject="New Subject",
                 body="Body",
-                sent_at="2024-01-01",
+                sent_at=datetime(2024, 1, 1),
                 imap_uid=1,
+                sender_id=contact_sender.id,
             )
             session.add(email)
             session.flush()
 
             service = ThreadService()
-            service.organize_email_into_thread(email, "New Subject", conv, session)
+            service.organize_email_into_thread(email, "New Subject", conv, session=session)
             session.commit()
 
             # Verify new thread was created
@@ -168,18 +175,23 @@ class TestThreadService:
             session.flush()
 
             # Create new email with same subject
+            contact_sender = Contact(name="sender2", email_address="sender2@example.com")
+            session.add(contact_sender)
+            session.flush()
+
             email = Email(
                 message_id="<test2@example.com>",
                 subject="Re: Existing Subject",
                 body="Reply",
-                sent_at="2024-01-02",
+                sent_at=datetime(2024, 1, 2),
                 imap_uid=2,
+                sender_id=contact_sender.id,
             )
             session.add(email)
             session.flush()
 
             service = ThreadService()
-            service.organize_email_into_thread(email, "Re: Existing Subject", conv, session)
+            service.organize_email_into_thread(email, "Re: Existing Subject", conv, session=session)
             session.commit()
 
             # Verify email was added to existing thread
@@ -195,18 +207,23 @@ class TestThreadService:
             session.add(thread1)
             session.flush()
 
+            contact_sender = Contact(name="sender3", email_address="sender3@example.com")
+            session.add(contact_sender)
+            session.flush()
+
             email = Email(
                 message_id="<test3@example.com>",
                 subject="Re: Fw: Test Subject",
                 body="Reply",
-                sent_at="2024-01-03",
+                sent_at=datetime(2024, 1, 3),
                 imap_uid=3,
+                sender_id=contact_sender.id,
             )
             session.add(email)
             session.flush()
 
             service = ThreadService()
-            service.organize_email_into_thread(email, "Re: Fw: Test Subject", conv, session)
+            service.organize_email_into_thread(email, "Re: Fw: Test Subject", conv, session=session)
             session.commit()
 
             # Should match despite different prefixes
@@ -221,19 +238,24 @@ class TestThreadService:
             session.add(thread)
             session.flush()
 
+            contact_sender = Contact(name="sender4", email_address="sender4@example.com")
+            session.add(contact_sender)
+            session.flush()
+
             email = Email(
                 message_id="<test4@example.com>",
                 subject="Test",
                 body="Body",
-                sent_at="2024-01-04",
+                sent_at=datetime(2024, 1, 4),
                 imap_uid=4,
                 read=False,
+                sender_id=contact_sender.id,
             )
             session.add(email)
             session.flush()
 
             service = ThreadService()
-            service.organize_email_into_thread(email, "Test", conv, session)
+            service.organize_email_into_thread(email, "Test", conv, session=session)
             session.commit()
             session.refresh(thread)
 
@@ -279,3 +301,32 @@ class TestThreadService:
 
         assert isinstance(result, list)
         assert len(result) <= 5
+
+    def test_organize_email_into_thread_fuzzy_match(self, test_engine, test_conversation):
+        """Test that a similar subject is assigned to an existing thread via fuzzy matching."""
+        with Session(test_engine) as session:
+            conv = session.get(Conversation, test_conversation)
+            thread = Thread(title="Team Meeting", conversation=conv, unread_count=0)
+            session.add(thread)
+            session.flush()
+
+            contact_sender = Contact(name="team", email_address="team@example.com")
+            session.add(contact_sender)
+            session.flush()
+
+            email = Email(
+                message_id="<fuzzy@example.com>",
+                subject="Re: Team Meeting - Notes",
+                body="Notes",
+                sent_at=datetime(2024, 1, 5),
+                imap_uid=10,
+                sender_id=contact_sender.id,
+            )
+            session.add(email)
+            session.flush()
+
+            service = ThreadService()
+            service.organize_email_into_thread(email, "Re: Team Meeting - Notes", conv, session=session)
+            session.commit()
+
+            assert email.thread == thread

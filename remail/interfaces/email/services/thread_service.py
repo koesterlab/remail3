@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import difflib
 import re
+import unicodedata
 from email.header import decode_header
 from typing import TYPE_CHECKING
 
@@ -36,7 +38,7 @@ class ThreadService:
         from remail.models.attachment import Attachment  # noqa: F401
         from remail.models.email import Email
 
-        return session.exec(
+        result = session.exec(
             select(Thread)
             .where(Thread.id == thread_id)
             .options(
@@ -46,6 +48,11 @@ class ThreadService:
                 )
             )
         ).first()
+
+        if result is not None:
+            # detach instance so callers can access attributes after session closes
+            session.expunge(result)
+        return result
 
     @session
     def create_thread(self, title: str, conversation_id: int, session: Session) -> Thread:
@@ -65,6 +72,8 @@ class ThreadService:
         session.commit()
         session.refresh(new_thread)
 
+        # detach before returning so caller can access attributes after session closes
+        session.expunge(new_thread)
         return new_thread
 
     @session
@@ -105,15 +114,43 @@ class ThreadService:
                         existing_thread.last_message_time, email.sent_at
                     )
         else:
-            new_thread = Thread(
-                title=subject,
-                conversation_id=conversation.id,
-                unread_count=0 if email.read else 1,
-                last_message_time=email.sent_at,
-            )
+            # Try fuzzy matching against existing threads in the conversation
+            candidates = session.exec(
+                select(Thread).where(col(Thread.conversation_id) == conversation_id)
+            ).all()
 
-            session.add(new_thread)
-            email.thread = new_thread
+            subj_norm = self._normalize_for_comparison(subject)
+            best_score = 0.0
+            best_thread = None
+            for t in candidates:
+                t_norm = self._normalize_for_comparison(t.title or "")
+                score = self._similarity_score(subj_norm, t_norm)
+                if score > best_score:
+                    best_score = score
+                    best_thread = t
+
+            if best_thread and best_score >= self._FUZZY_THRESHOLD:
+                # assign to best matching thread
+                if email.thread_id != best_thread.id and best_thread.id is not None:
+                    email.thread = best_thread
+                    if not email.read:
+                        best_thread.unread_count = best_thread.unread_count + 1
+                    if best_thread.last_message_time is None:
+                        best_thread.last_message_time = email.sent_at
+                    else:
+                        best_thread.last_message_time = max(
+                            best_thread.last_message_time, email.sent_at
+                        )
+            else:
+                new_thread = Thread(
+                    title=subject,
+                    conversation_id=conversation.id,
+                    unread_count=0 if email.read else 1,
+                    last_message_time=email.sent_at,
+                )
+
+                session.add(new_thread)
+                email.thread = new_thread
 
     # from here with chatgpt
     _PREFIXES = [
@@ -203,7 +240,34 @@ class ThreadService:
                 break
             cleaned = new
 
-        return cleaned.strip() or "Unparsable Subject"
+        return cleaned.strip()
+
+    # Fuzzy matching helpers
+    _FUZZY_THRESHOLD = 0.7
+
+    @classmethod
+    def _normalize_for_comparison(cls, s: str) -> str:
+        """Normalize subject for fuzzy comparison: strip prefixes, unicode-normalize, remove punctuation."""
+        if not s:
+            return ""
+        s = cls.normalize_subject(s)
+        s = unicodedata.normalize("NFKD", s)
+        s = "".join(ch for ch in s if not unicodedata.combining(ch))
+        s = re.sub(r"[^\w\s]", " ", s, flags=re.UNICODE)
+        s = re.sub(r"\s+", " ", s).strip().lower()
+        return s
+
+    @staticmethod
+    def _similarity_score(a: str, b: str) -> float:
+        """Blend of sequence ratio and token Jaccard for short strings."""
+        if not a or not b:
+            return 0.0
+        ta = set(a.split())
+        tb = set(b.split())
+        union = ta | tb
+        jaccard = len(ta & tb) / len(union) if union else 0.0
+        seq = difflib.SequenceMatcher(None, a, b).ratio()
+        return 0.6 * seq + 0.4 * jaccard
 
     # chatgpt end
 

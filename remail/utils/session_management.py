@@ -5,8 +5,6 @@ from inspect import signature
 
 from sqlmodel import Session
 
-
-
 # ContextVar speichert die aktuell aktive Session pro Task / Thread
 _current_session: contextvars.ContextVar[Session | None] = contextvars.ContextVar(
     "current_session", default=None
