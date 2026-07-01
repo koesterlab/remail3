@@ -38,10 +38,10 @@ class AccountController:
     @staticmethod
     def create_new_account(
         clearname: str, email: str, connection: EmailProtocol, method: Protocol
-    ) -> None:
+    ) -> UserDTO:
         if not connection.test_connection():
             raise ValueError("Creating account with invalid credentials")
-        UserService().add_user(email, clearname, method, connection)
+        return UserService().add_user(email, clearname, method, connection)
 
     @session
     def __init__(self, account_id: int) -> None:
@@ -54,7 +54,7 @@ class AccountController:
         user = self._get_user_model()
         self.user: UserDTO = UserDTO.get_from_model(user, UserService.count_unread(user))
         self.sync_service = EmailSyncService(user_id=self.user.id)
-        
+
         # Use pattern_kit.Event for email changes and error notifications
         self.on_email_changed: Event = Event()
         self.on_email_error: Event = Event()
@@ -107,8 +107,7 @@ class AccountController:
 
     @session
     def _notify_callback(self) -> None:
-        changed: list[Conversation] = self.sync_service.get_changed_conversations()
-        if changed:
+        if changed := self.sync_service.get_changed_conversations():
             self._logger.info(
                 "[%s] Building DTOs for %d changed conversation(s)...",
                 self.user.email,

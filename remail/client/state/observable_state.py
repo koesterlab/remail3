@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
+from collections.abc import Callable
 from typing import Any, Generic, TypeVar
 
 from pattern_kit import Event
@@ -22,7 +23,7 @@ class ObservableState(Generic[E]):  # noqa: UP046
         return self._events[prop]
 
     def register_observer(
-        self, prop: E, callback: callable, weak: bool = False
+        self, prop: E, callback: Callable[[Any], None], weak: bool = False
     ) -> None:
         """
         Register an observer callback for a property using pattern_kit.Event.
@@ -33,10 +34,12 @@ class ObservableState(Generic[E]):  # noqa: UP046
         event += callback
 
     def unregister_observer(
-        self, prop: E, callback: callable
+        self, prop: E, callback: Callable[[Any], None]
     ) -> None:
         """Unregister an observer callback for a property."""
-        event = self._get_or_create_event(prop)
+        event = self._events.get(prop)
+        if event is None:
+            return
         event -= callback
 
     def set(self, prop: E, value: Any) -> None:
