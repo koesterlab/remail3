@@ -5,7 +5,7 @@ description = "ReMail - Email management with AI-powered features"
 authors = [{ name = "Your Name", email = "you@example.com" }]
 readme = "README.md"
 license = { text = "GPL-3.0-or-later" }
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.13"
 dependencies = [
     "sqlmodel>=0.0.27,<0.0.28",
     "sqlalchemy>=2.0.44,<3",
@@ -69,8 +69,13 @@ test-cov = "pytest --cov=remail --cov-report=term --cov-report=html --cov-report
 # 7) Run all checks
 check = { depends-on = ["format-check", "typecheck", "security", "test"] }
 
-# 8) Database initialization
-init-db = "python init_db.py --force"
+# 8) Database initialization / migration
+# pixi run init-db --force
+init-db = "python init_db.py"
+# pixi run db-revision -m "Added new table"
+db-revision = "alembic revision --autogenerate"
+# pixi run db-downgrade
+db-downgrade = "alembic downgrade -1"
 
 # 10) Run the application
 app = "python -m remail.client.index"
@@ -80,6 +85,7 @@ seed-demo = "python -m remail.scripts.seed_demo_data"
 
 [tool.pixi.dependencies]
 pixi-pycharm = ">=0.0.10,<0.0.11"
+alembic = ">=1.18.5,<2"
 
 [tool.ruff]
 line-length = 100

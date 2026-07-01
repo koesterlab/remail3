@@ -1,34 +1,27 @@
 #!/usr/bin/env python3
-"""Initialize SQLite database and create all tables from SQLModel models."""
+"""Initialize the SQLite database by running Alembic migrations to head."""
 
 import os
 from pathlib import Path
 
-from sqlmodel import SQLModel, create_engine
+from alembic.config import Config
 
-import remail.models  # noqa: F401
+from alembic import command
+from remail.database.db import DB_PATH
+
+REPO_ROOT = Path(__file__).resolve().parent
 
 
-def init_database(db_path: str = "database.db") -> None:
-    """
-    Initialize the SQLite database and create all tables.
+def init_database() -> None:
+    """Run Alembic migrations to bring the database up to the latest revision."""
 
-    Args:
-        db_path: Path to the database file (default: database.db)
-    """
-
-    db_file = Path(db_path).resolve()
-
-    db_file.parent.mkdir(parents=True, exist_ok=True)
-
-    database_url = f"sqlite:///{db_file}"
-    engine = create_engine(database_url, echo=True)
+    alembic_cfg = Config(str(REPO_ROOT / "alembic.ini"))
 
     print(f"\n{'=' * 80}")
-    print(f"Initializing SQLite database at: {db_file}")
+    print(f"Running Alembic migrations for database at: {DB_PATH}")
     print(f"{'=' * 80}\n")
 
-    SQLModel.metadata.create_all(engine)
+    command.upgrade(alembic_cfg, "head")
 
     print(f"\n{'=' * 80}")
     print("✅ Database initialized successfully!")
@@ -38,25 +31,18 @@ def init_database(db_path: str = "database.db") -> None:
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Initialize SQLite database and create tables")
-    parser.add_argument(
-        "--db-path",
-        "-d",
-        default="database.db",
-        help="Path to the database file (default: database.db)",
-    )
+    parser = argparse.ArgumentParser(description="Initialize the database via Alembic migrations")
     parser.add_argument(
         "--force",
         "-f",
         action="store_true",
-        help="Delete existing database before creating new one",
+        help="Delete the existing database before migrating",
     )
 
     args = parser.parse_args()
 
-    if args.force and os.path.exists(args.db_path):
-        print(f"🗑️  Removing existing database: {args.db_path}")
-        os.remove(args.db_path)
+    if args.force and DB_PATH.exists():
+        print(f"🗑️  Removing existing database: {DB_PATH}")
+        os.remove(DB_PATH)
 
-    # Initialize the database
-    init_database(args.db_path)
+    init_database()
