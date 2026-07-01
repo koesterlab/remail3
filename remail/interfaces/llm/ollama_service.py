@@ -7,9 +7,23 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Any
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
 DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
+
+
+def _validate_base_url(base_url: str) -> str:
+    """Validate and normalize the Ollama base URL."""
+    parsed_url = urlparse(base_url)
+
+    if parsed_url.scheme not in {"http", "https"}:
+        raise ValueError("Ollama base URL must use http or https.")
+
+    if not parsed_url.netloc:
+        raise ValueError("Ollama base URL must include a host.")
+
+    return base_url.rstrip("/")
 
 
 @dataclass(frozen=True)
@@ -25,7 +39,7 @@ class OllamaService:
     """Small wrapper around the local Ollama REST API."""
 
     def __init__(self, base_url: str = DEFAULT_OLLAMA_BASE_URL):
-        self.base_url = base_url.rstrip("/")
+        self.base_url = _validate_base_url(base_url)
 
     def is_available(self) -> bool:
         """Return True if the local Ollama server is reachable."""
@@ -42,7 +56,7 @@ class OllamaService:
             method="GET",
         )
 
-        with urlopen(request, timeout=3) as response:
+        with urlopen(request, timeout=3) as response:  # nosec B310
             response_body = response.read().decode("utf-8")
 
         data = json.loads(response_body)
@@ -69,7 +83,7 @@ class OllamaService:
             method="POST",
         )
 
-        with urlopen(request, timeout=None) as response:
+        with urlopen(request, timeout=None) as response:  # nosec B310
             for line in response:
                 if not line:
                     continue
@@ -98,7 +112,7 @@ class OllamaService:
             method="POST",
         )
 
-        with urlopen(request, timeout=None) as response:
+        with urlopen(request, timeout=None) as response:  # nosec B310
             response_body = response.read().decode("utf-8")
 
         data: dict[str, Any] = json.loads(response_body)
