@@ -4,6 +4,7 @@ import logging
 from collections.abc import Callable, Iterable
 from typing import cast
 
+from pattern_kit import Event
 from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
@@ -53,8 +54,10 @@ class AccountController:
         user = self._get_user_model()
         self.user: UserDTO = UserDTO.get_from_model(user, UserService.count_unread(user))
         self.sync_service = EmailSyncService(user_id=self.user.id)
-        self.callback: Callable[[Iterable[ConversationDTO]], None] = lambda _: None
-        self.error_callback: Callable[[str], None] = lambda _: None
+        
+        # Use pattern_kit.Event for email changes and error notifications
+        self.on_email_changed: Event = Event()
+        self.on_email_error: Event = Event()
 
     @session
     def _get_conversations_from_db(self, session: Session) -> list[ConversationDTO]:
@@ -95,12 +98,12 @@ class AccountController:
     def set_callback_email_changes(
         self, callback: Callable[[Iterable[ConversationDTO]], None]
     ) -> None:
-        """Registers a callback that is called every time when a Conversation is updated or new with the conversation"""
-        self.callback = callback
+        """Register a callback that is called when conversations are updated using pattern_kit.Event."""
+        self.on_email_changed += callback
 
     def set_callback_email_errors(self, callback: Callable[[str], None]) -> None:
-        """Registers a callback that is called when background sync fails."""
-        self.error_callback = callback
+        """Register a callback that is called when background sync fails using pattern_kit.Event."""
+        self.on_email_error += callback
 
     @session
     def _notify_callback(self) -> None:
@@ -114,16 +117,16 @@ class AccountController:
             t = Timer()
             dtos = [self._conversation_to_dto(c) for c in changed]
             self._logger.info("[%s] DTO build done. (%s)", self.user.email, t.elapsed())
-            self.callback(dtos)
+            self.on_email_changed(dtos)
 
     def _notify_error(self, msg: str) -> None:
-        self.error_callback(msg)
+        self.on_email_error(msg)
 
     async def start_listening(self) -> None:
         """Starts background task to wait for email changes in imap idle mode. Calls callback if something changes"""
         try:
             self._logger.info("[%s] Showing cached emails from DB.", self.user.email)
-            self.callback(self._get_conversations_from_db())
+            self.on_email_changed(self._get_conversations_from_db())
 
             while True:
                 try:
