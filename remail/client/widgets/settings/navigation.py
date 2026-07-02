@@ -34,8 +34,7 @@ def create_settings_navigation(
     for label, sub_view in nav_items:
         # Check if this button is currently active
         is_active = (
-            app_state.current_view[0] == MainView.SETTINGS
-            and app_state.current_view[1] == sub_view
+            app_state.current_view[0] == MainView.SETTINGS and app_state.current_view[1] == sub_view
         )
 
         # Create button with appropriate styling
