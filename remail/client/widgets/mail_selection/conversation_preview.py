@@ -105,6 +105,7 @@ class ConversationPreview(ft.Container, ABC):
         on_toggle_selection(conversation in state.get_selected())
 
         super().__init__(
+            ink=True,
             on_hover=on_hover,
             on_click=lambda: state.set(MainAppStateProperties.ACTIVE_CONVERSATION, conversation),
             bgcolor=ft.Colors.TRANSPARENT,
