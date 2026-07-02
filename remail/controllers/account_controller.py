@@ -10,6 +10,7 @@ from sqlmodel import Session, select
 
 from remail import errors as ee
 from remail.controllers.dtos.conversations import ContactDTO, ConversationDTO, ThreadPreviewDTO
+from remail.controllers.dtos.threads import MessageDTO
 from remail.controllers.dtos.user_dto import UserDTO
 from remail.controllers.search_controller import SearchController
 from remail.enums import ConversationType, Protocol
@@ -248,22 +249,42 @@ class AccountController:
         )
 
     @session
-    def search(self, search_string: str, session: Session) -> list[ConversationDTO]:
+    def search(self, search_string: str, session: Session) -> list[MessageDTO]:
         email_ids = self.search_controller.search(search_string)
         if not email_ids:
             return []
 
-        result_dtos = []
-        seen_conversation_ids = set()
-
+        result_dtos: list[MessageDTO] = []
         for email_id in email_ids:
             email = session.get(Email, email_id)
             if not email or not email.thread:
                 continue
 
-            conversation = email.thread.conversation
-            if conversation and conversation.id not in seen_conversation_ids:
-                seen_conversation_ids.add(conversation.id)
-                result_dtos.append(self._conversation_to_dto(conversation))
+            result_dtos.append(MessageDTO.from_model(email))
 
         return result_dtos
+
+    @session
+    def get_email_context(
+        self, email_id: int, session: Session
+    ) -> tuple[ConversationDTO, ThreadPreviewDTO] | None:
+
+        email = session.get(Email, email_id)
+        if not email or not email.thread or not email.thread.conversation:
+            return None
+
+        conversation = self._conversation_to_dto(email.thread.conversation)
+        thread = email.thread
+        unread_count = sum(1 for message in thread.messages if not message.read)
+        latest_message = max(thread.messages, key=lambda message: message.sent_at, default=None)
+        thread_preview = ThreadPreviewDTO(
+            thread_id=thread.id if thread.id is not None else -1,
+            title=thread.title,
+            total_count=len(thread.messages),
+            unread_count=unread_count,
+            last_message=latest_message.body if latest_message else "",
+            last_message_datetime=latest_message.sent_at
+            if latest_message
+            else datetime.datetime.min,
+        )
+        return conversation, thread_preview
