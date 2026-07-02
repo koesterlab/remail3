@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class ConversationType(Enum):
+class ConversationType(str, Enum):
     CONVERSATION = "conversation"
     GROUP = "group"
 

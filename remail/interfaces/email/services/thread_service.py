@@ -11,9 +11,9 @@ from sqlalchemy.orm import selectinload
 from sqlmodel import Session, col, select
 
 from remail.database import engine
-from remail.interfaces.email.services.user_service import UserService
 from remail.models import Conversation, Email, Thread
 from remail.models.user import User
+from remail.interfaces.email.services.user_service import UserService
 from remail.utils.session_management import session
 
 if TYPE_CHECKING:
@@ -69,29 +69,49 @@ class ThreadService:
 
     @session
     def organize_email_into_thread(
-        self, email: Email, subject: str, conversation: Conversation, session: Session
+        self,
+        email: Email,
+        subject: str,
+        conversation: Conversation,
+        session: Session,
+        in_reply_to: str | None = None,
+        references: list[str] | None = None,
     ) -> None:
         """
         Organize emails into threads within a conversation.
 
-        Creates or updates a single thread for the conversation with all emails in chronological order.
+        Tries to attach the email to an existing thread using message references first,
+        then falls back to normalized subject matching.
 
         Args:
             email: Email to organize
+            subject: Raw email subject
             conversation: Conversation to search/create thread in
+            in_reply_to: In-Reply-To header value
+            references: References header values
         """
         if conversation.id is None:
             return
+
         conversation_id = conversation.id
-        subject = self.normalize_subject(subject)
-        existing_thread = session.exec(
-            select(Thread).where(
-                and_(
-                    col(Thread.conversation_id) == conversation_id,
-                    func.lower(col(Thread.title)) == subject.lower(),
+        existing_thread = self._find_thread_by_reference(
+            conversation_id=conversation_id,
+            in_reply_to=in_reply_to,
+            references=references,
+            session=session,
+        )
+
+        normalized_subject = self.normalize_subject(subject)
+
+        if not existing_thread:
+            existing_thread = session.exec(
+                select(Thread).where(
+                    and_(
+                        col(Thread.conversation_id) == conversation_id,
+                        func.lower(col(Thread.title)) == normalized_subject.lower(),
+                    )
                 )
-            )
-        ).first()
+            ).first()
 
         if existing_thread:
             if email.thread_id != existing_thread.id and existing_thread.id is not None:
@@ -106,7 +126,7 @@ class ThreadService:
                     )
         else:
             new_thread = Thread(
-                title=subject,
+                title=normalized_subject or "No Subject",
                 conversation_id=conversation.id,
                 unread_count=0 if email.read else 1,
                 last_message_time=email.sent_at,
@@ -185,6 +205,75 @@ class ThreadService:
         r"^(?:" + r"|".join([re.escape(p) for p in _PREFIXES]) + r")\s*:\s*", re.IGNORECASE
     )
 
+    @staticmethod
+    def _normalize_message_id(message_id: str | None) -> str | None:
+        if not message_id:
+            return None
+
+        cleaned = message_id.strip()
+        if not cleaned:
+            return None
+
+        if cleaned.startswith("<") and cleaned.endswith(">"):
+            return cleaned.lower()
+
+        if "@" in cleaned:
+            return f"<{cleaned.lower().strip('<>')}>"
+
+        return cleaned.lower()
+
+    @staticmethod
+    def _extract_message_ids(header_value: str | None) -> list[str]:
+        if not header_value:
+            return []
+
+        ids = re.findall(r"<[^>]+>", header_value)
+        if ids:
+            return [ThreadService._normalize_message_id(message_id) for message_id in ids]
+
+        return [
+            ThreadService._normalize_message_id(message_id)
+            for message_id in re.split(r"[,\s]+", header_value)
+            if message_id.strip()
+        ]
+
+    def _find_thread_by_reference(
+        self,
+        conversation_id: int,
+        in_reply_to: str | None,
+        references: list[str] | None,
+        session: Session,
+    ) -> Thread | None:
+        reference_ids = []
+        if in_reply_to:
+            normalized = self._normalize_message_id(in_reply_to)
+            if normalized:
+                reference_ids.append(normalized)
+        if references:
+            for ref_id in references:
+                normalized = self._normalize_message_id(ref_id)
+                if normalized:
+                    reference_ids.append(normalized)
+
+        if not reference_ids:
+            return None
+
+        reference_ids = [ref for ref in reference_ids if ref]
+        if not reference_ids:
+            return None
+
+        return session.exec(
+            select(Thread)
+            .join(Thread.messages)
+            .where(
+                and_(
+                    col(Thread.conversation_id) == conversation_id,
+                    Email.message_id.in_(reference_ids),
+                )
+            )
+            .order_by(Thread.last_message_time.desc())
+        ).first()
+
     @classmethod
     def normalize_subject(cls, subject: str) -> str:
         """
@@ -196,14 +285,14 @@ class ThreadService:
             part.decode(enc or "utf-8") if isinstance(part, bytes) else part
             for part, enc in decode_header(subject)
         )
-        cleaned = subject.strip()
+        cleaned = re.sub(r"\s+", " ", subject.strip())
         while True:
             new = cls._PREFIX_REGEX.sub("", cleaned).lstrip()
             if new == cleaned:
                 break
             cleaned = new
 
-        return cleaned.strip() or "Unparsable Subject"
+        return cleaned.strip()
 
     # chatgpt end
 
