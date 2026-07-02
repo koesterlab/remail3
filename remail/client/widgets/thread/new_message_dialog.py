@@ -1,6 +1,8 @@
 import flet as ft
 
 from remail.client.state import MainAppState, MainAppStateProperties
+from remail.controllers.llm_controller import LLMController
+from remail.controllers.settings_controller import SettingsController
 
 
 def create_new_message_dialog(state: MainAppState) -> ft.Container:
@@ -65,6 +67,23 @@ def create_new_message_dialog(state: MainAppState) -> ft.Container:
             expand()
         on_change()
 
+    def generate_ai_reply() -> None:
+        thread_preview = state.get(MainAppStateProperties.ACTIVE_THREAD)
+        if thread_preview is None or thread_preview.thread_id < 0:
+            return
+
+        full_thread = state.thread_controller.get_thread(thread_preview.thread_id)
+        if full_thread is None or not full_thread.messages:
+            return
+
+        last_message_body = full_thread.messages[-1].content.body
+
+        settings = SettingsController().get_settings()
+        llm = LLMController(settings.llm_url, settings.llm_key)
+        result = llm.generate_reply(last_message_body)
+
+        state.set(MainAppStateProperties.DRAFT, result.content)
+
     def send_mail():
         # retrieve data
         thread = state.get(MainAppStateProperties.ACTIVE_THREAD)
@@ -100,6 +119,13 @@ def create_new_message_dialog(state: MainAppState) -> ft.Container:
         disabled=True,
     )
 
+    generate_btn = ft.IconButton(
+        ft.Icons.AUTO_AWESOME,
+        on_click=lambda _: generate_ai_reply(),
+        icon_color=ft.Colors.ON_INVERSE_SURFACE,
+        tooltip="Generate AI reply",
+    )
+
     button_bar = ft.Row(
         [
             ft.IconButton(
@@ -107,6 +133,7 @@ def create_new_message_dialog(state: MainAppState) -> ft.Container:
                 on_click=lambda _: collapse(),
                 icon_color=ft.Colors.ON_INVERSE_SURFACE,
             ),
+            generate_btn,
             send_btn_top,
         ],
         expand=True,
