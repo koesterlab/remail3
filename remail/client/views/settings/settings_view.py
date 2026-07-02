@@ -60,7 +60,7 @@ class SettingsView(ft.Container):
         nav_column = ft.Column(controls=nav_buttons, spacing=16)
 
         main_row = ft.Row(
-            controls=[ 
+            controls=[
                 ft.Container(nav_column, width=200, padding=10),
                 ft.VerticalDivider(width=1),
                 sub_view,
