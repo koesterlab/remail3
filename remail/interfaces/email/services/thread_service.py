@@ -229,13 +229,21 @@ class ThreadService:
 
         ids = re.findall(r"<[^>]+>", header_value)
         if ids:
-            return [ThreadService._normalize_message_id(message_id) for message_id in ids]
+            normalized_ids: list[str] = []
+            for message_id in ids:
+                normalized = ThreadService._normalize_message_id(message_id)
+                if normalized is not None:
+                    normalized_ids.append(normalized)
+            return normalized_ids
 
-        return [
-            ThreadService._normalize_message_id(message_id)
-            for message_id in re.split(r"[,\s]+", header_value)
-            if message_id.strip()
-        ]
+        normalized_ids = []
+        for message_id in re.split(r"[,\s]+", header_value):
+            if not message_id.strip():
+                continue
+            normalized = ThreadService._normalize_message_id(message_id)
+            if normalized is not None:
+                normalized_ids.append(normalized)
+        return normalized_ids
 
     def _find_thread_by_reference(
         self,
@@ -258,13 +266,13 @@ class ThreadService:
         if not reference_ids:
             return None
 
-        reference_ids = [ref for ref in reference_ids if ref]
+        reference_ids = [ref for ref in reference_ids if ref is not None]
         if not reference_ids:
             return None
 
         return session.exec(
             select(Thread)
-            .join(Thread.messages)
+            .join(Email, Thread.messages)
             .where(
                 and_(
                     col(Thread.conversation_id) == conversation_id,
