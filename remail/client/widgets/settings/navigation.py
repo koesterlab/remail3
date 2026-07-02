@@ -1,6 +1,7 @@
 """Settings navigation widget for Flet-based UI."""
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import flet as ft
 
@@ -28,7 +29,7 @@ def create_settings_navigation(
         ("Notifications", SettingsSubView.NOTIFICATIONS),
     ]
 
-    buttons: list[ft.TextButton] = []
+    buttons: list[ft.Control] = []
 
     for label, sub_view in nav_items:
         # Check if this button is currently active

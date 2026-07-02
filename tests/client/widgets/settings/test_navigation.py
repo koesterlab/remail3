@@ -3,9 +3,9 @@
 from unittest.mock import Mock
 
 import flet as ft
+
 from remail.client.state import MainAppState as AppState
 from remail.client.widgets.settings.navigation import create_settings_navigation
-
 from remail.enums import MainView, SettingsSubView
 
 
