@@ -176,7 +176,7 @@ class TestAccountControllerCallbacks:
     """Test suite for callback methods."""
 
     def test_set_callback_email_changes(self, mock_services):
-        """Test set_callback_email_changes registers callback."""
+        """Test set_callback_email_changes registers callback using pattern_kit.Event."""
         controller = AccountController(account_id=1)
         callback_called = False
 
@@ -185,7 +185,9 @@ class TestAccountControllerCallbacks:
             callback_called = True
 
         controller.set_callback_email_changes(test_callback)
-        assert controller.callback == test_callback
+        # Verify callback is registered by firing the event
+        controller.on_email_changed([])
+        assert callback_called
 
     def test_set_callback_email_errors(self, mock_services):
         """Test set_callback_email_errors registers error callback."""
