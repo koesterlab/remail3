@@ -56,9 +56,9 @@ class EmailAccountsView(SettingsSubView):
                     spacing=10,
                 ),
                 actions=[
-                    ft.TextButton("Cancel", on_click=lambda e: close_dialog(dlg)),
+                    ft.TextButton(content=ft.Text("Cancel"), on_click=lambda e: close_dialog(dlg)),
                     ft.TextButton(
-                        "Save",
+                        content=ft.Text("Save"),
                         on_click=lambda e: (
                             show_snackbar("SMTP settings saved!", ft.Colors.GREEN_400),
                             close_dialog(dlg),
@@ -79,9 +79,9 @@ class EmailAccountsView(SettingsSubView):
                     spacing=10,
                 ),
                 actions=[
-                    ft.TextButton("Cancel", on_click=lambda e: close_dialog(dlg)),
+                    ft.TextButton(content=ft.Text("Cancel"), on_click=lambda e: close_dialog(dlg)),
                     ft.TextButton(
-                        "Save",
+                        content=ft.Text("Save"),
                         on_click=lambda e: (
                             show_snackbar("IMAP settings saved!", ft.Colors.GREEN_400),
                             close_dialog(dlg),

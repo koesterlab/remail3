@@ -167,7 +167,7 @@ def create_add_email_widget(on_created: Callable[[UserDTO], Any]) -> ft.Containe
         else:
             ft.SnackBar(ft.Text("Connection failed"))
 
-    add_btn = ft.Button("Hinzufügen", on_click=on_add_click)
+    add_btn = ft.Button(content=ft.Text("Hinzufügen"), on_click=on_add_click)
 
     # Layout zusammenbauen
     main_col = ft.Column(
