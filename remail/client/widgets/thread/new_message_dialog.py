@@ -16,11 +16,14 @@ def create_new_message_dialog(state: MainAppState) -> ft.Container:
         input_field.max_lines = 10
         input_field.min_lines = 10
         input_field.dense = False
-        input_field.update()
-        button_bar.visible = True
-        button_bar.update()
-        send_btn_bottom.visible = False
-        send_btn_bottom.update()
+        try:
+            input_field.update()
+            button_bar.visible = True
+            button_bar.update()
+            send_btn_bottom.visible = False
+            send_btn_bottom.update()
+        except RuntimeError:
+            pass
 
     def collapse() -> None:
         nonlocal expanded
@@ -28,11 +31,14 @@ def create_new_message_dialog(state: MainAppState) -> ft.Container:
         input_field.max_lines = 1
         input_field.min_lines = 1
         input_field.dense = True
-        input_field.update()
-        button_bar.visible = False
-        button_bar.update()
-        send_btn_bottom.visible = True
-        send_btn_bottom.update()
+        try:
+            input_field.update()
+            button_bar.visible = False
+            button_bar.update()
+            send_btn_bottom.visible = True
+            send_btn_bottom.update()
+        except RuntimeError:
+            pass
 
     def on_blur() -> None:
         state.set(MainAppStateProperties.DRAFT, input_field.value)
@@ -73,8 +79,11 @@ def create_new_message_dialog(state: MainAppState) -> ft.Container:
         s = input_field.value
         send_btn_top.disabled = s == ""
         send_btn_bottom.disabled = s == ""
-        send_btn_top.update()
-        send_btn_bottom.update()
+        try:
+            send_btn_top.update()
+            send_btn_bottom.update()
+        except RuntimeError:
+            pass
 
     def on_draft_change(s):
         input_field.value = s

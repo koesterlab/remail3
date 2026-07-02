@@ -167,7 +167,7 @@ class AccountController:
         return ContactDTO.from_model(contact)
 
     @session
-    def create_conversation(self, contacts: list[ContactDTO]) -> ConversationDTO:
+    def create_conversation(self, contacts: list[ContactDTO], session: Session) -> ConversationDTO:
         user = self._get_user_model()
         contact_models = self._get_contact_models(contacts)
         conversation = self.conversation_service.create_conversation(
@@ -176,6 +176,7 @@ class AccountController:
             custom_name=None,
             user=user,
         )
+        session.flush()  # populate conversation.id before building the DTO
         return cast(ConversationDTO, ConversationDTO.from_model(conversation, user))
 
     def delete(self) -> None:
