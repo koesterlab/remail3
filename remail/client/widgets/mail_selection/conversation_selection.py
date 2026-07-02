@@ -171,6 +171,7 @@ class MessageSearchPreview(ft.Container):
             snippet = snippet[:120] + "..."
 
         super().__init__(
+            ink=True,
             on_click=self._handle_click,
             bgcolor=ft.Colors.TRANSPARENT,
             margin=0,
