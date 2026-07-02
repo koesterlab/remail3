@@ -11,9 +11,9 @@ from sqlalchemy.orm import selectinload
 from sqlmodel import Session, col, select
 
 from remail.database import engine
+from remail.interfaces.email.services.user_service import UserService
 from remail.models import Conversation, Email, Thread
 from remail.models.user import User
-from remail.interfaces.email.services.user_service import UserService
 from remail.utils.session_management import session
 
 if TYPE_CHECKING:
@@ -272,14 +272,14 @@ class ThreadService:
 
         return session.exec(
             select(Thread)
-            .join(Email, Thread.messages)
+            .join(Email)
             .where(
                 and_(
                     col(Thread.conversation_id) == conversation_id,
-                    Email.message_id.in_(reference_ids),
+                    col(Email.message_id).in_(reference_ids),
                 )
             )
-            .order_by(Thread.last_message_time.desc())
+            .order_by(col(Thread.last_message_time).desc())
         ).first()
 
     @classmethod
@@ -330,7 +330,7 @@ class ThreadService:
                     selectinload(Conversation.user),  # type: ignore[arg-type]
                 )
             )
-            .order_by(Thread.last_message_time.desc())  # type: ignore
+            .order_by(col(Thread.last_message_time).desc())
             .limit(count)
         ).all()
         unread_cache: dict[int, int] = {}
