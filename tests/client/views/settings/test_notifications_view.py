@@ -357,7 +357,7 @@ class TestCreateNotificationsView:
         result = create_notifications_view(page, app_state)
         button_container = result.content.controls[6]
 
-        assert button_container.alignment == ft.alignment.center
+        assert button_container.alignment == ft.Alignment.CENTER
 
     def test_column_spacing(self):
         """Test that Column has correct spacing."""
@@ -397,7 +397,7 @@ class TestCreateNotificationsView:
 
         result = create_notifications_view(page, app_state)
 
-        assert result.alignment == ft.alignment.center_left
+        assert result.alignment == ft.Alignment.CENTER_LEFT
 
     def test_all_controls_present(self):
         """Test that view has all 7 expected controls."""

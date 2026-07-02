@@ -38,7 +38,7 @@ class TestEmailAccoutsView(unittest.TestCase):
         self.assertIsInstance(result, ft.Container)
         self.assertEqual(result.padding, 20)
         self.assertEqual(result.border_radius, 10)
-        self.assertEqual(result.alignment, ft.alignment.center_left)
+        self.assertEqual(result.alignment, ft.Alignment.CENTER_LEFT)
 
     @patch("remail.client.views.settings.email_accounts_view.UserService")
     def test_container_has_column(self, mock_user_service):
