@@ -21,6 +21,7 @@ def mock_services():
         patch("remail.controllers.account_controller.ThreadService") as mock_thread_service,
         patch("remail.controllers.account_controller.ConversationService") as mock_conv_service,
         patch("remail.controllers.account_controller.ContactService") as mock_contact_service,
+        patch("remail.controllers.account_controller.SearchController") as mock_search_controller,
     ):
         # Setup UserService
         user_instance = mock_user_service.return_value
@@ -33,6 +34,7 @@ def mock_services():
         mock_user_service.get_user_by_id.return_value = mock_user
         user_instance.get_user_by_id.return_value = mock_user
         mock_user_service.count_unread.return_value = 0
+        mock_search_controller.return_value.search.return_value = []
 
         yield {
             "user_service": mock_user_service,

@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import logging
+import threading
 from collections.abc import Callable, Iterable
 from typing import cast
 
@@ -11,6 +12,7 @@ from sqlmodel import Session, select
 from remail import errors as ee
 from remail.controllers.dtos.conversations import ContactDTO, ConversationDTO, ThreadPreviewDTO
 from remail.controllers.dtos.user_dto import UserDTO
+from remail.controllers.search_controller import SearchController
 from remail.enums import ConversationType, Protocol
 from remail.interfaces.email import EmailProtocol
 from remail.interfaces.email.services import (
@@ -20,7 +22,7 @@ from remail.interfaces.email.services import (
 )
 from remail.interfaces.email.services.contact_service import ContactService
 from remail.interfaces.email.services.user_service import UserService
-from remail.models import Contact, Conversation, Thread, User
+from remail.models import Contact, Conversation, Email, Thread, User
 from remail.utils.session_management import session
 from remail.utils.timer import Timer
 
@@ -33,7 +35,8 @@ class AccountController:
     @staticmethod
     def all_client_accounts() -> list["AccountController"]:
         users = UserService().get_all_users()
-        return [AccountController(dto.id) for dto in users]
+        result = [AccountController(dto.id) for dto in users]
+        return result
 
     @staticmethod
     def create_new_account(
@@ -57,10 +60,21 @@ class AccountController:
         user = self._get_user_model()
         self.user: UserDTO = UserDTO.get_from_model(user, UserService.count_unread(user))
         self.sync_service = EmailSyncService(user_id=self.user.id)
-
         # Use pattern_kit.Event for email changes and error notifications
         self.on_email_changed: Event = Event()
         self.on_email_error: Event = Event()
+
+        # Backwards-compatible callback attributes
+        self.callback: Callable[[Iterable[ConversationDTO]], None] = lambda _: None
+        self.error_callback: Callable[[str], None] = lambda _: None
+
+        # Start background indexing of old emails
+        self.search_controller = SearchController()
+        threading.Thread(
+            target=self.search_controller.index_existing_emails,
+            daemon=True,
+            name="Old-Emails-Worker",
+        ).start()
 
     @session
     def _get_conversations_from_db(self, session: Session) -> list[ConversationDTO]:
@@ -93,6 +107,7 @@ class AccountController:
         self._logger.info("[%s] Syncing emails via IMAP...", self.user.email)
         t = Timer()
         self.sync_service.sync_emails()
+
         self._logger.info("[%s] IMAP sync complete. (%s)", self.user.email, t.elapsed())
         self._notify_callback()
         result: list[ConversationDTO] = self._get_conversations_from_db()
@@ -150,6 +165,7 @@ class AccountController:
                     )
                     await asyncio.sleep(30)
                     self.sync_service = EmailSyncService(user_id=self.user.id)
+
         except ee.InvalidLoginData:
             self._notify_error("Invalid login credentials")
         except Exception as exc:
@@ -240,5 +256,23 @@ class AccountController:
             threads=threads,
         )
 
-    def search(self, search_string: str) -> list[ConversationDTO]:
-        return []  # todo
+    @session
+    def search(self, search_string: str, session: Session) -> list[ConversationDTO]:
+        email_ids = self.search_controller.search(search_string)
+        if not email_ids:
+            return []
+
+        result_dtos = []
+        seen_conversation_ids = set()
+
+        for email_id in email_ids:
+            email = session.get(Email, email_id)
+            if not email or not email.thread:
+                continue
+
+            conversation = email.thread.conversation
+            if conversation and conversation.id not in seen_conversation_ids:
+                seen_conversation_ids.add(conversation.id)
+                result_dtos.append(self._conversation_to_dto(conversation))
+
+        return result_dtos
