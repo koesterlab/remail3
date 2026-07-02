@@ -28,6 +28,7 @@ class TestObservableState(unittest.TestCase):
 
     def test_weak_observer_triggered(self):
         """Test that observers registered with weak=True still work with pattern_kit.Event."""
+
         class X:
             def method(self, v):
                 pass
@@ -42,6 +43,7 @@ class TestObservableState(unittest.TestCase):
 
     def test_weak_observer_removed_when_dead(self):
         """Test that pattern_kit.Event handles garbage collection naturally."""
+
         class X:
             def method(self, v):
                 pass

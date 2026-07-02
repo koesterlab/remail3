@@ -33,9 +33,7 @@ class ObservableState(Generic[E]):  # noqa: UP046
         event = self._get_or_create_event(prop)
         event += callback
 
-    def unregister_observer(
-        self, prop: E, callback: Callable[[Any], None]
-    ) -> None:
+    def unregister_observer(self, prop: E, callback: Callable[[Any], None]) -> None:
         """Unregister an observer callback for a property."""
         event = self._events.get(prop)
         if event is None:
@@ -58,4 +56,3 @@ class ObservableState(Generic[E]):  # noqa: UP046
         event = self._get_or_create_event(prop)
         value = self._values.get(prop)
         event(value)
-

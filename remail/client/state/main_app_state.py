@@ -30,9 +30,7 @@ class MainAppState(ObservableState[MainAppStateProperties]):
     def __init__(self):
         super().__init__()
         self.__selected: list[ConversationDTO | ThreadPreviewDTO] = []
-        self.__selection_listeners: dict[
-            ConversationDTO | ThreadPreviewDTO | None, Event
-        ] = {}
+        self.__selection_listeners: dict[ConversationDTO | ThreadPreviewDTO | None, Event] = {}
 
         self.thread_controller = ThreadController()
         self.account_controllers: dict[str, AccountController] = {}
