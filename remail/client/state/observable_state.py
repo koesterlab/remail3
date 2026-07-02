@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from enum import Enum
 from collections.abc import Callable
+from enum import Enum
 from typing import Any, Generic, TypeVar
 
 from pattern_kit import Event

@@ -41,7 +41,10 @@ class AccountController:
     ) -> UserDTO:
         if not connection.test_connection():
             raise ValueError("Creating account with invalid credentials")
-        return UserService().add_user(email, clearname, method, connection)
+        return cast(
+            UserDTO,
+            UserService().add_user(email, clearname, method, connection),
+        )
 
     @session
     def __init__(self, account_id: int) -> None:
