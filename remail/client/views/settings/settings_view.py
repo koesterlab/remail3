@@ -94,7 +94,7 @@ class SettingsView(ft.Container):
                 SettingsSubView.EMAIL_ACCOUNTS: lambda: EmailAccountsView(state),
                 SettingsSubView.LANGUAGE: lambda: LanguageView(),
                 SettingsSubView.NOTIFICATIONS: lambda: NotificationsView(),
-                SettingsSubView.TAGS: lambda: TagsView(),
+                SettingsSubView.TAGS: lambda: TagsView(state),
             }[view]()
             try:
                 sub_view.update()

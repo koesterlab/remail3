@@ -1,30 +1,10 @@
 import flet as ft
 
-from remail.controllers.tag_controller import TagController
+from remail.client.state import MainAppState
+from remail.client.views.settings.settings_sub_view import SettingsSubView
+from remail.client.widgets.tag_chip import tag_chip, tag_color
+from remail.controllers.dtos import SettingsDTO
 from remail.models import Tag
-
-_TAG_COLORS: dict[str, str] = {
-    "Work": ft.Colors.BLUE,
-    "Personal": ft.Colors.GREEN,
-    "Urgent": ft.Colors.RED,
-    "Newsletter": ft.Colors.ORANGE,
-    "Finance": ft.Colors.PURPLE,
-}
-
-
-def _tag_chip(name: str) -> ft.Container:
-    return ft.Container(
-        content=ft.Text(
-            name,
-            size=12,
-            weight=ft.FontWeight.W_600,
-            color=ft.Colors.WHITE,
-            no_wrap=True,
-        ),
-        bgcolor=_TAG_COLORS.get(name, ft.Colors.TEAL),
-        border_radius=16,
-        padding=ft.Padding.symmetric(horizontal=12, vertical=5),
-    )
 
 
 def _tag_count_badge(count: int) -> ft.Container:
@@ -42,10 +22,9 @@ def _tag_count_badge(count: int) -> ft.Container:
     )
 
 
-class TagsView(ft.Container):
-    def __init__(self) -> None:
-        super().__init__(expand=True, padding=20)
-        self.tag_controller = TagController()
+class TagsView(SettingsSubView):
+    def __init__(self, state: MainAppState) -> None:
+        self.tag_controller = state.tag_controller
         self.name_input = ft.TextField(
             label="Tag name",
             hint_text="Project",
@@ -56,19 +35,21 @@ class TagsView(ft.Container):
         )
         self.description_input = ft.TextField(
             label="Description",
-            hint_text="Project related emails",
+            hint_text="Which emails this tag applies to, e.g. senders, topics, keywords",
             prefix_icon=ft.Icons.NOTES_OUTLINED,
             expand=True,
             dense=True,
             on_submit=lambda _: self._add_tag(),
         )
         self.status_text = ft.Text(size=12, color=ft.Colors.ON_SURFACE_VARIANT, visible=False)
-        self._rebuild()
+        super().__init__()
+        self.expand = True
+        self.padding = 20
 
-    def _rebuild(self) -> None:
+    def create_page(self, settings: SettingsDTO) -> ft.Container:
         tags = self.tag_controller.get_all_tags()
 
-        self.content = ft.Column(
+        column = ft.Column(
             spacing=16,
             expand=True,
             scroll=ft.ScrollMode.AUTO,
@@ -99,6 +80,7 @@ class TagsView(ft.Container):
                 ),
             ],
         )
+        return ft.Container(content=column, expand=True)
 
     def _form_panel(self) -> ft.Container:
         return ft.Container(
@@ -122,7 +104,7 @@ class TagsView(ft.Container):
         )
 
     def _refresh(self) -> None:
-        self._rebuild()
+        self.content = self.create_page(self.settings)
         try:
             self.update()
         except RuntimeError:
@@ -159,10 +141,8 @@ class TagsView(ft.Container):
                 spacing=12,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
-                    ft.Icon(
-                        ft.Icons.LABEL, color=_TAG_COLORS.get(tag.name, ft.Colors.TEAL), size=20
-                    ),
-                    _tag_chip(tag.name),
+                    ft.Icon(ft.Icons.LABEL, color=tag_color(tag.name), size=20),
+                    tag_chip(tag.name),
                     ft.Column(
                         expand=True,
                         spacing=3,
