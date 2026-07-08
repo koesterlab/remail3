@@ -39,12 +39,16 @@ def _preview_tags(title: str, body: str, sent_at: datetime) -> list[str]:
         tags.append("Newsletter")
     if any(keyword in text for keyword in ["invoice", "rechnung", "bank", "finance"]):
         tags.append("Finance")
-    if (datetime.now() - sent_at).days >= 3:
+    if (_now_for(sent_at) - sent_at).days >= 3:
         tags.append("Urgent")
     if not tags:
         tags.append("Work")
 
     return tags[:2]
+
+
+def _now_for(dt: datetime) -> datetime:
+    return datetime.now(dt.tzinfo) if dt.tzinfo else datetime.now()
 
 
 class TodoItem(ft.Container):
@@ -151,7 +155,7 @@ class TodoItem(ft.Container):
         """
         Return compact badges like '2h', '1d', '5m', '30s' (always "time ago").
         """
-        now = datetime.now()
+        now = _now_for(dt)
         delta = now - dt
 
         seconds = int(delta.total_seconds())

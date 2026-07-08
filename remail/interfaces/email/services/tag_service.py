@@ -15,7 +15,7 @@ DEFAULT_TAGS = [
 
 class TagService:
     def __init__(self) -> None:
-        SQLModel.metadata.create_all(engine, tables=[Tag.__table__])
+        SQLModel.metadata.create_all(engine, tables=[Tag.__table__])  # type: ignore[attr-defined]
 
     @session
     def seed_default_tags(self, session: Session) -> None:

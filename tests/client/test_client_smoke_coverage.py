@@ -26,7 +26,7 @@ from remail.client.widgets.dashboard.dashboard_page import (
     _display_name_from_account,
     _time_greeting,
 )
-from remail.client.widgets.dashboard.todo_item import TodoItem
+from remail.client.widgets.dashboard.todo_item import TodoItem, _preview_tags
 from remail.client.widgets.dashboard.todo_list import TodoList
 from remail.client.widgets.mail_selection.contact_preview import ContactPreview
 from remail.client.widgets.mail_selection.conversation_preview import ConversationPreview
@@ -323,6 +323,53 @@ def test_dashboard_widgets_smoke(monkeypatch):
     assert TodoItem.fmt_badge(datetime.now() - timedelta(days=1)) == "yesterday"
     assert isinstance(TodoList(state), ft.Container)
     assert isinstance(page, ft.Column)
+
+
+def test_todo_preview_tags_and_visible_count():
+    state = MainAppState()
+    user = make_user()
+    empty_thread = ThreadDTO(id=1, title="Empty", messages=[])
+    work_thread = ThreadDTO(
+        id=2,
+        title="Project update",
+        messages=[make_message()],
+    )
+    newsletter_thread = ThreadDTO(
+        id=3,
+        title="Newsletter invoice",
+        messages=[make_message()],
+    )
+    state.thread_controller.get_most_urgent_threads = Mock(
+        return_value=[
+            (empty_thread, make_conversation(), user),
+            (work_thread, make_conversation(), user),
+            (newsletter_thread, make_conversation(), user),
+        ]
+    )
+
+    todo_list = TodoList(state)
+    content_column = todo_list.content
+    header_row = content_column.controls[0]
+    header_column = header_row.controls[0]
+    items_column = content_column.controls[1]
+
+    assert header_column.controls[1].value == "2 emails to answer"
+    assert len(items_column.controls) == 2
+    assert _preview_tags(
+        "Newsletter",
+        "Your invoice is ready",
+        datetime.now() - timedelta(days=4),
+    ) == ["Newsletter", "Finance"]
+
+    todo_list._set_filter("Newsletter")
+
+    assert todo_list.count_text.value == "1 email to answer"
+    assert len(todo_list.items_column.controls) == 1
+
+    todo_list._set_filter("Urgent")
+
+    assert todo_list.count_text.value == "0 emails to answer"
+    assert todo_list.items_column.controls[0].value == "No emails match this tag"
 
 
 def test_mail_selection_and_thread_widgets_smoke(monkeypatch):
