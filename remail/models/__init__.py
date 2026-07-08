@@ -5,6 +5,7 @@ from .conversation_contact import ConversationContact
 from .email import Email
 from .email_chunk import EmailChunk
 from .email_reception import EmailReception
+from .email_tag import EmailTag
 from .settings import Settings
 from .tag import Tag
 from .thread import Thread
@@ -18,6 +19,7 @@ __all__ = [
     "ConversationContact",
     "Email",
     "EmailReception",
+    "EmailTag",
     "User",
     "UserConversation",
     "Thread",
