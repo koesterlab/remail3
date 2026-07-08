@@ -7,10 +7,16 @@ class TagController:
         self.service = TagService()
 
     def get_all_tags(self) -> list[Tag]:
-        return self.service.get_all_tags()
+        return self.service.get_all_tags()  # type: ignore[no-any-return]
+
+    def get_thread_tags(self, thread_id: int) -> list[Tag]:
+        return self.service.get_thread_tags(thread_id)  # type: ignore[no-any-return]
 
     def create_tag(self, name: str, description: str = "") -> Tag:
-        return self.service.create_tag(name, description)
+        return self.service.create_tag(name, description)  # type: ignore[no-any-return]
 
     def delete_tag(self, tag_id: int) -> None:
         self.service.delete_tag(tag_id)
+
+    def retag_last_n_emails(self, n: int) -> int:
+        return self.service.retag_last_n_emails(n)

@@ -14,6 +14,7 @@ from remail.controllers.search_controller import SearchController
 from remail.enums import ContactType, ConversationType, RecipientKind
 from remail.interfaces.email.services.attachment_service import save_attachment
 from remail.interfaces.email.services.contact_service import ContactService
+from remail.interfaces.email.services.tag_service import TagService
 from remail.models import Attachment, Contact, Conversation, Email, EmailReception, User
 from remail.utils.session_management import session
 
@@ -32,10 +33,17 @@ class EmailParser:
         self.contact_service = ContactService()
         self.conversation_service = ConversationService()
         self.search_controller = SearchController()
+        self.tag_service = TagService()
 
         self.embedding_executor = ThreadPoolExecutor(
             max_workers=5, thread_name_prefix="Embedding-Worker"
         )
+
+    def _index_and_tag_email(self, email_id: int, subject: str, body: str) -> None:
+        """Index the email for search, then tag it from the stored chunk embeddings."""
+        self.search_controller.index_email(email_id=email_id, subject=subject, body=body)
+        chunk_vectors = self.search_controller.get_chunk_embeddings(email_id)
+        self.tag_service.auto_tag_email(email_id, chunk_vectors=chunk_vectors, subject=subject)
 
     @session
     def parse_mail(
@@ -149,12 +157,13 @@ class EmailParser:
         session.commit()
         conv_id: int = conversation.id  # type: ignore[assignment]
 
-        self.embedding_executor.submit(
-            self.search_controller.index_email,
-            email_id=db_email.id or -1,
-            subject=subject,
-            body=db_email.body,
-        )
+        if db_email.id is not None:
+            self.embedding_executor.submit(
+                self._index_and_tag_email,
+                email_id=db_email.id,
+                subject=subject,
+                body=db_email.body,
+            )
 
         try:
             self.thread_service.organize_email_into_thread(

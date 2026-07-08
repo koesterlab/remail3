@@ -1,3 +1,4 @@
+import struct
 import threading
 import time
 from datetime import datetime
@@ -80,6 +81,15 @@ class SearchController:
                         "embedding": vector_blob,
                     },
                 )
+
+    def get_chunk_embeddings(self, email_id: int) -> list[list[float]]:
+        """Read back the stored embedding vectors of an email's chunks."""
+        sql = "SELECT embedding FROM email_chunks WHERE email_id = :email_id ORDER BY chunk_index"
+
+        with self.engine.begin() as conn:
+            rows = conn.execute(text(sql), {"email_id": email_id}).fetchall()
+
+        return [list(struct.unpack(f"{len(row[0]) // 4}f", row[0])) for row in rows]
 
     def search(self, query: str):
         if query == "":
