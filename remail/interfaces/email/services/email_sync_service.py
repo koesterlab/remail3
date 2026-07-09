@@ -18,6 +18,8 @@ from remail.models import (
 )
 from remail.utils.session_management import session
 from remail.utils.timer import Timer
+from remail.interfaces.email.protocols.exchange import ExchangeProtocol
+
 
 if TYPE_CHECKING:
     from remail.interfaces.email.services.email_parser import EmailParser
@@ -61,15 +63,13 @@ class EmailSyncService:
                 ) from e
         elif user.protocol == Protocol.EXCHANGE:
             try:
-                from remail.interfaces.email.protocols.exchange import ExchangeProtocol
-
                 return ExchangeProtocol(serialized=user.connection)
             except Exception as e:
                 raise RuntimeError(
                     f"User (id={user.id}) has invalid protocol string: {str(e)}"
                 ) from e
         else:
-            raise NotImplementedError("Fetching with exchange accounts not implemented")
+            raise NotImplementedError("Error fetching!")
 
     @session
     def sync_emails(self, session: Session, new_only=True) -> None:
