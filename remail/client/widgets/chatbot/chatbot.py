@@ -136,7 +136,13 @@ def create_chatbot(app_state: MainAppState):
 
         # Run the async function in the background using Flet's task system
         # This is the key change: the UI stays responsive while AIfred is thinking
-        container.page.run_task(get_response_async)  # type: ignore[attr-defined]
+        import asyncio
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(get_response_async())
+        except RuntimeError:
+            # No running loop (e.g. in tests), run synchronously
+            asyncio.run(get_response_async())
 
     message_input.on_submit = send_message
 
