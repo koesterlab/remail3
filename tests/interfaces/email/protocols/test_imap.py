@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
+from imapclient.exceptions import LoginError
 
 import remail.interfaces.email.protocols.imap as proto_mod
 from remail import errors as ee
@@ -46,14 +47,6 @@ def folder_service_mock(imap_mock, monkeypatch):
 
 
 @pytest.fixture
-def email_parser_mock(monkeypatch):
-    ep = MagicMock(spec=proto_mod.EmailParser)
-    ep.extract_msg_date.side_effect = lambda em: getattr(em, "dt", None)
-
-    return ep
-
-
-@pytest.fixture
 def smtp_sender_mock():
     s = MagicMock(spec=proto_mod.SmtpSender)
 
@@ -61,10 +54,9 @@ def smtp_sender_mock():
 
 
 @pytest.fixture
-def protocol(imap_mock, folder_service_mock, email_parser_mock, smtp_sender_mock, monkeypatch):
+def protocol(imap_mock, folder_service_mock, smtp_sender_mock, monkeypatch):
     monkeypatch.setattr(proto_mod, "IMAPClient", MagicMock(return_value=imap_mock))
     monkeypatch.setattr(proto_mod, "FolderService", MagicMock(return_value=folder_service_mock))
-    monkeypatch.setattr(proto_mod, "EmailParser", MagicMock(return_value=email_parser_mock))
     monkeypatch.setattr(proto_mod, "SmtpSender", MagicMock(return_value=smtp_sender_mock))
 
     p = ImapProtocol(username="user@example.com", password="pw", host="imap.example.com")
@@ -90,7 +82,7 @@ def test_login_rejects_missing_creds(protocol: ImapProtocol):
 
 
 def test_login_maps_loginerror(protocol: ImapProtocol, imap_mock):
-    imap_mock.login.side_effect = proto_mod.LoginError("bad creds")
+    imap_mock.login.side_effect = LoginError("bad creds")
 
     with pytest.raises(ee.InvalidLoginData):
         protocol.login()
@@ -106,7 +98,7 @@ class FakeMsg:
 
 @pytest.mark.xfail(reason="IMAP fetch_emails refactoring pending", strict=True)
 def test_fetch_emails_across_folders_and_filter_by_since(
-    protocol: ImapProtocol, imap_mock, folder_service_mock, email_parser_mock, monkeypatch
+    protocol: ImapProtocol, imap_mock, folder_service_mock, monkeypatch
 ):
     imap_mock.search.side_effect = [
         [1, 2],
