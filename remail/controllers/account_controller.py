@@ -190,7 +190,8 @@ class AccountController:
         """Load the next batch of conversations starting from the given offset.
         Called when the user clicks 'Load more' in the conversation list.
         """
-        return self._get_conversations_from_db(offset=offset)
+        result: list[ConversationDTO] = list(self._get_conversations_from_db(offset=offset))
+        return result
 
     @session
     def find_or_create_contact_by_email(self, email: str, session: Session) -> ContactDTO:
