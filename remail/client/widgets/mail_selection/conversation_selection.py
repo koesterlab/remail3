@@ -33,7 +33,7 @@ class ConversationSelection(ft.Container):
         super().__init__(
             alignment=ft.Alignment.TOP_CENTER,
             expand=True,
-            content=ft.Column(  # outer: align content to top, middle: scroll, inner: enumeration of elements
+            content=ft.Column(
                 scroll=ft.ScrollMode.AUTO,
                 alignment=ft.MainAxisAlignment.START,
                 spacing=0,
@@ -47,21 +47,20 @@ class ConversationSelection(ft.Container):
             content = self.state.get(MainAppStateProperties.DISPLAYED_MAILS)
         else:
             if search == self.active_search_cache:
-                return  # same search -> no change needed
+                return
             self.active_search_cache = search
             content: list[ConversationDTO | Action] = self.state.get_active_email_account().search(
                 search
             )
-            # special search actions: #todo: more
             if re.match(
                 r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]", search
-            ):  # option "mail hinzufügen
+            ):
                 content.insert(
                     0,
                     Action(
                         search + " zu Kontakten hinzufügen",
                         "Als neuen Kontakt erstellen",
-                        lambda: None,  # todo
+                        lambda: None,
                         ft.Colors.SECONDARY,
                         ft.Icons.ADD,
                     ),
@@ -71,7 +70,7 @@ class ConversationSelection(ft.Container):
                     Action(
                         "Nachricht an " + search,
                         "Neuer Chat",
-                        lambda: None,  # todo
+                        lambda: None,
                         ft.Colors.PRIMARY,
                         ft.Icons.MAIL,
                     ),
@@ -96,7 +95,10 @@ class ConversationSelection(ft.Container):
                     time = datetime.datetime.min
                 else:
                     time = max([t.last_message_datetime for t in elem.threads])
-                if elem.is_favorite:
+                if self.state.get(MainAppStateProperties.SORT_BY_DATE):  #nur nach Datum sortieren
+                    print("sort_by_date_active ist TRUE")
+                    category = "A"
+                elif elem.is_favorite:
                     category = "B"
                 elif sum(t.unread_count for t in elem.threads) > 0:
                     category = "AB"
@@ -106,7 +108,6 @@ class ConversationSelection(ft.Container):
 
         content.sort(key=compute_order_value, reverse=True)
 
-        # check if it is the initial call, then skip check for existing elements
         updating = not len(self.elements) <= 0
         element_list = []
         counter = 0
@@ -116,18 +117,17 @@ class ConversationSelection(ft.Container):
                 stored = self.elements.get(elem.id, None)
                 if stored is not None:
                     stored_dto, stored_widget = stored
-                    if stored_dto == elem:  # DTO unchanged – reuse widget
+                    if stored_dto == elem:
                         element_list.append(stored_widget)
                         continue
-                    # DTO changed (new mail, read-state, …) – drop stale widget
                     del self.elements[elem.id]
             counter += 1
             element_list.append(self.create_list_item(elem))
-            if counter == update_bound:  # showing the list after every
+            if counter == update_bound:
                 self.inner_content.controls = element_list
                 self.update()
                 await asyncio.sleep(0.000001)
-                update_bound <<= 1  # updates after 2,4,8,16,32,... elements
+                update_bound <<= 1
 
         self.inner_content.controls = element_list
         self.update()

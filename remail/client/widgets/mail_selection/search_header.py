@@ -12,6 +12,8 @@ class SearchHeader(ft.Container):
         self.__state = state
         self.__term = state.get(MainAppStateProperties.SEARCH_TERM)
 
+        all_mails = []
+
         # ----- Search Input -----
         def handle_change():
             state.set(MainAppStateProperties.SEARCH_TERM, self.input.value)
@@ -22,7 +24,7 @@ class SearchHeader(ft.Container):
             on_change=handle_change,
             expand=True,
             color=ft.Colors.ON_SECONDARY,
-            border_color="transparent",  # kein Outline
+            border_color="transparent",
             bgcolor=ft.Colors.SECONDARY,
             border_radius=ft.BorderRadius.all(30),
             content_padding=ft.Padding.symmetric(vertical=6, horizontal=8),
@@ -39,7 +41,6 @@ class SearchHeader(ft.Container):
             state.set(MainAppStateProperties.SEARCH_TERM, "")
             state.set(MainAppStateProperties.ACTIVE_THREAD, None)
             state.set(MainAppStateProperties.ACTIVE_THREAD_CONVERSATION, None)
-            # todo: load mails from controller
 
         # ----- Home Icon -----
         home_icon = ft.IconButton(
@@ -48,6 +49,53 @@ class SearchHeader(ft.Container):
             on_click=on_home_clicked,
             icon_size=30,
             style=ft.ButtonStyle(padding=0, bgcolor="transparent"),
+        )
+
+        # ----- Filter Menu -----
+        def sort_by_date(_):
+            nonlocal all_mails
+            state.set(MainAppStateProperties.SORT_BY_DATE, True)
+            mails = state.get(MainAppStateProperties.DISPLAYED_MAILS)
+            if not all_mails and mails:
+                all_mails = mails.copy()
+            source = all_mails if all_mails else mails
+            if not source:
+                return
+            sorted_mails = sorted(
+                source,
+                key=lambda c: max(
+                    (t.last_message_datetime for t in c.threads),
+                    default=datetime.datetime.min,
+                ),
+                reverse=True,
+            )
+            all_mails = sorted_mails.copy()
+            state.set(MainAppStateProperties.DISPLAYED_MAILS, sorted_mails)
+
+        def filter_unread(_):
+            nonlocal all_mails
+            state.set(MainAppStateProperties.SORT_BY_DATE, False)
+            mails = state.get(MainAppStateProperties.DISPLAYED_MAILS)
+            if not mails:
+                return
+            if not all_mails:
+                all_mails = mails.copy()
+            unread = [c for c in all_mails if any(t.unread_count > 0 for t in c.threads)]
+            state.set(MainAppStateProperties.DISPLAYED_MAILS, unread)
+
+        filter_menu = ft.PopupMenuButton(
+            icon=ft.Icons.FILTER_LIST,
+            tooltip="Filter / Sort",
+            items=[
+                ft.PopupMenuItem(
+                    content=ft.Text("Sort by date"),
+                    on_click=sort_by_date,
+                ),
+                ft.PopupMenuItem(
+                    content=ft.Text("Show unread only"),
+                    on_click=filter_unread,
+                ),
+            ],
         )
 
         def create_bottom_option(text: str, icon: ft.IconData, callback: Callable[[], None]):
@@ -107,7 +155,7 @@ class SearchHeader(ft.Container):
         # ----- Layout -----
         content = ft.Column(
             controls=[
-                ft.Row([self.input, home_icon], alignment=ft.MainAxisAlignment.START),
+                ft.Row([self.input, home_icon, filter_menu], alignment=ft.MainAxisAlignment.START),
                 bottom_row,
                 ft.Divider(height=3, thickness=2),
             ],

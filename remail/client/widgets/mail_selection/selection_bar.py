@@ -23,7 +23,7 @@ class SelectionBar(ft.Container):
         self.topic_selection = ThreadSelection(state)
         self.conversation_selection = ConversationSelection(state)
         self.main_content = ft.Column(
-            controls=[SearchHeader(state), self.conversation_selection],
+        controls=[SearchHeader(state), self.conversation_selection],     
             expand=True,
             spacing=0,
             alignment=ft.MainAxisAlignment.START,
