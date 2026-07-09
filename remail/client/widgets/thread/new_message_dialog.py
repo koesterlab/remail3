@@ -90,13 +90,16 @@ def create_new_message_dialog(state: MainAppState) -> ft.Container:
                     conv = state.get_active_email_account().create_conversation(
                         conversation.contacts
                     )
-                    t = state.thread_controller.create_thread(conv, thread.title)
-                elif thread.id < 0:
-                    t = state.thread_controller.create_thread(conversation, thread.title)
+                    new_thread = state.thread_controller.create_thread(conv, thread.title)
+                    # Send the message via SMTP in the background
+                    state.thread_controller.send_message(new_thread.thread_id, message, [])
+                elif thread.thread_id < 0:  # new unsaved thread
+                    new_thread = state.thread_controller.create_thread(conversation, thread.title)
+                    # Send the message via SMTP in the background
+                    state.thread_controller.send_message(new_thread.thread_id, message, [])
                 else:
-                    t = thread
-                # Send the message via SMTP in the background
-                state.thread_controller.send_message(t, message, [])
+                    # Send the message via SMTP in the background
+                    state.thread_controller.send_message(thread.thread_id, message, [])
             except Exception:
                 pass  # nosec
 

@@ -3,25 +3,25 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable
 from email.header import decode_header
 from typing import TYPE_CHECKING
 
 from sqlalchemy import and_, func
+from sqlalchemy.orm import selectinload
 from sqlmodel import Session, col, select
 
-from remail.controllers.dtos.conversations import ConversationDTO
-from remail.controllers.dtos.threads import ThreadDTO
-from remail.controllers.dtos.user_dto import UserDTO
 from remail.database import engine
 from remail.interfaces.email.services.user_service import UserService
 from remail.models import Conversation, Email, Thread
+from remail.models.user import User
 from remail.utils.session_management import session
 
 if TYPE_CHECKING:
+    from remail.controllers.dtos.conversations import ConversationDTO
     from remail.controllers.dtos.threads import (
         ThreadDTO,
     )
+    from remail.controllers.dtos.user_dto import UserDTO
 
 
 class ThreadService:
@@ -33,17 +33,19 @@ class ThreadService:
 
     @session
     def get_thread_by_id(self, thread_id: int, session: Session) -> Thread | None:
-        """
-        Fetch a thread with all its messages.
+        from remail.models.attachment import Attachment  # noqa: F401
+        from remail.models.email import Email
 
-        Args:
-            thread_id: Thread ID to fetch
-
-        Returns:
-            ThreadDTO with thread data including messages, or None if not found
-        """
-
-        return session.get(Thread, thread_id)
+        return session.exec(
+            select(Thread)
+            .where(Thread.id == thread_id)
+            .options(
+                selectinload(Thread.messages).options(  # type: ignore[arg-type]
+                    selectinload(Email.sender),  # type: ignore[arg-type]
+                    selectinload(Email.attachments),  # type: ignore[arg-type]
+                )
+            )
+        ).first()
 
     @session
     def create_thread(self, title: str, conversation_id: int, session: Session) -> Thread:
@@ -81,40 +83,37 @@ class ThreadService:
         if conversation.id is None:
             return
         conversation_id = conversation.id
-        try:
-            subject = self.normalize_subject(subject)
-            existing_thread = session.exec(
-                select(Thread).where(
-                    and_(
-                        col(Thread.conversation_id) == conversation_id,
-                        func.lower(col(Thread.title)) == subject.lower(),
+        subject = self.normalize_subject(subject)
+        existing_thread = session.exec(
+            select(Thread).where(
+                and_(
+                    col(Thread.conversation_id) == conversation_id,
+                    func.lower(col(Thread.title)) == subject.lower(),
+                )
+            )
+        ).first()
+
+        if existing_thread:
+            if email.thread_id != existing_thread.id and existing_thread.id is not None:
+                email.thread = existing_thread
+                if not email.read:
+                    existing_thread.unread_count = existing_thread.unread_count + 1
+                if existing_thread.last_message_time is None:
+                    existing_thread.last_message_time = email.sent_at
+                else:
+                    existing_thread.last_message_time = max(
+                        existing_thread.last_message_time, email.sent_at
                     )
-                )
-            ).first()
+        else:
+            new_thread = Thread(
+                title=subject,
+                conversation_id=conversation.id,
+                unread_count=0 if email.read else 1,
+                last_message_time=email.sent_at,
+            )
 
-            if existing_thread:
-                if email.thread_id != existing_thread.id and existing_thread.id is not None:
-                    email.thread = existing_thread
-                    if not email.read:
-                        existing_thread.unread_count = existing_thread.unread_count + 1
-                    if existing_thread.last_message_time is None:
-                        existing_thread.last_message_time = email.sent_at
-                    else:
-                        existing_thread.last_message_time = max(
-                            existing_thread.last_message_time, email.sent_at
-                        )
-            else:
-                new_thread = Thread(
-                    title=subject,
-                    conversation_id=conversation.id,
-                    unread_count=0 if email.read else 1,
-                    last_message_time=email.sent_at,
-                )
-
-                session.add(new_thread)
-                email.thread = new_thread
-        except Exception as e:
-            print(e)
+            session.add(new_thread)
+            email.thread = new_thread
 
     # from here with chatgpt
     _PREFIXES = [
@@ -221,34 +220,36 @@ class ThreadService:
         returns: (thread_id, ConversationDTO, UserDTO)
         """
         # todo ai valuing of mails
-        threads: Iterable[Thread] = session.exec(
+        from remail.controllers.dtos.conversations import ConversationDTO
+        from remail.controllers.dtos.threads import ThreadDTO
+        from remail.controllers.dtos.user_dto import UserDTO
+
+        threads = session.exec(
             select(Thread)
-            .order_by(
-                Thread.last_message_time.desc(),  # type: ignore
+            .options(
+                selectinload(Thread.conversation).options(  # type: ignore[arg-type]
+                    selectinload(Conversation.threads).selectinload(Thread.messages),  # type: ignore[arg-type]
+                    selectinload(Conversation.contacts),  # type: ignore[arg-type]
+                    selectinload(Conversation.user),  # type: ignore[arg-type]
+                )
             )
+            .order_by(Thread.last_message_time.desc())  # type: ignore
             .limit(count)
-        )
-        return [
-            (
-                ThreadDTO.from_model(t),
-                ConversationDTO.from_model(t.conversation, t.conversation.user),
-                UserService.user_to_dto(t.conversation.user),
+        ).all()
+        unread_cache: dict[int, int] = {}
+        result = []
+        for t in threads:
+            user: User = t.conversation.user
+            user_id = user.id
+            if user_id is None:
+                continue
+            if user_id not in unread_cache:
+                unread_cache[user_id] = UserService.count_unread(user)
+            result.append(
+                (
+                    ThreadDTO.from_model(t),
+                    ConversationDTO.from_model(t.conversation, user),
+                    UserDTO.get_from_model(user, unread_cache[user_id]),
+                )
             )
-            for t in threads
-        ]
-    @session
-    def delete_thread(self, thread_id: int, session: Session) -> bool:
-        # Step 1: Try to find the thread in the database
-        # session.get() is like saying "go to the Thread table, find the row with this id"
-        thread = session.get(Thread, thread_id)
-        # Step 2: If nothing was found, stop here and return False
-        # (you can't delete something that doesn't exist)
-        if not thread:
-            return False
-        # Step 3: Tell the database "mark this row for deletion"
-        session.delete(thread)
-        # Step 4: Actually save the change to the database
-        # (without commit, the deletion doesn't happen for real)
-        session.commit()
-        # Step 5: Everything went fine, return True
-        return True
+        return result

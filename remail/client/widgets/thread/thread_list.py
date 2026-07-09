@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+import logging
 
 import flet as ft
 
@@ -10,14 +10,17 @@ from remail.client.widgets.thread.new_message_dialog import create_new_message_d
 from remail.controllers.dtos.conversations import ConversationDTO, ThreadPreviewDTO
 from remail.controllers.dtos.threads import ThreadDTO
 from remail.controllers.thread_controller import ThreadController
+from remail.utils.timer import Timer
 
-ThreadDict = dict[str, Any]
-MessageDict = dict[str, Any]
+_logger = logging.getLogger(__name__)
 
 
 class ThreadList(ft.Container):
     def __init__(self, state: MainAppState) -> None:
-        super().__init__(expand=True, bgcolor=ft.Colors.TERTIARY)
+        super().__init__(
+            expand=True,
+            bgcolor=ft.Colors.SURFACE,
+        )
         self.state = state
         self.thread: ThreadDTO | None = None
         state.register_observer(
@@ -29,6 +32,7 @@ class ThreadList(ft.Container):
     # rebuild the UI
     # ------------------------------------------------------------------ #
     def _rebuild(self) -> None:
+        t_total = Timer()
         new_thread: ThreadPreviewDTO = self.state.get(MainAppStateProperties.ACTIVE_THREAD)
         self.conversation: ConversationDTO = self.state.get(
             MainAppStateProperties.ACTIVE_THREAD_CONVERSATION
@@ -36,83 +40,14 @@ class ThreadList(ft.Container):
         if not new_thread:  # dashboard -> just do nothing
             self.thread = None
             return
-
-        if new_thread.thread_id < 0:  # new, unsaved thread
+        if not self.thread and new_thread.thread_id > 0:
+            self.thread = ThreadController().get_thread(new_thread.thread_id)
+        elif new_thread.thread_id < 0:  # new, unsaved thread
             self.thread = ThreadDTO(-1, new_thread.title, [], self.conversation.contacts)
-            self._render()
-        elif not self.thread or self.thread.id != new_thread.thread_id:
-            # Show a loading indicator while the thread is being loaded from the database
-            self.content = ft.Column(
-                [
-                    ft.Container(
-                        ft.ProgressRing(),
-                        alignment=ft.Alignment.CENTER,
-                        expand=True,
-                    )
-                ],
-                expand=True,
-            )
-            if self.page:
-                self.update()
-
-            # Load the thread from the database in the background so the UI doesn't freeze
-            async def load_thread():
-                self.thread = ThreadController().get_thread(new_thread.thread_id)
-                self.active_user = self.state.get(MainAppStateProperties.ACTIVE_USER)
-                if self.thread is None:
-                    return
-                self._render()
-                if self.page:
-                    self.update()
-
-            # Start loading in the background using Flet's task system
-            if self.page:
-                self.page.run_task(load_thread)
-        else:
-            self._render()
-
-    def _render(self) -> None:
-        """Render the thread UI once the thread data is available."""
-        if self.thread is None:
-            return
         self.active_user = self.state.get(MainAppStateProperties.ACTIVE_USER)
-
-        # This function is called when the user clicks the delete button
-        def on_delete_click(_):
-            # This function is called when the user confirms the deletion
-            def confirm_delete(_):
-                # Delete the thread from the database
-                ThreadController().delete_thread(self.thread.id)
-                # Go back to dashboard by clearing the active thread
-                self.state.set(MainAppStateProperties.ACTIVE_THREAD, None)
-                dialog.open = False
-                self.page.update()
-
-            # This function is called when the user cancels the deletion
-            def cancel_delete(_):
-                # Just close the dialog, do nothing
-                dialog.open = False
-                self.page.update()
-
-            # Show a confirmation popup before deleting
-            dialog = ft.AlertDialog(
-                modal=True,
-                title=ft.Text("Delete Thread"),
-                content=ft.Text(f'Are you sure you want to delete "{self.thread.title}"?'),
-                actions=[
-                    ft.TextButton("Cancel", on_click=cancel_delete),
-                    ft.TextButton(
-                        "Delete",
-                        on_click=confirm_delete,
-                        style=ft.ButtonStyle(color=ft.Colors.ERROR),  # Red color for destructive action
-                    ),
-                ],
-                actions_alignment=ft.MainAxisAlignment.END,
-            )
-            self.page.overlay.append(dialog)
-            dialog.open = True
-            self.page.update()
-
+        if self.thread is None:
+            return  # just for mypy
+        # ---------- the information of top contact -------- #
         header = ft.Container(
             ft.Row(
                 controls=[
@@ -138,17 +73,9 @@ class ThreadList(ft.Container):
                             ),
                         ],
                         spacing=0,
-                        expand=True,  # Expand the column to fill available space
-                    ),
-                    ft.IconButton(  # Delete button in the top right corner of the thread header
-                        icon=ft.Icons.DELETE_OUTLINE,
-                        icon_color=ft.Colors.ERROR,  # Red color to indicate a destructive action
-                        tooltip="Delete thread",  # Shown on hover
-                        on_click=on_delete_click,  # Calls the function we defined above
                     ),
                 ],
-                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,  # Push column to left, button to right
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,  # Vertically center both items
+                alignment=ft.MainAxisAlignment.START,
                 spacing=10,
             ),
             padding=ft.Padding.only(left=10, top=5, bottom=5, right=10),
@@ -156,7 +83,7 @@ class ThreadList(ft.Container):
             bgcolor=ft.Colors.SURFACE,
         )
 
-        # ---------- "Discussing email"  ---------- #
+        # ---------- “Discussing email”  ---------- #
         # title = str(thread.get("title", "")) or ""
         #
         # if messages_raw:
@@ -186,6 +113,7 @@ class ThreadList(ft.Container):
         #     ),
         # )
 
+        t_widgets = Timer()
         messages_column = ft.Container(
             ft.Column(
                 controls=[MessageBubble(m, self.active_user) for m in self.thread.messages],
@@ -194,6 +122,9 @@ class ThreadList(ft.Container):
                 scroll=ft.ScrollMode.AUTO,
             ),
             expand=True,
+        )
+        _logger.info(
+            "Built %d message bubble(s). (%s)", len(self.thread.messages), t_widgets.elapsed()
         )
 
         self.content = ft.Column(
@@ -207,3 +138,4 @@ class ThreadList(ft.Container):
             spacing=0,
             expand=True,
         )
+        _logger.info("ThreadList._rebuild done. (%s)", t_total.elapsed())

@@ -281,7 +281,7 @@ def test_account_controller_smoke(monkeypatch):
         "remail.controllers.account_controller.EmailSyncService",
         lambda user_id: Mock(
             sync_emails=Mock(),
-            check_for_changed_threads=lambda: [thread],
+            get_changed_conversations=lambda: [conversation],
             wait_for_mail_changes_async=AsyncMock(),
         ),
     )
@@ -294,6 +294,9 @@ def test_account_controller_smoke(monkeypatch):
     monkeypatch.setattr(
         "remail.controllers.account_controller.ContactService",
         lambda: Mock(get_contact_by_id=lambda contact_id: contact),
+    )
+    monkeypatch.setattr(
+        "remail.controllers.account_controller.SearchController.search", lambda self, query: []
     )
 
     controller = AccountController(7)

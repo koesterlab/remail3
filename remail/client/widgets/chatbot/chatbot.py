@@ -63,14 +63,7 @@ def create_chatbot(app_state: MainAppState):
     )
 
     def _get_ai_response(user_message: str) -> LLMResponseDTO | None:
-        """Get AI response using LLM controller with chat memory.
-
-        Args:
-            user_message: The user's message
-
-        Returns:
-            LLMResponseDTO or None if an error occurred
-        """
+        """Get AI response using LLM controller with chat memory."""
         try:
             response_dto: LLMResponseDTO = llm_controller.chat(
                 prompt=user_message,
@@ -100,7 +93,7 @@ def create_chatbot(app_state: MainAppState):
         if chat_display.height == 0:
             chat_display.height = 290
 
-        # Show a loading indicator while waiting for the AI response
+        # Create the loading indicator before the async function so it's in scope
         loading_indicator = ft.ProgressRing()
         loading_container = ft.Row(
             controls=[
@@ -110,23 +103,25 @@ def create_chatbot(app_state: MainAppState):
             spacing=10,
         )
 
+        # Add loading indicator to chat display
         chat_display.controls.append(loading_container)
         chat_display.update()
 
         # This async function runs in the background so the UI stays responsive
         # Without async, the UI would freeze while waiting for the AI response
-        async def get_response_async():
+        async def get_response_async(lc=loading_container) -> None:
             # Call the LLM and wait for the response (this can take 2-5 seconds)
             response_dto = _get_ai_response(user_message)
 
             # Remove the loading indicator once the response is ready
-            chat_display.controls.remove(loading_container)
+            if lc in chat_display.controls:
+                chat_display.controls.remove(lc)
 
             if response_dto is None:
                 # Show an error message if the LLM server is unavailable
                 chat_display.controls.append(
                     ft.Text(
-                        f"AI: (LLM Server Unavailable) I received your message: '{user_message}'. Please make sure the LLM server is running at the configured base URL.",
+                        f"AI: (LLM Server Unavailable) I received your message: '{user_message}'.",
                         color=ft.Colors.RED,
                     )
                 )
