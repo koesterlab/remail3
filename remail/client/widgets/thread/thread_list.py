@@ -28,9 +28,6 @@ class ThreadList(ft.Container):
         )  # if thread changes in state, widget changes
         self._rebuild()
 
-    # ------------------------------------------------------------------ #
-    # rebuild the UI
-    # ------------------------------------------------------------------ #
     def _rebuild(self) -> None:
         t_total = Timer()
         new_thread: ThreadPreviewDTO = self.state.get(MainAppStateProperties.ACTIVE_THREAD)
@@ -40,13 +37,55 @@ class ThreadList(ft.Container):
         if not new_thread:  # dashboard -> just do nothing
             self.thread = None
             return
-        if not self.thread and new_thread.thread_id > 0:
-            self.thread = ThreadController().get_thread(new_thread.thread_id)
-        elif new_thread.thread_id < 0:  # new, unsaved thread
+
+        if new_thread.thread_id < 0:  # new, unsaved thread
             self.thread = ThreadDTO(-1, new_thread.title, [], self.conversation.contacts)
-        self.active_user = self.state.get(MainAppStateProperties.ACTIVE_USER)
+            self._render()
+        elif not self.thread or self.thread.id != new_thread.thread_id:
+            # Show a loading spinner while the thread messages are being loaded from the database
+            self.content = ft.Column(
+                [
+                    ft.Container(
+                        ft.ProgressRing(),
+                        alignment=ft.Alignment.CENTER,
+                        expand=True,
+                    )
+                ],
+                expand=True,
+            )
+            try:
+                self.update()
+            except Exception:
+                pass  # nosec - page may not be mounted yet
+
+            # Load the thread from the database in the background so the UI doesn't freeze
+            async def load_thread():
+                self.thread = ThreadController().get_thread(new_thread.thread_id)
+                self.active_user = self.state.get(MainAppStateProperties.ACTIVE_USER)
+                if self.thread is None:
+                    return
+                self._render()
+                try:
+                    self.update()
+                except Exception:
+                    pass  # nosec - page may not be mounted yet
+
+            # Start loading in the background using Flet's task system
+            try:
+                self.page.run_task(load_thread)
+            except Exception:
+                pass  # nosec - page may not be mounted yet
+        else:
+            self._render()
+
+        _logger.info("ThreadList._rebuild done. (%s)", t_total.elapsed())
+
+    def _render(self) -> None:
+        """Render the thread UI once the thread data is available."""
         if self.thread is None:
-            return  # just for mypy
+            return
+        self.active_user = self.state.get(MainAppStateProperties.ACTIVE_USER)
+
         # ---------- the information of top contact -------- #
         header = ft.Container(
             ft.Row(
@@ -83,7 +122,7 @@ class ThreadList(ft.Container):
             bgcolor=ft.Colors.SURFACE,
         )
 
-        # ---------- “Discussing email”  ---------- #
+        # ---------- "Discussing email"  ---------- #
         # title = str(thread.get("title", "")) or ""
         #
         # if messages_raw:
@@ -138,4 +177,3 @@ class ThreadList(ft.Container):
             spacing=0,
             expand=True,
         )
-        _logger.info("ThreadList._rebuild done. (%s)", t_total.elapsed())

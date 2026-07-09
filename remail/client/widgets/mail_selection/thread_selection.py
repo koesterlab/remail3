@@ -27,6 +27,7 @@ class ThreadSelection(ft.Container):
         self._image = ft.Container(width=40, height=40)
         self._primary_text = ft.Text("", weight=ft.FontWeight.BOLD, color=ft.Colors.ON_SURFACE)
         self._secondary_text = ft.Text("", size=12, color=ft.Colors.ON_SURFACE_VARIANT)
+        self._thread_offset = 50  # Track how many threads are currently shown
 
         state.register_observer(MainAppStateProperties.ACTIVE_CONVERSATION, self.set_content)
 
@@ -64,7 +65,7 @@ class ThreadSelection(ft.Container):
                     ft.Container(
                         alignment=ft.Alignment.TOP_CENTER,
                         expand=True,
-                        content=ft.Column(  # outer: align content to top, middle: scroll, inner: enumeration of elements
+                        content=ft.Column(
                             scroll=ft.ScrollMode.AUTO,
                             alignment=ft.MainAxisAlignment.START,
                             spacing=0,
@@ -119,6 +120,9 @@ class ThreadSelection(ft.Container):
         t = Timer()
         self._image.content = create_profile_picture(content)
         self.conversation = content
+        # Reset the offset when a new conversation is selected
+        self._thread_offset = 50
+
         if len(content.contacts) == 1:
             contact = content.contacts[0]
             self._primary_text.value = content.get_member_string(extended=True)
@@ -128,10 +132,49 @@ class ThreadSelection(ft.Container):
                 content.custom_name if content.custom_name else content.get_member_string()
             )
             self._secondary_text.value = str(len(content.contacts)) + " Members"
-        sorted_threads = sorted(content.threads, key=lambda t: t.unread_count, reverse=True)
+
+        # Sort threads by unread count so unread threads appear first
+        # Only show the first 50 threads to avoid UI freezing
+        # A single conversation can have thousands of threads which would freeze the UI for seconds
+        all_sorted_threads = sorted(content.threads, key=lambda t: t.unread_count, reverse=True)
+        sorted_threads = all_sorted_threads[:50]
+
+        def load_more_threads(_):
+            # Load the next 50 threads and append them to the list
+            next_threads = all_sorted_threads[self._thread_offset : self._thread_offset + 50]
+            if not next_threads:
+                # No more threads to load — hide the button
+                load_more_btn.visible = False
+                load_more_btn.update()
+                return
+            # Increase the offset for the next "Load more" click
+            self._thread_offset += 50
+            new_widgets = [
+                ThreadPreview(self._state, elem, self.conversation) for elem in next_threads
+            ]
+            # Insert new threads before the "load more" and "add thread" buttons
+            insert_pos = len(self._content.controls) - 2
+            for i, w in enumerate(new_widgets):
+                self._content.controls.insert(insert_pos + i, w)
+            self._content.update()
+
+        # "Load more" button shown at the bottom of the thread list
+        load_more_btn = ft.Container(
+            ft.TextButton(
+                "Load more threads",
+                icon=ft.Icons.EXPAND_MORE,
+                on_click=load_more_threads,
+            ),
+            alignment=ft.Alignment.CENTER,
+            padding=ft.Padding.all(10),
+            # Hide the button if there are fewer than 50 threads total
+            visible=len(all_sorted_threads) > 50,
+        )
+
         self._content.controls = [
             ThreadPreview(self._state, elem, self.conversation) for elem in sorted_threads
-        ] + [self.add_thread_btn]  # type: ignore
+        ] + [load_more_btn, self.add_thread_btn]  # type: ignore
+
         _logger.info(
             "ThreadSelection built %d thread widget(s). (%s)", len(sorted_threads), t.elapsed()
         )

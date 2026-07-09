@@ -10,7 +10,6 @@ from sqlmodel import Session, select
 
 from remail import errors as ee
 from remail.controllers.dtos.conversations import ContactDTO, ConversationDTO, ThreadPreviewDTO
-from remail.controllers.dtos.threads import MessageDTO
 from remail.controllers.dtos.user_dto import UserDTO
 from remail.controllers.search_controller import SearchController
 from remail.enums import ConversationType, Protocol
@@ -68,7 +67,12 @@ class AccountController:
         ).start()
 
     @session
-    def _get_conversations_from_db(self, session: Session) -> list[ConversationDTO]:
+    def _get_conversations_from_db(
+        self,
+        session: Session,
+        limit: int = 50,  # Number of conversations to load at a time
+        offset: int = 0,  # Start position — used for "Load more" functionality
+    ) -> list[ConversationDTO]:
         self._logger.info("[%s] Loading conversations from DB...", self.user.email)
         t = Timer()
         user = session.exec(
@@ -83,11 +87,18 @@ class AccountController:
         ).first()
         if not user:
             return []
-        result = [self._conversation_to_dto(c) for c in user.conversations]
+
+        # Only load a limited number of conversations at a time for better performance
+        # offset allows loading more conversations when the user clicks "Load more"
+        conversations = user.conversations[offset : offset + limit]
+
+        result = [self._conversation_to_dto(c) for c in conversations]
         self._logger.info(
-            "[%s] Loaded %d conversation(s) from DB. (%s)",
+            "[%s] Loaded %d conversation(s) from DB (offset=%d, limit=%d). (%s)",
             self.user.email,
             len(result),
+            offset,
+            limit,
             t.elapsed(),
         )
         return result
@@ -101,6 +112,7 @@ class AccountController:
 
         self._logger.info("[%s] IMAP sync complete. (%s)", self.user.email, t.elapsed())
         self._notify_callback()
+        # Load only the first 50 conversations by default
         result: list[ConversationDTO] = self._get_conversations_from_db()
         return result
 
@@ -135,6 +147,7 @@ class AccountController:
         """Starts background task to wait for email changes in imap idle mode. Calls callback if something changes"""
         try:
             self._logger.info("[%s] Showing cached emails from DB.", self.user.email)
+            # Load only the first 50 conversations on startup for faster initial load
             self.callback(self._get_conversations_from_db())
 
             while True:
@@ -172,6 +185,12 @@ class AccountController:
 
     def get_user(self) -> UserDTO:
         return self.user
+
+    def load_more_conversations(self, offset: int) -> list[ConversationDTO]:
+        """Load the next batch of conversations starting from the given offset.
+        Called when the user clicks 'Load more' in the conversation list.
+        """
+        return self._get_conversations_from_db(offset=offset)
 
     @session
     def find_or_create_contact_by_email(self, email: str, session: Session) -> ContactDTO:
@@ -260,40 +279,21 @@ class AccountController:
         self, search_string: str, requested_emails: int = 10, session: Session | None = None
     ) -> list[MessageDTO]:
         email_ids = self.search_controller.search(search_string, requested_emails=requested_emails)
+
         if not email_ids:
             return []
 
-        result_dtos: list[MessageDTO] = []
+        result_dtos = []
+        seen_conversation_ids = set()
+
         for email_id in email_ids:
             email = session.get(Email, email_id)  # type: ignore
             if not email or not email.thread:
                 continue
 
-            result_dtos.append(MessageDTO.from_model(email))
+            conversation = email.thread.conversation
+            if conversation and conversation.id not in seen_conversation_ids:
+                seen_conversation_ids.add(conversation.id)
+                result_dtos.append(self._conversation_to_dto(conversation))
 
         return result_dtos
-
-    @session
-    def get_email_context(
-        self, email_id: int, session: Session
-    ) -> tuple[ConversationDTO, ThreadPreviewDTO] | None:
-
-        email = session.get(Email, email_id)
-        if not email or not email.thread or not email.thread.conversation:
-            return None
-
-        conversation = self._conversation_to_dto(email.thread.conversation)
-        thread = email.thread
-        unread_count = sum(1 for message in thread.messages if not message.read)
-        latest_message = max(thread.messages, key=lambda message: message.sent_at, default=None)
-        thread_preview = ThreadPreviewDTO(
-            thread_id=thread.id if thread.id is not None else -1,
-            title=thread.title,
-            total_count=len(thread.messages),
-            unread_count=unread_count,
-            last_message=latest_message.body if latest_message else "",
-            last_message_datetime=latest_message.sent_at
-            if latest_message
-            else datetime.datetime.min,
-        )
-        return conversation, thread_preview
