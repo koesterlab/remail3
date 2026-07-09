@@ -72,7 +72,7 @@ class ThreadList(ft.Container):
 
             # Start loading in the background using Flet's task system
             try:
-                self.page.run_task(load_thread)  # type: ignore[union-attr]
+                self.page.run_task(load_thread)  # type: ignore[attr-defined]
             except Exception:
                 pass  # nosec - page may not be mounted yet
         else:
