@@ -68,7 +68,10 @@ class ThreadController:
         protocol = ImapProtocol(serialized=user.connection)
         protocol.send_email(
             sender=(user.name, user.email),
-            recipients=[(( c.first_name or "") + " " + (c.last_name or ""), c.email_address) for c in thread.conversation.contacts],
+            recipients=[
+                ((c.first_name or "") + " " + (c.last_name or ""), c.email_address)
+                for c in thread.conversation.contacts
+            ],
             subject=("Re: " if thread.messages else "") + thread.title,
             msg=message,
         )
