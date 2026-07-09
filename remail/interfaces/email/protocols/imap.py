@@ -1,22 +1,17 @@
 import asyncio
 import datetime
-import email as py_email
 import smtplib
 from collections.abc import AsyncGenerator, Sequence
-from email.message import EmailMessage
-from email.utils import formataddr, make_msgid
 from functools import wraps
 from typing import Any
 
 from imapclient import IMAPClient
-from imapclient.exceptions import LoginError
 
 from remail import errors as ee
 from remail.enums.auth_methods import AuthMethods
 from remail.enums.connection_security import ConnectionSecurity
 from remail.errors import email_error_handler
 from remail.interfaces.email import EmailProtocol
-from remail.interfaces.email.services.email_parser import EmailParser
 from remail.interfaces.email.services.folder_service import FolderService
 from remail.interfaces.email.services.message_builder import MessageBuilder
 from remail.interfaces.email.services.smtp_sender import SmtpSender

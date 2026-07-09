@@ -120,7 +120,10 @@ def create_new_message_dialog(state: MainAppState) -> ft.Container:
             sent_message = state.thread_controller.send_message(thread_id, message, [])
         except ee.EmailError:
             from remail.client import show_snack_bar
-            show_snack_bar(ft.Text("Failed to send message. Please check your connection and try again."))
+
+            show_snack_bar(
+                ft.Text("Failed to send message. Please check your connection and try again.")
+            )
             return
 
         updated_thread = ThreadPreviewDTO(

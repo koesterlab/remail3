@@ -3,6 +3,8 @@ from datetime import datetime
 from types import SimpleNamespace
 from typing import Any
 
+from sqlmodel import Session
+
 from remail import errors as ee
 from remail.controllers.dtos.conversations import ConversationDTO
 from remail.controllers.dtos.threads import MessageContentDTO, MessageDTO, SenderDTO, ThreadDTO
@@ -14,7 +16,6 @@ from remail.interfaces.email.services.user_service import UserService
 from remail.models import Email
 from remail.utils.session_management import session
 from remail.utils.timer import Timer
-from sqlmodel import Session
 
 _logger = logging.getLogger(__name__)
 
