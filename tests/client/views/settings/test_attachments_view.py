@@ -8,7 +8,6 @@ from remail.client.views.settings.attachments_view import (
     AttachmentVersion,
 )
 from remail.models import Attachment, Contact, Conversation, Email, Thread
-from remail.utils.file_opener import open_file
 
 
 def test_load_attachment_groups_groups_versions_by_thread_and_filename(session: Session):
