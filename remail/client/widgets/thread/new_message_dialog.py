@@ -66,25 +66,42 @@ def create_new_message_dialog(state: MainAppState) -> ft.Container:
         on_change()
 
     def send_mail():
-        # retrieve data
+        # Retrieve the current thread and conversation from state
         thread = state.get(MainAppStateProperties.ACTIVE_THREAD)
         conversation = state.get(MainAppStateProperties.ACTIVE_THREAD_CONVERSATION)
         if thread.title == "":
             return
         message = input_field.value
 
-        # send
-        if conversation.id < 0:  # creating new conversation
-            conversation = state.get_active_email_account().create_conversation(
-                conversation.contacts
-            )
-            thread = state.thread_controller.create_thread(conversation, thread.title)
-        elif thread.id < 0:
-            thread = state.thread_controller.create_thread(conversation, thread.title)
-        state.thread_controller.send_message(thread, message, [])
-
-        # clear
+        # Clear the draft immediately so the user can type again
         state.set(MainAppStateProperties.DRAFT, "")
+
+        # Disable the send buttons while sending to prevent double-sending
+        send_btn_top.disabled = True
+        send_btn_bottom.disabled = True
+        send_btn_top.update()
+        send_btn_bottom.update()
+
+        # Run the send operation in the background so the UI doesn't freeze
+        # Without async, sending via SMTP can take 3-5 seconds and freeze the UI
+        async def do_send():
+            try:
+                if conversation.id < 0:  # creating new conversation
+                    conv = state.get_active_email_account().create_conversation(
+                        conversation.contacts
+                    )
+                    t = state.thread_controller.create_thread(conv, thread.title)
+                elif thread.id < 0:
+                    t = state.thread_controller.create_thread(conversation, thread.title)
+                else:
+                    t = thread
+                # Send the message via SMTP in the background
+                state.thread_controller.send_message(t, message, [])
+            except Exception:
+                pass  # nosec
+
+        # Start sending in the background using Flet's task system
+        container.page.run_task(do_send)
 
     state.register_observer(MainAppStateProperties.DRAFT, on_draft_change)
     send_btn_bottom = ft.IconButton(

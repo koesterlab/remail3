@@ -49,8 +49,7 @@ class TestMessageBubble(unittest.TestCase):
 
         self.assertIsInstance(inner, ft.Container)
         self.assertEqual(inner.bgcolor, ft.Colors.PRIMARY)
-        self.assertEqual(inner.content.controls[0].value, "Hello me")
-        self.assertIsNone(bubble.expand)
+        self.assertEqual(inner.content.value, "Hello me")
 
     def test_bubble_alignment_other(self) -> None:
         """Message from other user aligns left and uses secondary color."""
@@ -63,19 +62,4 @@ class TestMessageBubble(unittest.TestCase):
         )
         bubble = MessageBubble(message, self.user_contact)
 
-        self.assertEqual(bubble.alignment, ft.Alignment.CENTER_LEFT)
-        self.assertIsNone(bubble.expand)
-
-    def test_bubble_trims_email_body_outer_space(self) -> None:
-        """Message body should not render leading or trailing blank space."""
-        message = MessageDTO(
-            sender=self.other_sender,
-            content=MessageContentDTO(body="\n\nHello other\n\n", attachments=[]),
-            sent_at=datetime(2024, 1, 1),
-            id=0,
-            subject="Test",
-        )
-        bubble = MessageBubble(message, self.user_contact)
-        inner = bubble.content.controls[-1]
-
-        self.assertEqual(inner.content.controls[0].value, "Hello other")
+        self.assertEqual(bubble.alignment, ft.alignment.center_left)

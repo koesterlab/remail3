@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING
 
@@ -12,12 +11,11 @@ from remail.enums import Protocol
 from remail.interfaces.email import EmailProtocol, ImapProtocol
 from remail.interfaces.email.services import EmailParser
 from remail.models import (
-    Conversation,
     Email,
+    Thread,
     User,
 )
 from remail.utils.session_management import session
-from remail.utils.timer import Timer
 
 if TYPE_CHECKING:
     from remail.interfaces.email.services.email_parser import EmailParser
@@ -25,8 +23,6 @@ if TYPE_CHECKING:
 
 class EmailSyncService:
     """Service for syncing emails from IMAP server to the local database."""
-
-    _logger = logging.getLogger(__name__)
 
     def __init__(
         self,
@@ -39,7 +35,7 @@ class EmailSyncService:
             user_id: Database user id (preferred if available)
         """
 
-        self.changed_conversation_ids: list[int] = []
+        self.changed_mails: list[int] = []
         self.user_id = user_id
         self.email_parser = EmailParser(user_id)
         self.protocol = self._create_protocol()
@@ -79,46 +75,27 @@ class EmailSyncService:
 
         synced_count = 0
         skipped_count = 0
-        mails = self.protocol.fetch_emails(new_only=new_only)
-        total = len(mails)
-        if total == 0:
-            self._logger.info("No new emails to sync.")
-        else:
-            self._logger.info("Fetched %d email(s) from IMAP, processing...", total)
-        log_every = max(1, total // 10)
-        t = Timer()
-        for i, (uid, data) in enumerate(mails.items(), start=1):
+        for uid, data in self.protocol.fetch_emails(new_only=new_only).items():
             try:
-                changed, mail_id, conv_id = self.email_parser.parse_mail(data, uid)
-                if changed and conv_id is not None:
-                    self.changed_conversation_ids.append(conv_id)
+                changed, mail = self.email_parser.parse_mail(data, uid)
+                if changed:
+                    self.changed_mails.append(mail)
                     synced_count += 1
                 else:
                     skipped_count += 1
             except Exception:  # nosec
                 pass
-            if total > 0 and i % log_every == 0 and i < total:
-                self._logger.info("  ... %d / %d processed (%s)", i, total, t.elapsed())
-        if total > 0:
-            self._logger.info(
-                "Sync complete: %d new/updated, %d unchanged. (%s)",
-                synced_count,
-                skipped_count,
-                t.elapsed(),
-            )
         self._save_connection_data()
 
-    async def wait_for_mail_changes_async(self) -> AsyncGenerator[None, None]:
+    @session
+    async def wait_for_mail_changes_async(self, session: Session) -> AsyncGenerator[None, None]:
         async for mails in self.protocol.wait_for_changes():
             changed = False
             for uid, data in mails.items():
-                try:
-                    changed_mail, mail_id, conv_id = self.email_parser.parse_mail(data, uid)
-                    if changed_mail and conv_id is not None:
-                        changed = True
-                        self.changed_conversation_ids.append(conv_id)
-                except Exception:  # nosec
-                    pass
+                changed_mail, mail = self.email_parser.parse_mail(data, uid)
+                if changed_mail:
+                    changed = True
+                    self.changed_mails.append(mail)
             if changed:
                 yield None
 
@@ -146,11 +123,16 @@ class EmailSyncService:
         return session.exec(select(Email).where(Email.message_id == message_id)).first() is not None
 
     @session
-    def get_changed_conversations(self, session: Session) -> list[Conversation]:
-        if not self.changed_conversation_ids:
+    def check_for_changed_threads(self, session: Session) -> list[Thread]:
+        if self.changed_mails == []:
             return []
+
         result = session.exec(
-            select(Conversation).where(col(Conversation.id).in_(self.changed_conversation_ids))
+            select(Thread)
+            .distinct()
+            .join(Email, onclause=(col(Thread.id) == col(Email.thread_id)))
+            .where(col(Email.imap_uid).in_(self.changed_mails))
         ).all()
-        self.changed_conversation_ids = []
+
+        self.changed_mails = []
         return list(result)

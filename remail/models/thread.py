@@ -12,8 +12,8 @@ class Thread(SQLModel, table=True):
     __tablename__ = "threads"
 
     id: int | None = Field(default=None, primary_key=True)
-    title: str = Field(default="", index=True)
-    conversation_id: int = Field(foreign_key="conversations.id", index=True)
+    title: str = Field(default="")
+    conversation_id: int = Field(foreign_key="conversations.id")
     messages: list["Email"] = Relationship(back_populates="thread", cascade_delete=True)
     conversation: "Conversation" = Relationship(back_populates="threads")
     unread_count: int = Field(default=0)

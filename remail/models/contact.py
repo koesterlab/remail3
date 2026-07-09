@@ -19,7 +19,7 @@ class Contact(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     name: str
-    email_address: str = Field(index=True)
+    email_address: str
     first_name: str | None = None
     last_name: str | None = None
     contact_type: ContactType = Field(

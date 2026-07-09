@@ -3,21 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
 
 from remail.enums import FontFamily, FontSize, Language, ThemeMode, Timezone
 from remail.models import Settings
 from remail.utils.session_management import session
-
-
-def _load_enum[TEnum: Enum](enum_type: type[TEnum], value: str) -> TEnum:
-    normalized = value
-    if "." in normalized:
-        enum_name = normalized.rsplit(".", 1)[-1]
-        if enum_name in enum_type.__members__:
-            return enum_type[enum_name]
-        normalized = enum_name.lower()
-    return enum_type(normalized)
 
 
 @dataclass(slots=True, frozen=False)
@@ -50,11 +39,11 @@ class SettingsDTO:
         """
         return SettingsDTO(
             id=settings.id,
-            theme_mode=_load_enum(ThemeMode, settings.theme_mode),
-            font_size=_load_enum(FontSize, settings.font_size),
-            font_family=_load_enum(FontFamily, settings.font_family),
-            language=_load_enum(Language, settings.language),
-            timezone=_load_enum(Timezone, settings.timezone),
+            theme_mode=ThemeMode(settings.theme_mode),
+            font_size=FontSize(settings.font_size),
+            font_family=FontFamily(settings.font_family),
+            language=Language(settings.language),
+            timezone=Timezone(settings.timezone),
             desktop_notifications=settings.desktop_notifications,
             email_notifications=settings.email_notifications,
             quiet_hours=settings.quiet_hours,

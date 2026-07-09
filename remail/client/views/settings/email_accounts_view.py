@@ -1,6 +1,5 @@
 import flet as ft
 
-from remail.client.state import MainAppState, MainAppStateProperties
 from remail.client.views.settings.settings_sub_view import SettingsSubView
 from remail.controllers.account_controller import AccountController
 from remail.controllers.dtos import SettingsDTO
@@ -10,10 +9,6 @@ from remail.enums import AuthMethods, ConnectionSecurity, Protocol
 
 
 class EmailAccountsView(SettingsSubView):
-    def __init__(self, state: MainAppState | None = None):
-        self._app_state = state
-        super().__init__()
-
     def create_page(self, settings: SettingsDTO) -> ft.Container:
         """Create the email accounts settings view."""
 
@@ -151,6 +146,7 @@ class EmailAccountsView(SettingsSubView):
 
         # ---------------- Connect Account ----------------
         def connect_account(e):
+            # Validate that all required fields are filled in
             if (
                 not email_input.value
                 or not password_input.value
@@ -160,50 +156,57 @@ class EmailAccountsView(SettingsSubView):
                 show_snackbar("Please fill in all fields", ft.Colors.RED_400)
                 return
 
-            try:
-                show_snackbar("Connecting...", ft.Colors.BLUE_400)
+            # Validate email format
+            if "@" not in email_input.value:
+                show_snackbar("Email must contain '@'", ft.Colors.ERROR)
+                return
 
-                # --- Check credentials using EmailController ---
-                if "@" not in email_input.value:
-                    show_snackbar("Email must contain '@'", ft.Colors.ERROR)
-                    return
-                user, host = email_input.value.split("@")[:2]
-                conn = EmailController().check_credentials(
-                    imap_username=imap_user_input.value or user,
-                    imap_password=imap_pass_input.value or password_input.value,
-                    imap_host=imap_host_input.value or host,
-                    imap_port=int(imap_port_input.value or 993),
-                    imap_security=ConnectionSecurity.SSL_TLS,
-                    imap_method=AuthMethods.PASSWORD,
-                    smtp_username=smtp_user_input.value or user,
-                    smtp_password=smtp_pass_input.value or password_input.value,
-                    smtp_host=smtp_host_input.value or host,
-                    smtp_port=int(smtp_port_input.value or 587),
-                    smtp_method=AuthMethods.PASSWORD,
-                    smtp_security=ConnectionSecurity.SSL_TLS,
-                )
+            # Show a "Connecting..." message immediately so the user knows something is happening
+            show_snackbar("Connecting...", ft.Colors.BLUE_400)
 
-                if conn:
-                    AccountController.create_new_account(
-                        name_input.value.strip(),
-                        email_input.value.strip().lower(),
-                        conn,
-                        Protocol.IMAP,
+            user, host = email_input.value.split("@")[:2]
+
+            # Run the IMAP connection check in the background so the UI doesn't freeze
+            # Without async, connecting to IMAP can take 3-5 seconds and freeze the UI
+            async def do_connect():
+                try:
+                    # Check if the credentials are valid by connecting to the IMAP server
+                    conn = EmailController().check_credentials(
+                        imap_username=imap_user_input.value or user,
+                        imap_password=imap_pass_input.value or password_input.value,
+                        imap_host=imap_host_input.value or host,
+                        imap_port=int(imap_port_input.value or 993),
+                        imap_security=ConnectionSecurity.SSL_TLS,
+                        imap_method=AuthMethods.PASSWORD,
+                        smtp_username=smtp_user_input.value or user,
+                        smtp_password=smtp_pass_input.value or password_input.value,
+                        smtp_host=smtp_host_input.value or host,
+                        smtp_port=int(smtp_port_input.value or 587),
+                        smtp_method=AuthMethods.PASSWORD,
+                        smtp_security=ConnectionSecurity.SSL_TLS,
                     )
-                    if self._app_state is not None:
-                        self._app_state.set(
-                            MainAppStateProperties.ACCOUNTS_CHANGED,
+
+                    if conn:
+                        # Save the new account to the database
+                        AccountController.create_new_account(
+                            name_input.value.strip(),
                             email_input.value.strip().lower(),
+                            conn,
+                            Protocol.IMAP,
                         )
-                    show_snackbar("Account added", ft.Colors.PRIMARY_CONTAINER)
-                else:
-                    show_snackbar("Connection failed", ft.Colors.ERROR)
+                        show_snackbar("Account added", ft.Colors.PRIMARY_CONTAINER)
+                    else:
+                        show_snackbar("Connection failed", ft.Colors.ERROR)
 
-                cancel_add(None)  # reset input fields
-                update_account_view()
+                    # Reset the input fields and refresh the account list
+                    cancel_add(None)
+                    update_account_view()
 
-            except Exception as ex:
-                show_snackbar(f"Error: {str(ex)}", ft.Colors.RED_400)
+                except Exception as ex:
+                    show_snackbar(f"Error: {str(ex)}", ft.Colors.RED_400)
+
+            # Start the connection check in the background using Flet's task system
+            self.page.run_task(do_connect)
 
         # ---------------- Remove Account ----------------
         def remove_account(user: UserDTO):

@@ -1,5 +1,4 @@
 {
-    "python.defaultInterpreterPath": "${workspaceFolder}/.pixi/envs/default/python.exe",
     "python.analysis.extraPaths": [
         "./remail/llm",
         "./remail"

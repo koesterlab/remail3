@@ -1,15 +1,10 @@
-import logging
 from typing import Any
-
 from remail.controllers.dtos.conversations import ConversationDTO
 from remail.controllers.dtos.threads import ThreadDTO
 from remail.controllers.dtos.user_dto import UserDTO
 from remail.interfaces.email import ImapProtocol
 from remail.interfaces.email.services.thread_service import ThreadService
 from remail.utils.session_management import session
-from remail.utils.timer import Timer
-
-_logger = logging.getLogger(__name__)
 
 
 class ThreadController:
@@ -22,17 +17,25 @@ class ThreadController:
 
     @session
     def get_thread(self, thread_id: int) -> ThreadDTO | None:
-        _logger.info("Loading thread %d from DB...", thread_id)
-        t = Timer()
+        """
+        Fetch a complete thread with all messages.
+
+        Args:
+            thread_id: Thread ID to fetch
+
+        Returns:
+            ThreadDTO with thread data, or None if not found
+        """
+
         res = self.service.get_thread_by_id(thread_id)
         if res:
-            dto = ThreadDTO.from_model(res)
-            _logger.info(
-                "Thread %d loaded: %d message(s). (%s)", thread_id, len(dto.messages), t.elapsed()
-            )
-            return dto
+            return ThreadDTO.from_model(res)
         return None
 
+    def delete_thread(self, thread_id: int) -> bool:
+    # Call the delete method we wrote in thread_service.py
+    # and return the result (True if deleted, False if not found)
+        return bool(self.service.delete_thread(thread_id))
     def get_most_urgent_threads(
         self, count: int = 5
     ) -> list[tuple[ThreadDTO, ConversationDTO, UserDTO]]:

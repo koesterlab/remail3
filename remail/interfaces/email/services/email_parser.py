@@ -1,5 +1,3 @@
-import logging
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from email import message_from_bytes
 from email.header import decode_header, make_header
@@ -10,12 +8,13 @@ from typing import Any, cast
 from pytz import timezone
 from sqlmodel import Session, select
 
-from remail.controllers.search_controller import SearchController
 from remail.enums import ContactType, ConversationType, RecipientKind
 from remail.interfaces.email.services.attachment_service import save_attachment
 from remail.interfaces.email.services.contact_service import ContactService
-from remail.models import Attachment, Contact, Conversation, Email, EmailReception, User
+from remail.models import Contact, Conversation, Email, EmailReception, User
 from remail.utils.session_management import session
+
+from . import ConversationService, ThreadService
 
 UTC = timezone("UTC")
 
@@ -25,27 +24,20 @@ class EmailParser:
 
     def __init__(self, user_id: int):
         """Initialize email parser."""
-        from .conversation_service import ConversationService
-
         self.user_id = user_id
-        self._logger = logging.getLogger(__name__)
         self.contact_service = ContactService()
         self.conversation_service = ConversationService()
-        self.search_controller = SearchController()
-
-        self.embedding_executor = ThreadPoolExecutor(
-            max_workers=5, thread_name_prefix="Embedding-Worker"
-        )
+        self.thread_service = ThreadService()
 
     @session
-    def parse_mail(
-        self, mail_data: dict, imap_uid: int, session: Session
-    ) -> tuple[bool, int, int | None]:
+    def parse_mail(self, mail_data: dict, imap_uid: int, session: Session) -> tuple[bool, int]:
         """
-        Parses the mail from raw imap data. Updates an existing entry or creates a new one.
+        Parses the mail from raw imap data. Updates an existing entry or creates a new one (with thread and conversation if necessary)
 
-        Returns:
-            Tuple of (changed, email_id, conversation_id). conversation_id is None if not determinable.
+        Args:
+            mail_data: the imap response with at least body, flags, internaldate,
+            imap_uid: the imap uid of the mail (not included in the data!)
+            session: DB Session with @session
         """
         msg_id = message_from_bytes(mail_data[b"BODY[]"]).get("Message-ID")
         if not msg_id:
@@ -53,15 +45,10 @@ class EmailParser:
         msg_id = msg_id.strip().lower()
         existing = session.exec(select(Email).where(Email.message_id == msg_id)).first()
         if existing:
-            self._create_attachments(message_from_bytes(mail_data[b"BODY[]"]), existing, session)
             changed, mail = self._update_mail_data(existing, mail_data)
-            conv_id = (
-                mail.thread.conversation_id if changed and mail.thread_id is not None else None
-            )
-            return changed, mail.id, conv_id
+            return changed, mail.id
         else:
-            email, conv_id = self.process_new_email(mail_data, imap_uid)
-            return True, email.id, conv_id
+            return True, self.process_new_email(mail_data, imap_uid).id
 
     @session
     def _update_mail_data(self, existing: Email, mail_data: dict) -> tuple[bool, Email]:
@@ -82,9 +69,7 @@ class EmailParser:
         return changed, existing
 
     @session
-    def process_new_email(
-        self, mail_data: dict[bytes, Any], uid: int, session: Session
-    ) -> tuple[Email, int]:
+    def process_new_email(self, mail_data: dict[bytes, Any], uid: int, session: Session) -> Email:
         """
         Process a raw email and save to database.
 
@@ -99,26 +84,13 @@ class EmailParser:
         raw_email = message_from_bytes(mail_data[b"BODY[]"])
         flags = mail_data[b"FLAGS"]
 
-        from_addrs = self._parse_addresses(raw_email, "From")
-        to_addrs = self._parse_addresses(raw_email, "To")
-        cc_addrs = self._parse_addresses(raw_email, "CC")
-        bcc_addrs = self._parse_addresses(raw_email, "BCC")
+        # Extract sender info
+        [sender_contact] = self._extract_participant(raw_email, "From")
 
-        contact_map = self.contact_service.get_or_create_contacts_batch(
-            from_addrs + to_addrs + cc_addrs + bcc_addrs
-        )
-
-        def to_contacts(addrs: list[tuple[str, str | None]]) -> list[Contact]:
-            return [contact_map[e] for e, _ in addrs if e in contact_map]
-
-        from_contacts = to_contacts(from_addrs)
-        to_recipients = to_contacts(to_addrs)
-        cc_recipients = to_contacts(cc_addrs)
-        bcc_recipients = to_contacts(bcc_addrs)
-
-        if not from_contacts:
-            raise ValueError("Email has no valid sender")
-        sender_contact = from_contacts[0]
+        # Extract recipients
+        to_recipients = self._extract_participant(raw_email, "To")
+        cc_recipients = self._extract_participant(raw_email, "CC")
+        bcc_recipients = self._extract_participant(raw_email, "BCC")
 
         # Get all participant contacts (excluding the user themselves)
         all_participants = set([sender_contact] + to_recipients + cc_recipients + bcc_recipients)
@@ -132,7 +104,6 @@ class EmailParser:
         sent_at = self.extract_msg_date(raw_email)
         body = self._get_body(raw_email)
         message_id = (raw_email.get("Message-ID") or "").strip().lower()
-        subject = self.sanitize(raw_email.get("Subject", "unknown"))
 
         db_email = Email(
             imap_uid=uid,
@@ -147,36 +118,29 @@ class EmailParser:
         session.add(db_email)
         # Ensure email has a primary key before creating dependent rows
         session.commit()
-        conv_id: int = conversation.id  # type: ignore[assignment]
 
-        self.embedding_executor.submit(
-            self.search_controller.index_email,
-            email_id=db_email.id or -1,
-            subject=subject,
-            body=db_email.body,
+        self.thread_service.organize_email_into_thread(
+            email=db_email,
+            conversation=conversation,
+            subject=self.sanitize(raw_email.get("Subject", "unknown")),
         )
-
-        try:
-            self.thread_service.organize_email_into_thread(
-                email=db_email,
-                conversation=conversation,
-                subject=self.sanitize(raw_email.get("Subject", "unknown")),
-            )
-        except Exception as exc:
-            self._logger.warning(
-                "Thread organization failed for email %s: %s",
-                db_email.message_id,
-                exc,
-                exc_info=True,
-            )
 
         # Create EmailReception records for all recipients
         self._create_email_receptions(db_email, to_recipients, cc_recipients, bcc_recipients)
-        self._create_attachments(raw_email, db_email, session)
 
-        return db_email, conv_id
+        return db_email
 
-    def _parse_addresses(self, raw_email: Message, key: str) -> list[tuple[str, str | None]]:
+    def _extract_participant(self, raw_email: Message, key: str) -> list[Contact]:
+        """
+        Extract email account information from raw email header.
+
+        Args:
+            raw_email: Raw email object
+            key: header key where to search for user(s)
+
+        Returns:
+            Contact objects from the database that was found or new created
+        """
         raw_values = raw_email.get_all(key, [])
         if not raw_values:
             return []
@@ -185,7 +149,7 @@ class EmailParser:
         if not addr:
             return []
 
-        result: list[tuple[str, str | None]] = []
+        participants: list[Contact] = []
         for name, email in addr:
             decoded_name = self.sanitize(self._decode_header_value(name).strip()) if name else ""
             decoded_email = self.sanitize(self._decode_header_value(email).strip()) if email else ""
@@ -194,8 +158,11 @@ class EmailParser:
                 decoded_name = ""
             if not decoded_email or "@" not in decoded_email:
                 continue
-            result.append((decoded_email, decoded_name or None))
-        return result
+            participants.append(
+                self.contact_service.get_or_create_contact(decoded_email, name=decoded_name or None)
+            )
+
+        return participants
 
     @staticmethod
     def _decode_header_value(value: str) -> str:
@@ -289,15 +256,11 @@ class EmailParser:
             )
         return cast(Conversation, conversation)
 
-    @property
-    def thread_service(self):
-        from .thread_service import ThreadService
-
-        return ThreadService()
-
     def _get_body(self, em: Message) -> str:
         body_text: str = ""
         html_parts: list[str] = []
+        attachments: list[str] = []
+        message_id = (em.get("Message-ID") or "").strip().lower() or "unknown"
 
         if em.is_multipart():
             for part in em.walk():
@@ -306,6 +269,12 @@ class EmailParser:
                 charset = part.get_content_charset() or "utf-8"
 
                 if dispo == "attachment":
+                    filename = str(make_header(decode_header(part.get_filename() or "")))
+                    payload = part.get_payload(decode=True)
+
+                    if isinstance(payload, bytes):
+                        attachments.append(save_attachment(filename, payload, message_id))
+
                     continue
 
                 if ctype == "text/html":
@@ -336,21 +305,6 @@ class EmailParser:
                 else:
                     body_text = ""
         return body_text
-
-    def _create_attachments(self, raw_email: Message, email: Email, session: Session) -> None:
-        if not raw_email.is_multipart():
-            return
-
-        existing_filenames = {attachment.filename for attachment in email.attachments}
-        for part in raw_email.walk():
-            filename = str(make_header(decode_header(part.get_filename() or "")))
-            payload = part.get_payload(decode=True)
-            if not filename or filename in existing_filenames or not isinstance(payload, bytes):
-                continue
-
-            save_attachment(filename, payload, email)
-            session.add(Attachment(filename=filename, email=email))
-            existing_filenames.add(filename)
 
     @staticmethod
     def extract_msg_date(em: Message) -> datetime | None:

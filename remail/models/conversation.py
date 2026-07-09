@@ -24,7 +24,7 @@ class Conversation(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     custom_name: str | None = None
-    user_id: int | None = Field(default=None, foreign_key="users.id", index=True)
+    user_id: int | None = Field(default=None, foreign_key="users.id")
     is_favorite: bool = Field(default=False, nullable=False)
     conversation_type: ConversationType = Field(nullable=False, default=ConversationType.GROUP)
     type: ConversationType = Field(

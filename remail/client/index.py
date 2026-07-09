@@ -1,16 +1,8 @@
 """Main entry point for the Remail client application."""
 
-import logging
-
 import flet as ft
 
 from remail.client.views.index_view import IndexView
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    datefmt="%H:%M:%S",
-)
 
 application_page: ft.Page | None = None
 

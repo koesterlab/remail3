@@ -8,14 +8,14 @@ from remail.utils.session_management import session
 
 
 @session
-def save_attachment(filename: str, content: bytes, message: Email | str, session: Session) -> str:
+def save_attachment(filename: str, content: bytes, message: Email, session: Session) -> str:
     """
     Safely save an email attachment to disk.
 
     Args:
         filename: Original filename
         content: File content as bytes
-        message: Owning Email message or message id
+        message: Owning Email message
 
     Returns:
         Absolute path to saved file
@@ -26,8 +26,9 @@ def save_attachment(filename: str, content: bytes, message: Email | str, session
     """
 
     attachments_dir = os.path.abspath(os.path.join("remail", "database", "attachments"))
-    message_id = message.message_id if isinstance(message, Email) else message
-    message_dir = os.path.join(attachments_dir, secure_filename(message_id or "").replace(".", "_"))
+    message_dir = os.path.join(
+        attachments_dir, secure_filename(message.message_id or "").replace(".", "_")
+    )
     max_size = 200 * 1024 * 1024  # 200 MB limit
 
     if len(content) > max_size:

@@ -1,10 +1,7 @@
 import asyncio
-import logging
-from typing import cast
 
 import flet as ft
 
-from remail.client.views.settings.attachments_view import AttachmentsView
 from remail.client.widgets.chatbot.chatbot import create_chatbot
 from remail.client.widgets.mail_selection import SelectionBar
 from remail.controllers.account_controller import AccountController
@@ -16,45 +13,17 @@ from ...state.main_app_state import MainAppState, MainAppStateProperties
 from ...widgets.dashboard.dashboard_page import DashboardPage
 from ...widgets.thread.thread_list import ThreadList
 
-_logger = logging.getLogger(__name__)
-
 
 class EmailView(ft.Container):
     def __init__(self, state: MainAppState) -> None:
         super().__init__()
 
         def on_thread_change(new: ThreadPreviewDTO | None) -> None:
-            if new and state.get(MainAppStateProperties.ACTIVE_ATTACHMENTS):
-                state.set(MainAppStateProperties.ACTIVE_ATTACHMENTS, False)
-                return
-            update_right_view()
-
-        def on_attachments_change(_: bool) -> None:
-            update_right_view()
-
-        def update_right_view() -> None:
-            active_thread = state.get(MainAppStateProperties.ACTIVE_THREAD)
-            if active_thread:
+            if new:
                 right_view.content = ThreadList(state)
-            elif state.get(MainAppStateProperties.ACTIVE_ATTACHMENTS):
-                right_view.content = AttachmentsView()
             else:
                 right_view.content = dashboard
-            try:
-                right_view.update()
-            except RuntimeError:
-                pass
-
-        def on_active_user_change(user: UserDTO):
-            if user is None:
-                return
-            controller = state.account_controllers.get(user.email)
-            if controller is None:
-                return
-            right_view.content = dashboard
             right_view.update()
-            state.set(MainAppStateProperties.DISPLAYED_MAILS, [])
-            on_emails_synced(user, list(controller._get_conversations_from_db()))
 
         def on_emails_synced(acting_account: UserDTO, updates: list[ConversationDTO]):
             if acting_account == state.get(
@@ -94,34 +63,21 @@ class EmailView(ft.Container):
         for t in state.sync_threads:
             t.cancel()
 
-        self.accounts: list[AccountController] = []
-        self._state = state
-        self._on_emails_synced = on_emails_synced
-        self._on_email_sync_error = on_email_sync_error
-        state.set(MainAppStateProperties.ACTIVE_USER, None)
-
-        def on_accounts_changed(_email: str | None) -> None:
-            new_accounts = AccountController.all_client_accounts()
-            for acc in new_accounts:
-                if acc.get_email_address() not in state.account_controllers:
-                    state.account_controllers[acc.get_email_address()] = acc
-                    acc.set_callback_email_changes(
-                        lambda updates, acc_=acc: on_emails_synced(acc_.get_user(), updates)  # type:ignore
-                    )
-                    acc.set_callback_email_errors(
-                        lambda msg, acc_=acc: on_email_sync_error(acc_.get_user(), msg)  # type:ignore
-                    )
-                    self.accounts.append(acc)
-                    cast(ft.Page, self.page).run_thread(
-                        lambda acc_=acc: asyncio.run(acc_.start_listening())  # type: ignore[misc]
-                    )
-            if not state.get(MainAppStateProperties.ACTIVE_USER) and new_accounts:
-                state.set(MainAppStateProperties.ACTIVE_USER, new_accounts[0].get_user())
-
+        # register new accounts and start listening
+        self.accounts = AccountController.all_client_accounts()
+        if not self.accounts:
+            state.set(MainAppStateProperties.ACTIVE_USER, None)
+        else:
+            for acc in self.accounts:
+                state.account_controllers[acc.get_email_address()] = acc
+                acc.set_callback_email_changes(
+                    lambda updates, acc_=acc: on_emails_synced(acc_.get_user(), updates)  # type:ignore
+                )
+                acc.set_callback_email_errors(
+                    lambda msg, acc_=acc: on_email_sync_error(acc_.get_user(), msg)  # type:ignore
+                )
+            state.set(MainAppStateProperties.ACTIVE_USER, self.accounts[0].get_user())
         state.register_observer(MainAppStateProperties.ACTIVE_THREAD, on_thread_change)
-        state.register_observer(MainAppStateProperties.ACTIVE_ATTACHMENTS, on_attachments_change)
-        state.register_observer(MainAppStateProperties.ACTIVE_USER, on_active_user_change)
-        state.register_observer(MainAppStateProperties.ACCOUNTS_CHANGED, on_accounts_changed)
 
         empty_accounts_view = ft.Container(
             ft.Column(
@@ -148,7 +104,7 @@ class EmailView(ft.Container):
         dashboard = ft.Container(content=DashboardPage(state), padding=10)
 
         right_view = ft.Container(
-            dashboard if state.account_controllers else empty_accounts_view,
+            DashboardPage(state) if state.account_controllers else empty_accounts_view,
             col={"xs": 6, "md": 8, "lg": 9},
             expand=True,
         )
@@ -175,33 +131,7 @@ class EmailView(ft.Container):
         )
 
     def run_sync_threads(self):
-        cast(ft.Page, self.page).run_thread(self._init_accounts)
-
-    def _init_accounts(self):
-        from remail.utils.timer import Timer
-
-        page = cast(ft.Page, self.page)
-        _logger.info("Loading accounts...")
-        t = Timer()
-        accounts = AccountController.all_client_accounts()
-        _logger.info("Accounts loaded: %d account(s). (%s)", len(accounts), t.elapsed())
-        if accounts:
-            self.accounts = accounts
-            for acc in accounts:
-                self._state.account_controllers[acc.get_email_address()] = acc
-                acc.set_callback_email_changes(
-                    lambda updates, acc_=acc: self._on_emails_synced(acc_.get_user(), updates)  # type:ignore
-                )
-                acc.set_callback_email_errors(
-                    lambda msg, acc_=acc: self._on_email_sync_error(acc_.get_user(), msg)  # type:ignore
-                )
-            _logger.info("Setting ACTIVE_USER, triggering observers...")
-            t2 = Timer()
-            self._state.set(MainAppStateProperties.ACTIVE_USER, accounts[0].get_user())
-            _logger.info("Observers done. (%s)", t2.elapsed())
-        _logger.info("Scheduling sync threads...")
         for acc in self.accounts:
-            page.run_thread(
-                lambda acc_=acc: asyncio.run(acc_.start_listening())  # type: ignore[misc]
-            )
-        _logger.info("_init_accounts done. Total: (%s)", t.elapsed())
+            self.page.run_thread(
+                lambda acc_=acc: asyncio.run(acc_.start_listening())
+            )  # running sync task in flets own async system

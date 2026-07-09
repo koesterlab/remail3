@@ -17,11 +17,9 @@ class MainAppStateProperties(Enum):
     ACTIVE_THREAD_CONVERSATION = "active_thread_conversation"
     ACTIVE_CONVERSATION = "active_conversation"
     ACTIVE_CHATBOT = "active_chatbot"
-    ACTIVE_ATTACHMENTS = "active_attachments"
     ACTIVE_SETTINGS = "active_settings"
     SEARCH_TERM = "search_term"
     DISPLAYED_MAILS = "displayed_mails"
-    ACCOUNTS_CHANGED = "accounts_changed"
 
 
 class MainAppState(ObservableState[MainAppStateProperties]):
