@@ -3,6 +3,8 @@ from collections.abc import Callable
 from enum import Enum
 from typing import Union
 
+from pattern_kit import Event
+
 from remail.client.state.observable_state import ObservableState
 from remail.controllers.account_controller import AccountController
 from remail.controllers.dtos.conversations import ConversationDTO, ThreadPreviewDTO
@@ -28,9 +30,7 @@ class MainAppState(ObservableState[MainAppStateProperties]):
     def __init__(self):
         super().__init__()
         self.__selected: list[ConversationDTO | ThreadPreviewDTO] = []
-        self.__selection_listeners: dict[
-            ConversationDTO | ThreadPreviewDTO | None, Callable[[bool], None]
-        ] = {}
+        self.__selection_listeners: dict[ConversationDTO | ThreadPreviewDTO | None, Event] = {}
 
         self.thread_controller = ThreadController()
         self.account_controllers: dict[str, AccountController] = {}
@@ -42,7 +42,7 @@ class MainAppState(ObservableState[MainAppStateProperties]):
             raise Exception("Account Controller was requested without active email account")
         controller = self.account_controllers.get(mail.email)
         if controller is None:
-            raise Exception("Account Controller was requested but not found for mail " + mail.email)
+            raise Exception(f"Account Controller was requested but not found for mail {mail.email}")
         return controller
 
     def toggle_selection(self, item: Union["ConversationDTO", "ThreadPreviewDTO"]) -> None:
@@ -62,14 +62,16 @@ class MainAppState(ObservableState[MainAppStateProperties]):
         item: Union["ConversationDTO", "ThreadPreviewDTO", None],
         callback: Callable[[bool], None],
     ) -> None:
-        self.__selection_listeners[item] = callback
+        if item not in self.__selection_listeners:
+            self.__selection_listeners[item] = Event()
+        self.__selection_listeners[item] += callback
 
     def get_selected(self):
         return self.__selected
 
     def clear_selected(self):
-        selected = self.__selected
-        self.__selected = []
+        selected = list(self.__selected)
+        self.__selected.clear()
         for s in selected:
             if s in self.__selection_listeners:
                 self.__selection_listeners[s](False)
