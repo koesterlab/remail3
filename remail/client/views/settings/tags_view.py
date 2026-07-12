@@ -47,7 +47,10 @@ class TagsView(SettingsSubView):
         self.padding = 20
 
     def create_page(self, settings: SettingsDTO) -> ft.Container:
-        tags = self.tag_controller.get_all_tags()
+        tags = sorted(
+            self.tag_controller.get_all_tags(),
+            key=lambda tag: (tag.name.casefold() != "spam", tag.name.casefold()),
+        )
 
         column = ft.Column(
             spacing=16,
@@ -132,11 +135,13 @@ class TagsView(SettingsSubView):
         self._refresh()
 
     def _tag_row(self, tag: Tag) -> ft.Container:
+        is_spam = tag.name.casefold() == "spam"
         return ft.Container(
             padding=ft.Padding.symmetric(horizontal=14, vertical=10),
             border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
             border_radius=10,
-            bgcolor=ft.Colors.SURFACE,
+            bgcolor=(ft.Colors.SURFACE_CONTAINER_HIGHEST if is_spam else ft.Colors.SURFACE),
+            opacity=0.65 if is_spam else 1.0,
             content=ft.Row(
                 spacing=12,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
@@ -158,7 +163,8 @@ class TagsView(SettingsSubView):
                     ft.IconButton(
                         icon=ft.Icons.DELETE_OUTLINE,
                         icon_color=ft.Colors.ERROR,
-                        tooltip="Delete tag",
+                        tooltip="Spam cannot be deleted" if is_spam else "Delete tag",
+                        disabled=is_spam,
                         on_click=lambda _, tag_id=tag.id: self._delete_tag(tag_id),
                     ),
                 ],

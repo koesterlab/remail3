@@ -168,9 +168,11 @@ class TagService:
 
     @session
     def delete_tag(self, tag_id: int, session: Session) -> None:
+        tag = session.get(Tag, tag_id)
+        if tag and tag.name.casefold() == "spam":
+            raise ValueError("Spam is a built-in tag and cannot be deleted")
         for link in session.exec(select(EmailTag).where(EmailTag.tag_id == tag_id)).all():
             session.delete(link)
-        tag = session.get(Tag, tag_id)
         if tag:
             session.delete(tag)
 

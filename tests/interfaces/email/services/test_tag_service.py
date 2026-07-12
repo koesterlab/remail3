@@ -1,5 +1,6 @@
 from datetime import datetime
 
+import pytest
 from sqlmodel import select
 
 from remail.interfaces.email.services.tag_service import DEFAULT_TAGS, TagService
@@ -46,6 +47,16 @@ def test_create_and_delete_tag(session):
     service.delete_tag(tag.id, session=session)
 
     assert all(saved.name != "Project" for saved in service.get_all_tags(session=session))
+
+
+def test_spam_tag_cannot_be_deleted(session):
+    service = TagService()
+    spam = service.create_tag("Spam", "Built-in spam detection", session=session)
+
+    with pytest.raises(ValueError, match="cannot be deleted"):
+        service.delete_tag(spam.id, session=session)
+
+    assert session.get(Tag, spam.id) is not None
 
 
 def test_get_thread_tags_returns_union_of_email_tags(session):
