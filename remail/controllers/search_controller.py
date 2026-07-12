@@ -32,7 +32,7 @@ class SearchController:
         vector_dim = 768
 
         create_table_sql = f"""
-           CREATE VIRTUAL TABLE IF NOT EXISTS email_chunks USING vec0(
+           CREATE VIRTUAL TABLE IF NOT EXISTS embeddings USING vec0(
                chunk_id INTEGER PRIMARY KEY,
                +email_id INTEGER,
                +chunk_index INTEGER,
@@ -45,41 +45,37 @@ class SearchController:
             conn.execute(text(create_table_sql))
 
     def index_email(self, email_id: int, subject: str, body: str):
-        # Check whether chunks already exist for this email
-        check_sql = "SELECT COUNT(*) FROM email_chunks WHERE email_id = :email_id"
-
-        with self.engine.begin() as conn:
-            result = conn.execute(text(check_sql), {"email_id": email_id})
-            if result.fetchone()[0] > 0:
-                return
-
         chunks = self.chunker.chunk_text(body)
 
         # Fallback: Use the subject if the body is empty
         if not chunks and subject:
             chunks = [subject]
 
+        if not chunks:
+            return
+
+        # fix: Prepare data for insertion into the embeddings table
+        prepared_data = []
+        for index, chunk_text in enumerate(chunks):
+            enriched_content = f"Betreff: {subject}\n\n{chunk_text}"
+
+            vector = self.embedding_service.get_embedding(enriched_content)
+            vector_blob = sqlite_vec.serialize_float32(vector)
+
+            prepared_data.append({
+                "email_id": email_id,
+                "chunk_index": index,
+                "content": enriched_content,
+                "embedding": vector_blob,
+            })
+
+        insert_sql = """
+                     INSERT INTO embeddings(email_id, chunk_index, content, embedding)
+                     VALUES (:email_id, :chunk_index, :content, :embedding) \
+                     """
+
         with self.engine.begin() as conn:
-            for index, chunk_text in enumerate(chunks):
-                enriched_content = f"Betreff: {subject}\n\n{chunk_text}"
-
-                vector = self.embedding_service.get_embedding(enriched_content)
-                vector_blob = sqlite_vec.serialize_float32(vector)
-
-                insert_sql = """
-                             INSERT INTO email_chunks(email_id, chunk_index, content, embedding)
-                             VALUES (:email_id, :chunk_index, :content, :embedding) \
-                             """
-
-                conn.execute(
-                    text(insert_sql),
-                    {
-                        "email_id": email_id,
-                        "chunk_index": index,
-                        "content": enriched_content,
-                        "embedding": vector_blob,
-                    },
-                )
+            conn.execute(text(insert_sql), prepared_data)
 
     def search(self, query: str):
         if query == "":
@@ -90,7 +86,7 @@ class SearchController:
 
         search_sql = """
                      SELECT email_id, distance
-                     FROM email_chunks
+                     FROM embeddings
                      WHERE embedding MATCH :query_embedding
                      ORDER BY distance LIMIT 20 \
                      """
@@ -114,7 +110,7 @@ class SearchController:
         return unique_email_ids
 
     def get_embedding_count(self) -> int:
-        count_sql = "SELECT COUNT(*) FROM email_chunks"
+        count_sql = "SELECT COUNT(*) FROM embeddings"
         with self.engine.begin() as conn:
             result = conn.execute(text(count_sql))
             return int(result.fetchone()[0])
@@ -122,12 +118,12 @@ class SearchController:
     def index_existing_emails(self):
         email_data_to_process = []
         with Session(self.engine) as session:
-            emails = session.exec(select(Email)).all()
+            #fix: no longer all emails are getting checked
+            subquery = select(text("DISTINCT email_id")).select_from(text("embeddings"))
+            query = select(Email).where(Email.id.notin_(subquery))
+            to_embed = session.exec(query).all()
 
-            for email in emails:
-                if email.id is None:
-                    continue
-
+            for email in to_embed:
                 subject = email.thread.title if email.thread else ""
                 body = email.body or ""
                 email_data_to_process.append((email.id, subject, body))
