@@ -249,14 +249,16 @@ class AccountController:
         )
 
     @session
-    def search(self, search_string: str, session: Session) -> list[MessageDTO]:
-        email_ids = self.search_controller.search(search_string)
+    def search(
+        self, search_string: str, requested_emails: int = 10, session: Session | None = None
+    ) -> list[MessageDTO]:
+        email_ids = self.search_controller.search(search_string, requested_emails=requested_emails)
         if not email_ids:
             return []
 
         result_dtos: list[MessageDTO] = []
         for email_id in email_ids:
-            email = session.get(Email, email_id)
+            email = session.get(Email, email_id)  # type: ignore
             if not email or not email.thread:
                 continue
 
