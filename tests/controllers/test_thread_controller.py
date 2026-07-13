@@ -128,7 +128,7 @@ class TestThreadController:
         mock_contact.email_address = "jane@example.com"
 
         mock_conversation = Mock(spec=Conversation)
-        mock_conversation.user = [mock_user]
+        mock_conversation.user = mock_user
         mock_conversation.contacts = [mock_contact]
 
         mock_thread = Mock(spec=Thread)
@@ -169,7 +169,7 @@ class TestThreadController:
         mock_contact.email_address = "jane@example.com"
 
         mock_conversation = Mock(spec=Conversation)
-        mock_conversation.user = [mock_user]
+        mock_conversation.user = mock_user
         mock_conversation.contacts = [mock_contact]
 
         mock_message = Mock(spec=Email)
