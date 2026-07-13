@@ -1,5 +1,5 @@
 from abc import ABC
-
+import datetime
 import flet as ft
 
 from remail.client.state import MainAppState, MainAppStateProperties
@@ -85,7 +85,15 @@ class ConversationPreview(ft.Container, ABC):
             padding=ft.Padding.symmetric(horizontal=6, vertical=2),
             visible=total_unread > 0,
         )
-
+        last_date = max(
+            (t.last_message_datetime for t in conversation.threads),
+            default=None,
+        )
+        date_text = ft.Text(
+            last_date.strftime("%d.%m.%Y") if last_date else "",
+            size=12,
+            color=ft.Colors.ON_SURFACE_VARIANT,
+        )
         profile_picture = ft.Container()
         profile_picture.on_click = lambda e: state.toggle_selection(conversation)
 
@@ -138,9 +146,10 @@ class ConversationPreview(ft.Container, ABC):
                                         expand=True,
                                         overflow=ft.TextOverflow.ELLIPSIS,
                                         max_lines=1,
-                                    )
+                                    ),
+                                    date_text,
                                 ],
-                                alignment=ft.MainAxisAlignment.START,
+                                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                                 spacing=6,
                             ),
                         ],
