@@ -125,16 +125,16 @@ class TestThreadController:
         mock_contact = Mock(spec=Contact)
         mock_contact.first_name = "Jane"
         mock_contact.last_name = "Smith"
-        mock_contact.email = "jane@example.com"
+        mock_contact.email_address = "jane@example.com"
 
         mock_conversation = Mock(spec=Conversation)
-        mock_conversation.users = [mock_user]
+        mock_conversation.user = [mock_user]
+        mock_conversation.contacts = [mock_contact]
 
         mock_thread = Mock(spec=Thread)
         mock_thread.id = 1
         mock_thread.title = "Test Thread"
         mock_thread.conversation = mock_conversation
-        mock_thread.contacts = [mock_contact]
         mock_thread.messages = []
 
         mock_thread_service.get_thread_by_id.return_value = mock_thread
@@ -160,16 +160,17 @@ class TestThreadController:
         """Test send_message adds Re: prefix for threads with existing messages."""
         mock_user = Mock(spec=User)
         mock_user.name = "John Doe"
-        mock_user.email = "john@example.com"
+        mock_user.email_address = "john@example.com"
         mock_user.connection = {"host": "imap.example.com"}
 
         mock_contact = Mock(spec=Contact)
         mock_contact.first_name = "Jane"
         mock_contact.last_name = "Smith"
-        mock_contact.email = "jane@example.com"
+        mock_contact.email_address = "jane@example.com"
 
         mock_conversation = Mock(spec=Conversation)
-        mock_conversation.users = [mock_user]
+        mock_conversation.user = [mock_user]
+        mock_conversation.contacts = [mock_contact]
 
         mock_message = Mock(spec=Email)
 
@@ -177,7 +178,6 @@ class TestThreadController:
         mock_thread.id = 1
         mock_thread.title = "Test Thread"
         mock_thread.conversation = mock_conversation
-        mock_thread.contacts = [mock_contact]
         mock_thread.messages = [mock_message]  # Has existing message
 
         mock_thread_service.get_thread_by_id.return_value = mock_thread

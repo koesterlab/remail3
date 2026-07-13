@@ -64,11 +64,14 @@ class ThreadController:
             attachment: NOT IMPLEMENTED - a list of attachments - just here to remember todo
         """
         thread = self.service.get_thread_by_id(thread_id)
-        user = thread.conversation.users[0]
+        user = thread.conversation.user
         protocol = ImapProtocol(serialized=user.connection)
         protocol.send_email(
             sender=(user.name, user.email),
-            recipients=[(c.first_name + " " + c.last_name, c.email) for c in thread.contacts],
+            recipients=[
+                (c.first_name + " " + c.last_name, c.email_address)
+                for c in thread.conversation.contacts
+            ],
             subject=("Re: " if thread.messages else "") + thread.title,
             msg=message,
         )
