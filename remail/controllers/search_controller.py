@@ -77,22 +77,26 @@ class SearchController:
         with self.engine.begin() as conn:
             conn.execute(text(insert_sql), prepared_data)
 
-    def search(self, query: str):
+    def search(self, query: str, requested_emails: int = 10):
         if query == "":
             return []
 
         query_vector = self.embedding_service.get_embedding(query)
         query_blob = sqlite_vec.serialize_float32(query_vector)
 
+        chunk_limit = requested_emails * 2  # Adjust this multiplier as needed
+
         search_sql = """
                      SELECT email_id, distance
                      FROM embeddings
                      WHERE embedding MATCH :query_embedding
-                     ORDER BY distance LIMIT 20 \
+                     ORDER BY distance LIMIT :chunk_limit \
                      """
 
         with self.engine.begin() as conn:
-            result = conn.execute(text(search_sql), {"query_embedding": query_blob})
+            result = conn.execute(
+                text(search_sql), {"query_embedding": query_blob, "chunk_limit": chunk_limit}
+            )
             rows = result.fetchall()
 
         seen_email_ids = set()
@@ -104,7 +108,7 @@ class SearchController:
                 seen_email_ids.add(email_id)
                 unique_email_ids.append(email_id)
 
-            if len(unique_email_ids) == 10:
+            if len(unique_email_ids) == requested_emails:
                 break
 
         return unique_email_ids

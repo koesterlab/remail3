@@ -28,6 +28,10 @@ class ConversationSelection(ft.Container):
         self.inner_content = ft.Column(spacing=0)
         self.elements: dict[int, tuple[ConversationDTO, Control]] = {}
         self.active_search_cache = None
+        self.current_search_limit = 10
+        self.load_more_btn = ft.TextButton(
+            "load more", icon=ft.Icons.ARROW_DOWNWARD, on_click=self._load_more, visible=False
+        )
         state.register_observer(MainAppStateProperties.SEARCH_TERM, self._on_search_change)
         state.register_observer(MainAppStateProperties.DISPLAYED_MAILS, self._on_search_change)
         super().__init__(
@@ -37,21 +41,39 @@ class ConversationSelection(ft.Container):
                 scroll=ft.ScrollMode.AUTO,
                 alignment=ft.MainAxisAlignment.START,
                 spacing=0,
-                controls=[self.inner_content],
+                controls=[self.inner_content, self.load_more_btn],
             ),
         )
 
-    def _on_search_change(self, _):
+    async def _load_more(self, e):
+        self.current_search_limit += 10
+        self._on_search_change(None, is_load_more=True)
+
+    def _on_search_change(self, _, is_load_more=False):
         search = self.state.get(MainAppStateProperties.SEARCH_TERM)
+        if not is_load_more and search != self.active_search_cache:
+            self.current_search_limit = 10
+
         if not search or search == "":
             content = self.state.get(MainAppStateProperties.DISPLAYED_MAILS)
+            self.load_more_btn.visible = False
         else:
-            if search == self.active_search_cache:
+            if search == self.active_search_cache and not is_load_more:
                 return  # same search -> no change needed
             self.active_search_cache = search
             content: list[ConversationDTO | MessageDTO | Action] = (
-                self.state.get_active_email_account().search(search)
+                self.state.get_active_email_account().search(
+                    search, requested_emails=self.current_search_limit
+                )
             )
+
+            mail_count = sum(
+                1 for item in content if isinstance(item, (ConversationDTO, MessageDTO))
+            )
+            if mail_count < self.current_search_limit:
+                self.load_more_btn.visible = False
+            else:
+                self.load_more_btn.visible = True
             # special search actions: #todo: more
             if re.match(
                 r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]", search
