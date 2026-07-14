@@ -62,12 +62,14 @@ class SearchController:
             vector = self.embedding_service.get_embedding(enriched_content)
             vector_blob = sqlite_vec.serialize_float32(vector)
 
-            prepared_data.append({
-                "email_id": email_id,
-                "chunk_index": index,
-                "content": enriched_content,
-                "embedding": vector_blob,
-            })
+            prepared_data.append(
+                {
+                    "email_id": email_id,
+                    "chunk_index": index,
+                    "content": enriched_content,
+                    "embedding": vector_blob,
+                }
+            )
 
         insert_sql = """
                      INSERT INTO embeddings(email_id, chunk_index, content, embedding)
@@ -122,7 +124,7 @@ class SearchController:
     def index_existing_emails(self):
         email_data_to_process = []
         with Session(self.engine) as session:
-            #fix: no longer all emails are getting checked
+            # fix: no longer all emails are getting checked
             subquery = select(text("DISTINCT email_id")).select_from(text("embeddings"))
             query = select(Email).where(Email.id.notin_(subquery))
             to_embed = session.exec(query).all()
