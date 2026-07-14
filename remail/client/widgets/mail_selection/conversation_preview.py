@@ -1,5 +1,5 @@
 from abc import ABC
-import datetime
+
 import flet as ft
 
 from remail.client.state import MainAppState, MainAppStateProperties
