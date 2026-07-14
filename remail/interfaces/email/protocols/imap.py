@@ -20,6 +20,24 @@ from remail.interfaces.email.services.smtp_sender import SmtpSender
 class ImapProtocol(EmailProtocol):
     """IMAP/SMTP email protocol implementation."""
 
+    imap_username: str
+    imap_password: str
+    imap_host: str
+    imap_port: int
+    imap_method: AuthMethods
+    imap_security: ConnectionSecurity
+    smtp_username: str
+    smtp_password: str
+    smtp_host: str
+    smtp_port: int
+    smtp_method: AuthMethods
+    smtp_security: ConnectionSecurity
+    fetch_since: int
+    use_modcount: bool
+    use_idle: bool
+    user_username: str
+    user_password: str
+
     def __init__(
         self,
         imap_username: str | None = None,
@@ -96,13 +114,15 @@ class ImapProtocol(EmailProtocol):
             self.smtp_username = smtp_username
             self.smtp_password = smtp_password
             self.smtp_host = smtp_host
-            self.smtp_port = smtp_port
-            self.smtp_method = smtp_method
-            self.smtp_security = smtp_security
+            self.smtp_port = smtp_port if smtp_port is not None else 587
+            self.smtp_method = smtp_method if smtp_method is not None else AuthMethods.PASSWORD
+            self.smtp_security = (
+                smtp_security if smtp_security is not None else ConnectionSecurity.SSL_TLS
+            )
 
             self.use_modcount = False
             self.use_idle = False
-            self.fetch_since: int = 0
+            self.fetch_since = 0
 
             self.user_username = imap_username
             self.user_password = imap_password

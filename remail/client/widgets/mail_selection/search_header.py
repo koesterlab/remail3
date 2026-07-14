@@ -1,5 +1,6 @@
 import datetime
 from collections.abc import Callable
+from typing import cast
 
 import flet as ft
 
@@ -52,10 +53,15 @@ class SearchHeader(ft.Container):
         )
 
         # ----- Compose Icon -----
+        compose_icon: ft.IconButton
+
+        def on_compose_clicked(e):
+            open_compose_dialog(state, cast(ft.Page | None, e.page))
+
         compose_icon = ft.IconButton(
             icon=ft.Icons.EDIT,
             icon_color=ft.Colors.SECONDARY,
-            on_click=lambda _: open_compose_dialog(state, compose_icon.page),
+            on_click=on_compose_clicked,
             icon_size=26,
             style=ft.ButtonStyle(padding=0, bgcolor="transparent"),
             tooltip="New Message",
