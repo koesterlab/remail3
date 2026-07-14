@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+import logging
 
 import flet as ft
 
@@ -10,14 +10,17 @@ from remail.client.widgets.thread.new_message_dialog import create_new_message_d
 from remail.controllers.dtos.conversations import ConversationDTO, ThreadPreviewDTO
 from remail.controllers.dtos.threads import ThreadDTO
 from remail.controllers.thread_controller import ThreadController
+from remail.utils.timer import Timer
 
-ThreadDict = dict[str, Any]
-MessageDict = dict[str, Any]
+_logger = logging.getLogger(__name__)
 
 
 class ThreadList(ft.Container):
     def __init__(self, state: MainAppState) -> None:
-        super().__init__(expand=True, bgcolor=ft.Colors.TERTIARY)
+        super().__init__(
+            expand=True,
+            bgcolor=ft.Colors.SURFACE,
+        )
         self.state = state
         self.thread: ThreadDTO | None = None
         state.register_observer(
@@ -29,6 +32,7 @@ class ThreadList(ft.Container):
     # rebuild the UI
     # ------------------------------------------------------------------ #
     def _rebuild(self) -> None:
+        t_total = Timer()
         new_thread: ThreadPreviewDTO = self.state.get(MainAppStateProperties.ACTIVE_THREAD)
         self.conversation: ConversationDTO = self.state.get(
             MainAppStateProperties.ACTIVE_THREAD_CONVERSATION
@@ -109,6 +113,7 @@ class ThreadList(ft.Container):
         #     ),
         # )
 
+        t_widgets = Timer()
         messages_column = ft.Container(
             ft.Column(
                 controls=[MessageBubble(m, self.active_user) for m in self.thread.messages],
@@ -117,6 +122,9 @@ class ThreadList(ft.Container):
                 scroll=ft.ScrollMode.AUTO,
             ),
             expand=True,
+        )
+        _logger.info(
+            "Built %d message bubble(s). (%s)", len(self.thread.messages), t_widgets.elapsed()
         )
 
         self.content = ft.Column(
@@ -130,3 +138,4 @@ class ThreadList(ft.Container):
             spacing=0,
             expand=True,
         )
+        _logger.info("ThreadList._rebuild done. (%s)", t_total.elapsed())
