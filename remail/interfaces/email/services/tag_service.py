@@ -29,7 +29,7 @@ DEFAULT_TAGS = [
     ),
     (
         "Spam",
-        "Unwanted junk and scams: phishing, lottery prize, fake offers, suspicious links, requests for money, passwords or bank details",
+        "System tag",
     ),
 ]
 
@@ -220,6 +220,53 @@ class TagService:
             chunk_vectors = [self._get_embedding_service().get_embedding(text)]
         assigned = self.get_tags_for_email(chunk_vectors, tags)
         self.set_email_tags(email_id, assigned)
+
+    def retag_all_emails(self) -> int:
+        """
+        Re-run automatic tagging for every non-deleted, non-spam email.
+
+        Useful after tags were added or deleted, so existing mail reflects the new
+        tag set. Reuses the chunk embeddings stored in the search index; emails not
+        indexed yet fall back to embedding subject and body. Server-flagged spam is
+        left untouched (see _get_taggable_emails). Designed to run in a background
+        thread. Returns the number of emails processed.
+        """
+        # Imported lazily so UI paths never load the search/embedding stack.
+        from remail.controllers.search_controller import SearchController
+
+        search_controller = SearchController()
+        emails = self._get_taggable_emails()
+        for email_id, subject in emails:
+            chunk_vectors = search_controller.get_chunk_embeddings(email_id)
+            self.auto_tag_email(email_id, chunk_vectors=chunk_vectors, subject=subject)
+        return len(emails)
+
+    @session
+    def _get_taggable_emails(self, session: Session) -> list[tuple[int, str]]:
+        """
+        Return (id, subject) of non-deleted emails to auto-tag, newest first.
+
+        Server-flagged spam is excluded: spam is decided by the mail server and
+        persisted only as the Spam tag, so re-scoring it by similarity would wrongly
+        strip that classification.
+        """
+        spam_email_ids = (
+            select(EmailTag.email_id)
+            .join(Tag, col(EmailTag.tag_id) == col(Tag.id))
+            .where(col(Tag.name).ilike(SPAM_TAG_NAME))
+        )
+        statement = (
+            select(Email)
+            .where(col(Email.deleted).is_(False))
+            .where(col(Email.id).not_in(spam_email_ids))
+            .order_by(col(Email.sent_at).desc())
+        )
+        emails = session.exec(statement).all()
+        return [
+            (email.id, email.thread.title if email.thread else "")
+            for email in emails
+            if email.id is not None
+        ]
 
     @session
     def _get_email_body(self, email_id: int, session: Session) -> str | None:

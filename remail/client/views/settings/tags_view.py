@@ -1,3 +1,5 @@
+from typing import cast
+
 import flet as ft
 
 from remail.client.state import MainAppState
@@ -75,6 +77,16 @@ class TagsView(SettingsSubView):
                     ],
                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 ),
+                ft.Row(
+                    controls=[
+                        ft.OutlinedButton(
+                            "Retag emails",
+                            icon=ft.Icons.REFRESH,
+                            tooltip="Re-apply tags to existing emails using the current tag set",
+                            on_click=lambda _: self._retag_emails(),
+                        ),
+                    ],
+                ),
                 self._form_panel(),
                 self.status_text,
                 ft.Column(
@@ -133,6 +145,13 @@ class TagsView(SettingsSubView):
         self.description_input.value = ""
         self._set_status(f'"{tag.name}" is saved.', ft.Colors.PRIMARY)
         self._refresh()
+
+    def _retag_emails(self) -> None:
+        page = self.page
+        if page is None:
+            return
+        page.show_dialog(ft.SnackBar(content=ft.Text("Retagging emails…")))
+        cast(ft.Page, page).run_thread(self.tag_controller.retag_all_emails)
 
     def _tag_row(self, tag: Tag) -> ft.Container:
         is_spam = tag.name.casefold() == "spam"
