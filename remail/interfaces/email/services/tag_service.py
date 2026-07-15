@@ -221,43 +221,6 @@ class TagService:
         assigned = self.get_tags_for_email(chunk_vectors, tags)
         self.set_email_tags(email_id, assigned)
 
-    def retag_last_n_emails(self, n: int) -> int:
-        """
-        Re-run automatic tagging for the n most recently sent emails.
-
-        Useful after tags were added, edited or deleted, so recent mail reflects
-        the new tag set. Reuses the chunk embeddings stored in the search index;
-        emails not indexed yet fall back to embedding subject and body. Designed
-        to run in a background thread. Returns the number of emails processed.
-        """
-        if n <= 0:
-            return 0
-        # Imported lazily so UI paths never load the search/embedding stack.
-        from remail.controllers.search_controller import SearchController
-
-        search_controller = SearchController()
-        recent = self._get_recent_emails(n)
-        for email_id, subject in recent:
-            chunk_vectors = search_controller.get_chunk_embeddings(email_id)
-            self.auto_tag_email(email_id, chunk_vectors=chunk_vectors, subject=subject)
-        return len(recent)
-
-    @session
-    def _get_recent_emails(self, n: int, session: Session) -> list[tuple[int, str]]:
-        """Return (id, subject) of the n most recently sent, non-deleted emails."""
-        statement = (
-            select(Email)
-            .where(col(Email.deleted).is_(False))
-            .order_by(col(Email.sent_at).desc())
-            .limit(n)
-        )
-        emails = session.exec(statement).all()
-        return [
-            (email.id, email.thread.title if email.thread else "")
-            for email in emails
-            if email.id is not None
-        ]
-
     @session
     def _get_email_body(self, email_id: int, session: Session) -> str | None:
         email = session.get(Email, email_id)

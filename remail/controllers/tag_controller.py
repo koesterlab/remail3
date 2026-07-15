@@ -17,6 +17,3 @@ class TagController:
 
     def delete_tag(self, tag_id: int) -> None:
         self.service.delete_tag(tag_id)
-
-    def retag_last_n_emails(self, n: int) -> int:
-        return self.service.retag_last_n_emails(n)
