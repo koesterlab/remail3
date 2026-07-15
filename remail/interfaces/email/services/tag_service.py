@@ -58,6 +58,9 @@ _SCORE_FLOOR = 0.01
 _SCORE_MARGIN = 0.005
 _MAX_TAGS = 3
 
+# Built-in tag decided by the mail server's spam (see EmailParser._is_spam).
+SPAM_TAG_NAME = "Spam"
+
 # Schema setup runs once per process; defaults are seeded only when the tags
 # table is first created, so deleting them later doesn't resurrect them.
 _schema_ready = False
@@ -183,15 +186,27 @@ class TagService:
         email_id: int,
         chunk_vectors: list[list[float]] | None = None,
         subject: str = "",
+        is_spam: bool = False,
     ) -> None:
         """
-        Assign tags to an email using embedding similarity. Designed to run in a background thread.
+        Assign tags to an email. Designed to run in a background thread.
+
+        Spam is decided by the mail server (see EmailParser._is_spam), not by
+        embeddings: junk mail resembles many legitimate topics, so scoring it by
+        similarity is unreliable. A spam-flagged email is tagged Spam and skips
+        the embedding step; everything else is scored against the remaining tags,
+        assuming it is not spam.
 
         Pass the email's stored chunk embeddings (from the search index) to avoid
         re-embedding the body; those already include the subject. Without them,
         subject and body are embedded as a fallback.
         """
-        tags = self.get_all_tags()
+        if is_spam:
+            self.set_email_tags(email_id, [SPAM_TAG_NAME])
+            return
+
+        # Spam is server-decided, so exclude it from similarity scoring entirely.
+        tags = [tag for tag in self.get_all_tags() if tag.name.casefold() != SPAM_TAG_NAME.casefold()]
         if not tags:
             return
         if not chunk_vectors:
