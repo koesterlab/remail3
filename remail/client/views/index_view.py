@@ -19,6 +19,7 @@ class IndexView(ft.Container):
         state.set(MainAppStateProperties.ACTIVE_CONVERSATION, None)
         state.set(MainAppStateProperties.ACTIVE_THREAD_CONVERSATION, None)
         state.set(MainAppStateProperties.SEARCH_TERM, "")
+        state.set(MainAppStateProperties.SORT_BY_DATE, False)
         state.set(MainAppStateProperties.ACTIVE_SETTINGS, None)
 
         settings_view = SettingsView(state)

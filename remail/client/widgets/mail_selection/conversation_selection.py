@@ -86,31 +86,35 @@ class ConversationSelection(ft.Container):
         t = Timer()
         _logger.info("Rendering %d result(s) in UI...", len(content))
 
-        # sort
-        def compute_order_value(elem: ConversationDTO | MessageDTO | Action):
-            time = datetime.datetime.min
-            if isinstance(elem, Action):
-                category = "C"
-            elif isinstance(elem, MessageDTO):
-                category = "B"
-                time = elem.sent_at
-            else:
-                if len(elem.threads) <= 0:
-                    time = datetime.datetime.min
-                else:
-                    time = max([t.last_message_datetime for t in elem.threads])
-                if elem.is_favorite:
-                    category = "B"
-                elif sum(t.unread_count for t in elem.threads) > 0:
-                    category = "AB"
-                else:
-                    category = "A"
-            return category, time
+
+         # sort (skipped when user sorted by date via filter menu)
+
+        if not self.state.get(MainAppStateProperties.SORT_BY_DATE):
+            def compute_order_value(elem: ConversationDTO | MessageDTO | Action):
+              time = datetime.datetime.min
+              if isinstance(elem, Action):
+                  category = "C"
+              elif isinstance(elem, MessageDTO):
+                  category = "B"
+                  time = elem.sent_at
+              else:
+                  if len(elem.threads) <= 0:
+                      time = datetime.datetime.min
+                  else:
+                      time = max([t.last_message_datetime for t in elem.threads])
+                  if elem.is_favorite:
+                      category = "B"
+                  elif sum(t.unread_count for t in elem.threads) > 0:
+                      category = "AB"
+                  else:
+                      category = "A"
+              return category, time
+            content.sort(key=compute_order_value, reverse=True)
+
 
         search_term = self.state.get(MainAppStateProperties.SEARCH_TERM)
         is_search_active = bool(search_term and search_term != "")
-        if not is_search_active:
-            content.sort(key=compute_order_value, reverse=True)
+    
 
         # check if it is the initial call, then skip check for existing elements
         updating = not len(self.elements) <= 0 and not is_search_active

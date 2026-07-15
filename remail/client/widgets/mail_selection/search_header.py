@@ -50,6 +50,65 @@ class SearchHeader(ft.Container):
             style=ft.ButtonStyle(padding=0, bgcolor="transparent"),
         )
 
+
+        #---- Filter Menu -----
+        all_mails=[]
+
+        def sort_by_date(_):
+            nonlocal all_mails
+            state.set(MainAppStateProperties.SORT_BY_DATE, True)
+            mails = state.get(MainAppStateProperties.DISPLAYED_MAILS)
+            if not all_mails and mails:
+                all_mails = mails.copy()
+            source = all_mails if all_mails else mails
+            if not source:
+                return
+            sorted_mails = sorted(
+                source,
+                key=lambda c: max(
+                    (t.last_message_datetime for t in c.threads), 
+                    default=datetime.datetime.min,
+                ),
+                reverse=True,
+            )
+            all_mails = sorted_mails.copy()
+            state.set(MainAppStateProperties.DISPLAYED_MAILS, sorted_mails)
+
+
+        def filter_unread(_):
+            nonlocal all_mails
+            state.set(MainAppStateProperties.SORT_BY_DATE, False)
+            mails = state.get(MainAppStateProperties.DISPLAYED_MAILS)
+            if not mails:
+                return
+            if not all_mails:
+                all_mails = mails.copy()
+            unread = [c for c in all_mails if any(t.unread_count > 0 for t in c.threads)]
+            state.set(MainAppStateProperties.DISPLAYED_MAILS, unread)
+
+
+        filter_menu = ft.PopupMenuButton(
+            icon = ft.Icons.TUNE,
+            tooltip = "Filter / Sort",
+            items=[
+                ft.PopupMenuItem(
+                    content=ft.Text("Sort by Date"),
+                    on_click=sort_by_date,
+                ),
+                ft.PopupMenuItem(
+                    content=ft.Text("Filter Unread only"),
+                    on_click=filter_unread,
+                ),
+            ],
+        )
+
+
+
+
+
+
+
+
         def create_bottom_option(text: str, icon: ft.IconData, callback: Callable[[], None]):
             return ft.Container(
                 ft.Row(
@@ -107,7 +166,7 @@ class SearchHeader(ft.Container):
         # ----- Layout -----
         content = ft.Column(
             controls=[
-                ft.Row([self.input, home_icon], alignment=ft.MainAxisAlignment.START),
+                ft.Row([self.input, home_icon, filter_menu], alignment=ft.MainAxisAlignment.START),
                 bottom_row,
                 ft.Divider(height=3, thickness=2),
             ],
