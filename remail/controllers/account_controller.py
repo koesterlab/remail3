@@ -10,6 +10,7 @@ from sqlmodel import Session, select
 
 from remail import errors as ee
 from remail.controllers.dtos.conversations import ContactDTO, ConversationDTO, ThreadPreviewDTO
+from remail.controllers.dtos.threads import MessageDTO
 from remail.controllers.dtos.user_dto import UserDTO
 from remail.controllers.search_controller import SearchController
 from remail.enums import ConversationType, Protocol
@@ -173,7 +174,13 @@ class AccountController:
         return self.user
 
     @session
-    def create_conversation(self, contacts: list[ContactDTO]) -> ConversationDTO:
+    def find_or_create_contact_by_email(self, email: str, session: Session) -> ContactDTO:
+        contact = self.contact_service.get_or_create_contact(email)
+        session.flush()
+        return cast(ContactDTO, ContactDTO.from_model(contact))
+
+    @session
+    def create_conversation(self, contacts: list[ContactDTO], session: Session) -> ConversationDTO:
         user = self._get_user_model()
         contact_models = self._get_contact_models(contacts)
         conversation = self.conversation_service.create_conversation(
@@ -182,6 +189,7 @@ class AccountController:
             custom_name=None,
             user=user,
         )
+        session.flush()  # populate conversation.id before building the DTO
         return cast(ConversationDTO, ConversationDTO.from_model(conversation, user))
 
     def delete(self) -> None:
@@ -248,22 +256,44 @@ class AccountController:
         )
 
     @session
-    def search(self, search_string: str, session: Session) -> list[ConversationDTO]:
-        email_ids = self.search_controller.search(search_string)
+    def search(
+        self, search_string: str, requested_emails: int = 10, session: Session | None = None
+    ) -> list[MessageDTO]:
+        email_ids = self.search_controller.search(search_string, requested_emails=requested_emails)
         if not email_ids:
             return []
 
-        result_dtos = []
-        seen_conversation_ids = set()
-
+        result_dtos: list[MessageDTO] = []
         for email_id in email_ids:
-            email = session.get(Email, email_id)
+            email = session.get(Email, email_id)  # type: ignore
             if not email or not email.thread:
                 continue
 
-            conversation = email.thread.conversation
-            if conversation and conversation.id not in seen_conversation_ids:
-                seen_conversation_ids.add(conversation.id)
-                result_dtos.append(self._conversation_to_dto(conversation))
+            result_dtos.append(MessageDTO.from_model(email))
 
         return result_dtos
+
+    @session
+    def get_email_context(
+        self, email_id: int, session: Session
+    ) -> tuple[ConversationDTO, ThreadPreviewDTO] | None:
+
+        email = session.get(Email, email_id)
+        if not email or not email.thread or not email.thread.conversation:
+            return None
+
+        conversation = self._conversation_to_dto(email.thread.conversation)
+        thread = email.thread
+        unread_count = sum(1 for message in thread.messages if not message.read)
+        latest_message = max(thread.messages, key=lambda message: message.sent_at, default=None)
+        thread_preview = ThreadPreviewDTO(
+            thread_id=thread.id if thread.id is not None else -1,
+            title=thread.title,
+            total_count=len(thread.messages),
+            unread_count=unread_count,
+            last_message=latest_message.body if latest_message else "",
+            last_message_datetime=latest_message.sent_at
+            if latest_message
+            else datetime.datetime.min,
+        )
+        return conversation, thread_preview
