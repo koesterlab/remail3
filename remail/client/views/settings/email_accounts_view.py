@@ -255,8 +255,6 @@ class EmailAccountsView(SettingsSubView):
                     return
                 try:
                     show_snackbar("Connecting...", ft.Colors.BLUE_400)
-                    from remail.interfaces.email.protocols.exchange import ExchangeProtocol
-
                     protocol = ExchangeProtocol(
                         username=email_input.value.strip().lower(),
                         password=password_input.value,
@@ -287,6 +285,8 @@ class EmailAccountsView(SettingsSubView):
             def handler(e):
                 try:
                     AccountController(user.id).delete()
+                    if self._app_state is not None:
+                        self._app_state.set(MainAppStateProperties.ACCOUNTS_CHANGED, user.email)
                 except Exception as ex:
                     show_snackbar(f"Failed to remove user: {ex}", ft.Colors.ORANGE_400)
 
