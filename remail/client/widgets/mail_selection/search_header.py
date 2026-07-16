@@ -1,9 +1,11 @@
 import datetime
 from collections.abc import Callable
+from typing import cast
 
 import flet as ft
 
 from remail.client.state.main_app_state import MainAppState, MainAppStateProperties
+from remail.client.widgets.thread.compose_dialog import open_compose_dialog
 from remail.controllers.dtos.conversations import ConversationDTO, ThreadPreviewDTO
 
 
@@ -37,8 +39,11 @@ class SearchHeader(ft.Container):
 
         def on_home_clicked(_):
             state.set(MainAppStateProperties.SEARCH_TERM, "")
+            state.set(MainAppStateProperties.SORT_BY_DATE, False)
             state.set(MainAppStateProperties.ACTIVE_THREAD, None)
             state.set(MainAppStateProperties.ACTIVE_THREAD_CONVERSATION, None)
+            state.trigger(MainAppStateProperties.DISPLAYED_MAILS)
+
             # todo: load mails from controller
 
         # ----- Home Icon -----
@@ -50,9 +55,8 @@ class SearchHeader(ft.Container):
             style=ft.ButtonStyle(padding=0, bgcolor="transparent"),
         )
 
-
-        #---- Filter Menu -----
-        all_mails=[]
+        # ---- Filter Menu -----
+        all_mails = []
 
         def sort_by_date(_):
             nonlocal all_mails
@@ -66,14 +70,13 @@ class SearchHeader(ft.Container):
             sorted_mails = sorted(
                 source,
                 key=lambda c: max(
-                    (t.last_message_datetime for t in c.threads), 
+                    (t.last_message_datetime for t in c.threads),
                     default=datetime.datetime.min,
                 ),
                 reverse=True,
             )
             all_mails = sorted_mails.copy()
             state.set(MainAppStateProperties.DISPLAYED_MAILS, sorted_mails)
-
 
         def filter_unread(_):
             nonlocal all_mails
@@ -86,10 +89,11 @@ class SearchHeader(ft.Container):
             unread = [c for c in all_mails if any(t.unread_count > 0 for t in c.threads)]
             state.set(MainAppStateProperties.DISPLAYED_MAILS, unread)
 
-
         filter_menu = ft.PopupMenuButton(
-            icon = ft.Icons.TUNE,
-            tooltip = "Filter / Sort",
+            icon=ft.Icons.TUNE,
+            icon_size=18,
+            padding=0,
+            tooltip="Filter / Sort",
             items=[
                 ft.PopupMenuItem(
                     content=ft.Text("Sort by Date"),
@@ -102,12 +106,20 @@ class SearchHeader(ft.Container):
             ],
         )
 
+        # ----- Compose Icon -----
+        compose_icon: ft.IconButton
 
+        def on_compose_clicked(e):
+            open_compose_dialog(state, cast(ft.Page | None, e.page))
 
-
-
-
-
+        compose_icon = ft.IconButton(
+            icon=ft.Icons.EDIT,
+            icon_color=ft.Colors.SECONDARY,
+            on_click=on_compose_clicked,
+            icon_size=26,
+            style=ft.ButtonStyle(padding=0, bgcolor="transparent"),
+            tooltip="New Message",
+        )
 
         def create_bottom_option(text: str, icon: ft.IconData, callback: Callable[[], None]):
             return ft.Container(
@@ -166,8 +178,8 @@ class SearchHeader(ft.Container):
         # ----- Layout -----
         content = ft.Column(
             controls=[
-                ft.Row([self.input, home_icon, filter_menu], alignment=ft.MainAxisAlignment.START),
-                bottom_row,
+                ft.Row([self.input, home_icon, compose_icon], alignment=ft.MainAxisAlignment.START),
+                ft.Row([bottom_row, filter_menu], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
                 ft.Divider(height=3, thickness=2),
             ],
             spacing=5,

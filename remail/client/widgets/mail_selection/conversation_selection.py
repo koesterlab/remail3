@@ -28,6 +28,10 @@ class ConversationSelection(ft.Container):
         self.inner_content = ft.Column(spacing=0)
         self.elements: dict[int, tuple[ConversationDTO, Control]] = {}
         self.active_search_cache = None
+        self.current_search_limit = 10
+        self.load_more_btn = ft.TextButton(
+            "load more", icon=ft.Icons.ARROW_DOWNWARD, on_click=self._load_more, visible=False
+        )
         state.register_observer(MainAppStateProperties.SEARCH_TERM, self._on_search_change)
         state.register_observer(MainAppStateProperties.DISPLAYED_MAILS, self._on_search_change)
         super().__init__(
@@ -37,21 +41,39 @@ class ConversationSelection(ft.Container):
                 scroll=ft.ScrollMode.AUTO,
                 alignment=ft.MainAxisAlignment.START,
                 spacing=0,
-                controls=[self.inner_content],
+                controls=[self.inner_content, self.load_more_btn],
             ),
         )
 
-    def _on_search_change(self, _):
+    async def _load_more(self, e):
+        self.current_search_limit += 10
+        self._on_search_change(None, is_load_more=True)
+
+    def _on_search_change(self, _, is_load_more=False):
         search = self.state.get(MainAppStateProperties.SEARCH_TERM)
+        if not is_load_more and search != self.active_search_cache:
+            self.current_search_limit = 10
+
         if not search or search == "":
             content = self.state.get(MainAppStateProperties.DISPLAYED_MAILS)
+            self.load_more_btn.visible = False
         else:
-            if search == self.active_search_cache:
+            if search == self.active_search_cache and not is_load_more:
                 return  # same search -> no change needed
             self.active_search_cache = search
             content: list[ConversationDTO | MessageDTO | Action] = (
-                self.state.get_active_email_account().search(search)
+                self.state.get_active_email_account().search(
+                    search, requested_emails=self.current_search_limit
+                )
             )
+
+            mail_count = sum(
+                1 for item in content if isinstance(item, (ConversationDTO, MessageDTO))
+            )
+            if mail_count < self.current_search_limit:
+                self.load_more_btn.visible = False
+            else:
+                self.load_more_btn.visible = True
             # special search actions: #todo: more
             if re.match(
                 r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]", search
@@ -86,35 +108,34 @@ class ConversationSelection(ft.Container):
         t = Timer()
         _logger.info("Rendering %d result(s) in UI...", len(content))
 
-
-         # sort (skipped when user sorted by date via filter menu)
+        # sort (skipped when user sorted by date via filter menu)
 
         if not self.state.get(MainAppStateProperties.SORT_BY_DATE):
-            def compute_order_value(elem: ConversationDTO | MessageDTO | Action):
-              time = datetime.datetime.min
-              if isinstance(elem, Action):
-                  category = "C"
-              elif isinstance(elem, MessageDTO):
-                  category = "B"
-                  time = elem.sent_at
-              else:
-                  if len(elem.threads) <= 0:
-                      time = datetime.datetime.min
-                  else:
-                      time = max([t.last_message_datetime for t in elem.threads])
-                  if elem.is_favorite:
-                      category = "B"
-                  elif sum(t.unread_count for t in elem.threads) > 0:
-                      category = "AB"
-                  else:
-                      category = "A"
-              return category, time
-            content.sort(key=compute_order_value, reverse=True)
 
+            def compute_order_value(elem: ConversationDTO | MessageDTO | Action):
+                time = datetime.datetime.min
+                if isinstance(elem, Action):
+                    category = "C"
+                elif isinstance(elem, MessageDTO):
+                    category = "B"
+                    time = elem.sent_at
+                else:
+                    if len(elem.threads) <= 0:
+                        time = datetime.datetime.min
+                    else:
+                        time = max([t.last_message_datetime for t in elem.threads])
+                    if elem.is_favorite:
+                        category = "B"
+                    elif sum(t.unread_count for t in elem.threads) > 0:
+                        category = "AB"
+                    else:
+                        category = "A"
+                return category, time
+
+            content.sort(key=compute_order_value, reverse=True)
 
         search_term = self.state.get(MainAppStateProperties.SEARCH_TERM)
         is_search_active = bool(search_term and search_term != "")
-    
 
         # check if it is the initial call, then skip check for existing elements
         updating = not len(self.elements) <= 0 and not is_search_active
