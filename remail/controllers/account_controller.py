@@ -81,16 +81,24 @@ class AccountController:
         self.callback = callback
 
     def update_account(
-        self,
-        name: str,
-        password: str,
+            self,
+            name: str,
+            password: str,
+            imap_host: str,
+            imap_port: int,
+            smtp_host: str,
+            smtp_port: int,
     ):
         UserService.update_user(
             self.user_id,
             name,
             password,
+            imap_host,
+            imap_port,
+            smtp_host,
+            smtp_port,
         )
-
+        self.user.name = name
     def set_callback_email_errors(self, callback: Callable[[str], None]) -> None:
         """Registers a callback that is called when background sync fails."""
         self.error_callback = callback

@@ -69,19 +69,25 @@ class DashboardPage(ft.Column):
         self.accounts = list(self.state.account_controllers.values())
         state.register_observer(MainAppStateProperties.ACTIVE_USER, self.on_user_change)
         self._rebuild()
-
+        
     def on_user_change(self, acc: UserDTO):
-        self.dropdown.value = str(acc.id)
+        print("on_user_change!")
+        self._rebuild()
+        self.update()
 
     def _rebuild(self) -> None:
         # Compute greeting + name dynamically
         greeting = _time_greeting()
         if not self.accounts:
             return  # todo show message
-        first_name = self.accounts[0].get_user().name.split()[0]
+
+        active = self.state.get(MainAppStateProperties.ACTIVE_USER)
+        if active is None:
+            return
+        first_name = active.name.split()[0]
 
         self.dropdown = ft.Dropdown(
-            value=self.state.get(MainAppStateProperties.ACTIVE_USER).id,
+            value=active.id,
             text_size=10,
             width=250,
             border_radius=24,
