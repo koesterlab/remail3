@@ -13,6 +13,7 @@ from remail.client.widgets.mail_selection.contact_preview import ContactPreview
 from remail.client.widgets.mail_selection.conversation_preview import ConversationPreview
 from remail.client.widgets.mail_selection.group_preview import GroupPreview
 from remail.controllers.dtos.conversations import ConversationDTO
+from remail.controllers.dtos.threads import MessageDTO
 from remail.utils.timer import Timer
 
 _logger = logging.getLogger(__name__)

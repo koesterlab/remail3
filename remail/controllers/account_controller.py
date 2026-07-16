@@ -10,6 +10,7 @@ from sqlmodel import Session, select
 
 from remail import errors as ee
 from remail.controllers.dtos.conversations import ContactDTO, ConversationDTO, ThreadPreviewDTO
+from remail.controllers.dtos.threads import MessageDTO
 from remail.controllers.dtos.user_dto import UserDTO
 from remail.controllers.search_controller import SearchController
 from remail.enums import ConversationType, Protocol
@@ -24,7 +25,6 @@ from remail.interfaces.email.services.user_service import UserService
 from remail.models import Contact, Conversation, Email, Thread, User
 from remail.utils.session_management import session
 from remail.utils.timer import Timer
-from remail.controllers.dtos.threads import MessageDTO
 
 
 class AccountController:
