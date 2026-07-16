@@ -2,7 +2,6 @@ import datetime
 import inspect
 import mimetypes
 import os
-import webbrowser
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, cast
@@ -13,6 +12,7 @@ from werkzeug.utils import secure_filename
 
 from remail.controllers.dtos import SettingsDTO
 from remail.models import Attachment
+from remail.utils.file_opener import open_file
 from remail.utils.session_management import session
 
 from .settings_sub_view import SettingsSubView
@@ -258,16 +258,7 @@ class AttachmentsView(SettingsSubView):
 
     @staticmethod
     def _open_attachment_file(path: str) -> bool:
-        attachment_path = Path(path).resolve()
-        if not attachment_path.exists():
-            return False
-        try:
-            if os.name == "nt":
-                os.startfile(str(attachment_path))  # type: ignore[attr-defined] # nosec B606
-                return True
-            return webbrowser.open(attachment_path.as_uri())
-        except OSError:
-            return False
+        return open_file(path)
 
     @staticmethod
     def _attachment_search_text(group: AttachmentGroup) -> str:

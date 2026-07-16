@@ -1,0 +1,39 @@
+name: Semantic Pull Request
+
+on:
+  pull_request_target:
+    # The types of events that trigger the workflow.
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
+
+permissions:
+  pull-requests: read
+
+jobs:
+  semantic-pull-request:
+    runs-on: ubuntu-latest
+    env:
+      # The GitHub token is required to authenticate with the GitHub API.
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: amannn/action-semantic-pull-request@v5
+        with:
+          # The types of commits that are allowed in the PR title.
+          # like feat: add login, fix: correct typo, docs: update README, etc.
+          types: |
+            fix
+            feat
+            docs
+            style
+            refactor
+            perf
+            test
+            chore
+            ci
+            build
+          requireScope: false # Scope is optional.
+          wip: true   # Allows PR titles marked as WIP (work in progress), like WIP: feat: add login. 
+          draft: false # The title check still runs for draft PRs.

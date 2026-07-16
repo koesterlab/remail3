@@ -6,6 +6,7 @@ from remail.client.widgets.mail_selection.action import Action
 class ActionPreview(ft.Container):
     def __init__(self, action: Action):
         super().__init__(
+            ink=True,
             on_click=action.on_executed,
             content=ft.Row(
                 [
