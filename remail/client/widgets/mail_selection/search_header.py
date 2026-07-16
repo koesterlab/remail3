@@ -1,9 +1,11 @@
 import datetime
 from collections.abc import Callable
+from typing import cast
 
 import flet as ft
 
 from remail.client.state.main_app_state import MainAppState, MainAppStateProperties
+from remail.client.widgets.thread.compose_dialog import open_compose_dialog
 from remail.controllers.dtos.conversations import ConversationDTO, ThreadPreviewDTO
 
 
@@ -48,6 +50,21 @@ class SearchHeader(ft.Container):
             on_click=on_home_clicked,
             icon_size=30,
             style=ft.ButtonStyle(padding=0, bgcolor="transparent"),
+        )
+
+        # ----- Compose Icon -----
+        compose_icon: ft.IconButton
+
+        def on_compose_clicked(e):
+            open_compose_dialog(state, cast(ft.Page | None, e.page))
+
+        compose_icon = ft.IconButton(
+            icon=ft.Icons.EDIT,
+            icon_color=ft.Colors.SECONDARY,
+            on_click=on_compose_clicked,
+            icon_size=26,
+            style=ft.ButtonStyle(padding=0, bgcolor="transparent"),
+            tooltip="New Message",
         )
 
         def create_bottom_option(text: str, icon: ft.IconData, callback: Callable[[], None]):
@@ -107,7 +124,7 @@ class SearchHeader(ft.Container):
         # ----- Layout -----
         content = ft.Column(
             controls=[
-                ft.Row([self.input, home_icon], alignment=ft.MainAxisAlignment.START),
+                ft.Row([self.input, home_icon, compose_icon], alignment=ft.MainAxisAlignment.START),
                 bottom_row,
                 ft.Divider(height=3, thickness=2),
             ],
