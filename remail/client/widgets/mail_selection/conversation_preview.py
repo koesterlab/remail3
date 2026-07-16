@@ -1,3 +1,4 @@
+import datetime
 from abc import ABC
 
 import flet as ft
@@ -89,8 +90,19 @@ class ConversationPreview(ft.Container, ABC):
             (t.last_message_datetime for t in conversation.threads),
             default=None,
         )
+
+        def format_date(date):
+            if date is None:
+                return ""
+            today = datetime.date.today()
+            if date.date() == today:
+                return "Today"
+            if date.date() == today - datetime.timedelta(days=1):
+                return "Yesterday"
+            return date.strftime("%d.%m.%Y")
+
         date_text = ft.Text(
-            last_date.strftime("%d.%m.%Y") if last_date else "",
+            format_date(last_date),
             size=12,
             color=ft.Colors.ON_SURFACE_VARIANT,
         )
