@@ -10,7 +10,8 @@ on:
       - reopened
 
 permissions:
-  pull-requests: read
+  pull-requests: write
+  statuses: write
 
 jobs:
   semantic-pull-request:
@@ -35,5 +36,4 @@ jobs:
             ci
             build
           requireScope: false # Scope is optional.
-          wip: true   # Allows PR titles marked as WIP (work in progress), like WIP: feat: add login. 
-          draft: false # The title check still runs for draft PRs.
+          wip: true   # Allows PR titles marked as WIP (work in progress), like WIP: feat: add login.
