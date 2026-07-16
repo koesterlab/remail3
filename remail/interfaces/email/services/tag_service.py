@@ -1,5 +1,4 @@
-import math
-
+import numpy as np
 from sqlalchemy import inspect
 from sqlmodel import Session, SQLModel, col, select
 
@@ -77,12 +76,13 @@ def _cosine_similarity(a: list[float], b: list[float]) -> float:
     direction, a short tag description can still score high against a long
     email body. Zero vectors have no direction, so they score 0.
     """
-    dot = sum(x * y for x, y in zip(a, b, strict=True))
-    norm_a = math.sqrt(sum(x * x for x in a))
-    norm_b = math.sqrt(sum(x * x for x in b))
+    vec_a = np.asarray(a, dtype=np.float64)
+    vec_b = np.asarray(b, dtype=np.float64)
+    norm_a = np.linalg.norm(vec_a)
+    norm_b = np.linalg.norm(vec_b)
     if norm_a == 0.0 or norm_b == 0.0:
         return 0.0
-    return dot / (norm_a * norm_b)
+    return float(np.dot(vec_a, vec_b) / (norm_a * norm_b))
 
 
 class TagService:
