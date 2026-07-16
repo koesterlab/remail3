@@ -30,7 +30,6 @@ collect_ignore = [
     "controllers/test_account_controller.py",
     "controllers/test_llm_controller.py",
     "controllers/test_settings_controller.py",
-    "interfaces/email/protocols/test_imap.py",
     "interfaces/email/services/test_attachment_service.py",
     "interfaces/email/services/test_contact_service.py",
     "interfaces/email/services/test_conversation_service.py",
