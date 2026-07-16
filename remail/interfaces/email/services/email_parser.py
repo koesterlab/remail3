@@ -1,4 +1,5 @@
 import logging
+import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from email import message_from_bytes
@@ -18,6 +19,19 @@ from remail.models import Attachment, Contact, Conversation, Email, EmailRecepti
 from remail.utils.session_management import session
 
 UTC = timezone("UTC")
+
+
+_REPLY_CUTOFF_PATTERNS = [
+    re.compile(r"^\s*>"),
+    re.compile(r"^\s*On\s+.+\s+wrote:\s*$", re.IGNORECASE),
+    re.compile(r"^\s*Am\s+.+\s+schrieb(?:en)?\b.*:\s*$", re.IGNORECASE),
+    re.compile(r"^\s*-{2,}\s*Original Message\s*-{2,}\s*$", re.IGNORECASE),
+    re.compile(r"^\s*(From|Von):\s+.+$", re.IGNORECASE),
+    re.compile(r"^\s*(Sent|Gesendet):\s+.+$", re.IGNORECASE),
+    re.compile(r"^\s*(To|An):\s+.+$", re.IGNORECASE),
+    re.compile(r"^\s*(Cc):\s+.+$", re.IGNORECASE),
+    re.compile(r"^\s*(Subject|Betreff):\s+.+$", re.IGNORECASE),
+]
 
 
 class EmailParser:
@@ -130,7 +144,7 @@ class EmailParser:
         conversation = self._get_or_create_conversation(list(all_participants), user)
         # Create the email record
         sent_at = self.extract_msg_date(raw_email)
-        body = self._get_body(raw_email)
+        body = self._strip_reply_history(self._get_body(raw_email))
         message_id = (raw_email.get("Message-ID") or "").strip().lower()
         subject = self.sanitize(raw_email.get("Subject", "unknown"))
 
@@ -336,6 +350,26 @@ class EmailParser:
                 else:
                     body_text = ""
         return body_text
+
+    @staticmethod
+    def _strip_reply_history(text: str) -> str:
+        if not text:
+            return text
+
+        normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+        lines = normalized.split("\n")
+        cutoff = len(lines)
+
+        for i, line in enumerate(lines):
+            for pattern in _REPLY_CUTOFF_PATTERNS:
+                if pattern.match(line):
+                    cutoff = i
+                    break
+            if cutoff != len(lines):
+                break
+
+        cleaned = "\n".join(lines[:cutoff]).strip()
+        return cleaned if cleaned else normalized.strip()
 
     def _create_attachments(self, raw_email: Message, email: Email, session: Session) -> None:
         if not raw_email.is_multipart():
