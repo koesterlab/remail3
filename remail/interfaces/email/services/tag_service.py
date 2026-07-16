@@ -206,7 +206,9 @@ class TagService:
             return
 
         # Spam is server-decided, so exclude it from similarity scoring entirely.
-        tags = [tag for tag in self.get_all_tags() if tag.name.casefold() != SPAM_TAG_NAME.casefold()]
+        tags = [
+            tag for tag in self.get_all_tags() if tag.name.casefold() != SPAM_TAG_NAME.casefold()
+        ]
         if not tags:
             return
         if not chunk_vectors:

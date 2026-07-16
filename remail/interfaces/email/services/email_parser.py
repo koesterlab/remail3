@@ -55,8 +55,7 @@ class EmailParser:
 
     @staticmethod
     def _is_spam(raw_email: Message) -> bool:
-        """Whether the mail server classified this message as spam.
-        """
+        """Whether the mail server classified this message as spam."""
         # TODO Placeholder for full IMAP spam integration: sync currently fetches only INBOX.
         # -> X-Spam-* headers that spam filters commonly add to a message
         flag = (raw_email.get("X-Spam-Flag") or "").strip().lower()
