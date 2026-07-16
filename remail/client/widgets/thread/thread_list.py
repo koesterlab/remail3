@@ -37,12 +37,8 @@ class ThreadList(ft.Container):
         if not new_thread:  # dashboard -> just do nothing
             self.thread = None
             return
-
-        if new_thread.thread_id < 0:  # new, unsaved thread
-            self.thread = ThreadDTO(-1, new_thread.title, [], self.conversation.contacts)
-            self._render()
-        elif not self.thread or self.thread.id != new_thread.thread_id:
-            # Show a loading spinner while the thread messages are being loaded from the database
+        if not self.thread and new_thread.thread_id > 0:
+            # Show a loading spinner while the thread is being loaded from the database
             self.content = ft.Column(
                 [
                     ft.Container(
@@ -53,10 +49,6 @@ class ThreadList(ft.Container):
                 ],
                 expand=True,
             )
-            try:
-                self.update()
-            except Exception:
-                pass  # nosec - page may not be mounted yet
 
             # Load the thread from the database in the background so the UI doesn't freeze
             async def load_thread():
@@ -66,18 +58,34 @@ class ThreadList(ft.Container):
                     return
                 self._render()
                 try:
-                    self.update()
-                except Exception:
-                    pass  # nosec - page may not be mounted yet
+                    if self.page:
+                        self.update()
+                except RuntimeError:
+                    pass  # nosec - widget may not be on page
 
             # Start loading in the background using Flet's task system
             try:
-                self.page.run_task(load_thread)  # type: ignore[attr-defined]
-            except Exception:
-                pass  # nosec - page may not be mounted yet
-        else:
-            self._render()
-
+                if self.page:
+                    self.page.run_task(load_thread)  # type: ignore[attr-defined]
+                else:
+                    # Fallback: load synchronously if page is not yet available
+                    self.thread = ThreadController().get_thread(new_thread.thread_id)
+                    self.active_user = self.state.get(MainAppStateProperties.ACTIVE_USER)
+                    if self.thread is not None:
+                        self._render()
+            except RuntimeError:
+                # Widget not yet added to page, load synchronously
+                self.thread = ThreadController().get_thread(new_thread.thread_id)
+                self.active_user = self.state.get(MainAppStateProperties.ACTIVE_USER)
+                if self.thread is not None:
+                    self._render()
+            return
+        elif new_thread.thread_id < 0:  # new, unsaved thread
+            self.thread = ThreadDTO(-1, new_thread.title, [], self.conversation.contacts)
+        self.active_user = self.state.get(MainAppStateProperties.ACTIVE_USER)
+        if self.thread is None:
+            return  # just for mypy
+        self._render()
         _logger.info("ThreadList._rebuild done. (%s)", t_total.elapsed())
 
     def _render(self) -> None:
@@ -86,7 +94,6 @@ class ThreadList(ft.Container):
             return
         self.active_user = self.state.get(MainAppStateProperties.ACTIVE_USER)
 
-        # ---------- the information of top contact -------- #
         header = ft.Container(
             ft.Row(
                 controls=[
@@ -122,36 +129,6 @@ class ThreadList(ft.Container):
             bgcolor=ft.Colors.SURFACE,
         )
 
-        # ---------- "Discussing email"  ---------- #
-        # title = str(thread.get("title", "")) or ""
-        #
-        # if messages_raw:
-        #     last_msg = messages_raw[-1]
-        #     last_summary = str(last_msg.get("content", {}).get("body", ""))
-        # else:
-        #     last_summary = ""
-        #
-        # discussing_card = ft.Container(
-        #     width=500,
-        #     bgcolor="white",
-        #     padding=15,
-        #     border_radius=12,
-        #     content=ft.Column(
-        #         controls=[
-        #             ft.Text("Discussing email:", size=12, color="gray"),
-        #             ft.Text(title, weight="bold"),
-        #             ft.Text(
-        #                 last_summary,
-        #                 size=12,
-        #                 color="gray",
-        #                 max_lines=3,
-        #                 overflow=ft.TextOverflow.ELLIPSIS,
-        #             ),
-        #         ],
-        #         spacing=4,
-        #     ),
-        # )
-
         t_widgets = Timer()
         messages_column = ft.Container(
             ft.Column(
@@ -169,8 +146,6 @@ class ThreadList(ft.Container):
         self.content = ft.Column(
             [
                 header,
-                # discussing_card,
-                # ft.Container(height=20),
                 messages_column,
                 create_new_message_dialog(self.state),
             ],
