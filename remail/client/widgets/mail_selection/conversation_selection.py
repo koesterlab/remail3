@@ -28,15 +28,12 @@ class ConversationSelection(ft.Container):
         self.inner_content = ft.Column(spacing=0)
         self.elements: dict[int, tuple[ConversationDTO, Control]] = {}
         self.active_search_cache = None
-<<<<<<< HEAD
         self.current_search_limit = 10
-        self.load_more_btn = ft.TextButton(
+        self.load_more_btn: ft.Control = ft.TextButton(
             "load more", icon=ft.Icons.ARROW_DOWNWARD, on_click=self._load_more, visible=False
         )
-=======
         # Track how many conversations are currently loaded for "Load more" functionality
         self.current_offset = 0
->>>>>>> 8df506b (Add lazy loading for conversation and thread lists)
         state.register_observer(MainAppStateProperties.SEARCH_TERM, self._on_search_change)
         state.register_observer(MainAppStateProperties.DISPLAYED_MAILS, self._on_search_change)
         super().__init__(
@@ -71,7 +68,7 @@ class ConversationSelection(ft.Container):
                 self.state.get_active_email_account().search(
                     search, requested_emails=self.current_search_limit
                 )
-
+            )
             mail_count = sum(
                 1 for item in content if isinstance(item, (ConversationDTO, MessageDTO))
             )

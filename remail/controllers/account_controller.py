@@ -24,6 +24,7 @@ from remail.interfaces.email.services.user_service import UserService
 from remail.models import Contact, Conversation, Email, Thread, User
 from remail.utils.session_management import session
 from remail.utils.timer import Timer
+from remail.controllers.dtos.threads import MessageDTO
 
 
 class AccountController:
