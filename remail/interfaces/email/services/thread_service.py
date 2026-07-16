@@ -43,7 +43,11 @@ class ThreadService:
                 selectinload(Thread.messages).options(  # type: ignore[arg-type]
                     selectinload(Email.sender),  # type: ignore[arg-type]
                     selectinload(Email.attachments),  # type: ignore[arg-type]
-                )
+                ),
+                selectinload(Thread.conversation).options(  # type: ignore[arg-type]
+                    selectinload(Conversation.user),  # type: ignore[arg-type]
+                    selectinload(Conversation.contacts),  # type: ignore[arg-type]
+                ),
             )
         ).first()
 
@@ -239,7 +243,14 @@ class ThreadService:
         unread_cache: dict[int, int] = {}
         result = []
         for t in threads:
-            user: User = t.conversation.user
+            conversation = t.conversation
+            if conversation is None:
+                continue
+            user = conversation.user
+            if user is None and conversation.user_id is not None:
+                user = session.get(User, conversation.user_id)
+            if user is None:
+                continue
             user_id = user.id
             if user_id is None:
                 continue
@@ -248,7 +259,7 @@ class ThreadService:
             result.append(
                 (
                     ThreadDTO.from_model(t),
-                    ConversationDTO.from_model(t.conversation, user),
+                    ConversationDTO.from_model(conversation, user),
                     UserDTO.get_from_model(user, unread_cache[user_id]),
                 )
             )
