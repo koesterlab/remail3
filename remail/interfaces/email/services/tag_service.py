@@ -19,10 +19,6 @@ DEFAULT_TAGS = [
         "Private life with friends and family: invitations, birthdays, trips, photos, hobbies, pets, everyday plans",
     ),
     (
-        "Urgent",
-        "Time-critical, needs immediate action today: emergency, outage, deadline expiring, cancellation, call back now",
-    ),
-    (
         "Newsletter",
         "Newsletters and marketing mail: weekly digest, product news, sale, discount, promotion, subscription, unsubscribe",
     ),
