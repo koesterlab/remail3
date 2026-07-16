@@ -12,6 +12,7 @@ on:
 permissions:
   pull-requests: write
   statuses: write
+  checks: write
 
 jobs:
   semantic-pull-request:
