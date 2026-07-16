@@ -9,6 +9,7 @@ import flet as ft
 
 from remail.client.state import MainAppState
 from remail.client.widgets.dashboard.croppable_email_adress import create_croppable_email_address
+from remail.client.widgets.tag_chip import tag_chip
 from remail.controllers.dtos.threads import ThreadDTO
 from remail.controllers.dtos.user_dto import UserDTO
 
@@ -87,11 +88,24 @@ class TodoItem(ft.Container):
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
         )
 
+        tags = state.tag_controller.get_thread_tags(thread.id)
+
         content_column = ft.Column(
             spacing=6,
             controls=[
                 top_row,
                 meta_row,
+                *(
+                    [
+                        ft.Row(
+                            controls=[tag_chip(tag.name, compact=True) for tag in tags],
+                            spacing=6,
+                            wrap=True,
+                        )
+                    ]
+                    if tags
+                    else []
+                ),
                 bottom_row,
             ],
         )
