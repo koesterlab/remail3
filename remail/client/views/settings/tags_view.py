@@ -150,8 +150,15 @@ class TagsView(SettingsSubView):
         page = self.page
         if page is None:
             return
-        page.show_dialog(ft.SnackBar(content=ft.Text("Retagging emails…")))
-        cast(ft.Page, page).run_thread(self.tag_controller.retag_all_emails)
+        self._set_status("Retagging emails…", ft.Colors.PRIMARY)
+        self._refresh()
+
+        def run_retag() -> None:
+            tagged, total = self.tag_controller.retag_all_emails()
+            self._set_status(f"Retagged {tagged} of {total} emails.", ft.Colors.PRIMARY)
+            self._refresh()
+
+        cast(ft.Page, page).run_thread(run_retag)
 
     def _tag_row(self, tag: Tag) -> ft.Container:
         is_spam = tag.name.casefold() == "spam"

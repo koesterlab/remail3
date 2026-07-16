@@ -223,7 +223,7 @@ class TagService:
         assigned = self.get_tags_for_email(chunk_vectors, tags)
         self.set_email_tags(email_id, assigned)
 
-    def retag_all_emails(self) -> int:
+    def retag_all_emails(self) -> tuple[int, int]:
         """
         Re-run automatic tagging for every non-deleted, non-spam email.
 
@@ -231,17 +231,23 @@ class TagService:
         tag set. Reuses the chunk embeddings stored in the search index; emails not
         indexed yet fall back to embedding subject and body. Server-flagged spam is
         left untouched (see _get_taggable_emails). Designed to run in a background
-        thread. Returns the number of emails processed.
+        thread. Returns (tagged, total): how many emails were successfully tagged
+        out of how many were eligible (the difference was skipped, e.g. on a lock).
         """
         # Imported lazily so UI paths never load the search/embedding stack.
         from remail.controllers.search_controller import SearchController
 
         search_controller = SearchController()
         emails = self._get_taggable_emails()
+        tagged = 0
         for email_id, subject in emails:
-            chunk_vectors = search_controller.get_chunk_embeddings(email_id)
-            self.auto_tag_email(email_id, chunk_vectors=chunk_vectors, subject=subject)
-        return len(emails)
+            try:
+                chunk_vectors = search_controller.get_chunk_embeddings(email_id)
+                self.auto_tag_email(email_id, chunk_vectors=chunk_vectors, subject=subject)
+                tagged += 1
+            except Exception:  # nosec
+                continue  # skip this email (e.g. transient DB lock) and keep going
+        return tagged, len(emails)
 
     @session
     def _get_taggable_emails(self, session: Session) -> list[tuple[int, str]]:
