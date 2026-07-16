@@ -1,5 +1,4 @@
 import logging
-from typing import Any
 
 from remail.controllers.dtos.conversations import ConversationDTO
 from remail.controllers.dtos.threads import ThreadDTO
@@ -54,14 +53,16 @@ class ThreadController:
         return ThreadDTO.from_model(self.service.create_thread(name, conversation_id))
 
     @session
-    def send_message(self, thread_id: int, message: str, attachment: list[Any]) -> None:
+    def send_message(
+        self, thread_id: int, message: str, attachments: list[str] | None = None
+    ) -> None:
         """
         Sends a message to a given thread
 
         Args:
             thread_id: The Id of the corresponding thread
             message: The message to send
-            attachment: NOT IMPLEMENTED - a list of attachments - just here to remember todo
+            attachments: Optional list of file paths to attach
         """
         thread = self.service.get_thread_by_id(thread_id)
         user = thread.conversation.users[0]
@@ -71,4 +72,5 @@ class ThreadController:
             recipients=[(c.first_name + " " + c.last_name, c.email) for c in thread.contacts],
             subject=("Re: " if thread.messages else "") + thread.title,
             msg=message,
+            attachments=attachments or [],
         )

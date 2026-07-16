@@ -144,7 +144,7 @@ class TestThreadController:
             mock_protocol_cls.return_value = mock_protocol
 
             controller.send_message(
-                thread_id=1, message="Hello, this is a test message", attachment=[]
+                thread_id=1, message="Hello, this is a test message", attachments=[]
             )
 
             mock_thread_service.get_thread_by_id.assert_called_once_with(1)
@@ -154,6 +154,7 @@ class TestThreadController:
                 recipients=[("Jane Smith", "jane@example.com")],
                 subject="Test Thread",
                 msg="Hello, this is a test message",
+                attachments=[],
             )
 
     def test_send_message_reply_subject(self, controller, mock_thread_service):
@@ -186,7 +187,7 @@ class TestThreadController:
             mock_protocol = MagicMock()
             mock_protocol_cls.return_value = mock_protocol
 
-            controller.send_message(thread_id=1, message="Reply", attachment=[])
+            controller.send_message(thread_id=1, message="Reply", attachments=[])
 
             call_args = mock_protocol.send_email.call_args
             assert call_args.kwargs["subject"] == "Re: Test Thread"
