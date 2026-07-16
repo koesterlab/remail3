@@ -56,7 +56,7 @@ class SearchHeader(ft.Container):
         )
 
         # ---- Filter Menu -----
-        all_mails = []
+        all_mails: list[ConversationDTO] = []
 
         def sort_by_date(_):
             nonlocal all_mails
