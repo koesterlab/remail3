@@ -10,31 +10,29 @@ on:
       - reopened
 
 permissions:
-  pull-requests: write
-  statuses: write
-  checks: write
+  pull-requests: read
 
 jobs:
   semantic-pull-request:
     runs-on: ubuntu-latest
-    env:
-      # The GitHub token is required to authenticate with the GitHub API.
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: amannn/action-semantic-pull-request@v5
+      - uses: actions/github-script@v7
         with:
-          # The types of commits that are allowed in the PR title.
-          # like feat: add login, fix: correct typo, docs: update README, etc.
-          types: |
-            fix
-            feat
-            docs
-            style
-            refactor
-            perf
-            test
-            chore
-            ci
-            build
-          requireScope: false # Scope is optional.
-          wip: true   # Allows PR titles marked as WIP (work in progress), like WIP: feat: add login.
+          script: |
+            const title = context.payload.pull_request.title;
+            const types = ['fix', 'feat', 'docs', 'style', 'refactor', 'perf', 'test', 'chore', 'ci', 'build'];
+            // Matches: [WIP: ]type[(scope)][!]: subject
+            const pattern = new RegExp(
+              '^(WIP: )?(' + types.join('|') + ')(\\(.+\\))?!?: .+'
+            );
+
+            if (!pattern.test(title)) {
+              core.setFailed(
+                `PR title "${title}" does not match the conventional commit format.\n` +
+                `Expected: <type>: <subject> or <type>(<scope>): <subject>\n` +
+                `Valid types: ${types.join(', ')}\n` +
+                `WIP prefix is also allowed: WIP: <type>: <subject>`
+              );
+            } else {
+              console.log(`PR title "${title}" is valid.`);
+            }
