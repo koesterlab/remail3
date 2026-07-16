@@ -64,22 +64,24 @@ class ThreadList(ft.Container):
         def on_delete_click(_):
             # This function is called when the user confirms the deletion
             def confirm_delete(_):
-                print(f"Deleting thread with id: {self.thread.id}")
+                thread_id = self.thread.id if self.thread else None
+                if not thread_id:
+                    return
+                print(f"Deleting thread with id: {thread_id}")
                 # Delete the thread from the database
-                ThreadController().delete_thread(self.thread.id)
+                ThreadController().delete_thread(thread_id)
 
                 # Remove deleted thread from the left side list
                 # We modify threads in place and set a new list reference to force UI update
                 displayed = self.state.get(MainAppStateProperties.DISPLAYED_MAILS)
                 thread_id = self.thread.id
-                for conv in displayed:
-                    conv.threads[:] = [t for t in conv.threads if t.thread_id != thread_id]
+                from dataclasses import replace
+                new_displayed = [replace(conv, threads=[t for t in conv.threads if t.thread_id != thread_id]) for conv in displayed]
+                self.state._values[MainAppStateProperties.DISPLAYED_MAILS] = []
+                self.state.set(MainAppStateProperties.DISPLAYED_MAILS, new_displayed)
 
-                # Force UI update by setting the state with a new list reference
-                # Using set() instead of trigger() ensures the observer is always called
-                self.state.set(MainAppStateProperties.DISPLAYED_MAILS, list(displayed))
-
-                # Go back to dashboard by clearing the active thread
+                # Force complete reload of the conversation list
+                self.state.set(MainAppStateProperties.ACTIVE_CONVERSATION, None)
                 self.state.set(MainAppStateProperties.ACTIVE_THREAD, None)
                 dialog.open = False
                 self.page.update()
