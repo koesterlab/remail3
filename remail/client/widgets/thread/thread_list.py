@@ -76,7 +76,11 @@ class ThreadList(ft.Container):
                 displayed = self.state.get(MainAppStateProperties.DISPLAYED_MAILS)
                 thread_id = self.thread.id
                 from dataclasses import replace
-                new_displayed = [replace(conv, threads=[t for t in conv.threads if t.thread_id != thread_id]) for conv in displayed]
+
+                new_displayed = [
+                    replace(conv, threads=[t for t in conv.threads if t.thread_id != thread_id])
+                    for conv in displayed
+                ]
                 self.state._values[MainAppStateProperties.DISPLAYED_MAILS] = []
                 self.state.set(MainAppStateProperties.DISPLAYED_MAILS, new_displayed)
 
