@@ -1,14 +1,20 @@
 import flet as ft
 
+from remail.client.state import MainAppState, MainAppStateProperties
 from remail.client.views.settings.settings_sub_view import SettingsSubView
 from remail.controllers.account_controller import AccountController
 from remail.controllers.dtos import SettingsDTO
 from remail.controllers.dtos.user_dto import UserDTO
 from remail.controllers.email_controller import EmailController
 from remail.enums import AuthMethods, ConnectionSecurity, Protocol
+from remail.interfaces.email.protocols.exchange import ExchangeProtocol
 
 
 class EmailAccountsView(SettingsSubView):
+    def __init__(self, state: MainAppState | None = None):
+        self._app_state = state
+        super().__init__()
+
     def create_page(self, settings: SettingsDTO) -> ft.Container:
         """Create the email accounts settings view."""
 
@@ -116,23 +122,62 @@ class EmailAccountsView(SettingsSubView):
                 icon=ft.Icons.SETTINGS, tooltip="Settings", on_click=on_smtp_settings
             ),
         )
+        exchange_input = ft.TextField(
+            label="Exchange Server", hint_text="Enter your Exchange server name", width=300
+        )
 
         input_panel = ft.Container()
 
         # ---------------- Add Account ----------------
         def add_account_click(e):
+            tabs = ft.Tabs(
+                length=2,
+                content=ft.Column(
+                    controls=[
+                        ft.TabBar(
+                            tabs=[
+                                ft.Tab(label="IMAP"),
+                                ft.Tab(label="Exchange"),
+                            ]
+                        ),
+                        ft.TabBarView(
+                            height=350,
+                            controls=[
+                                ft.Column(
+                                    [
+                                        name_input,
+                                        email_input,
+                                        password_input,
+                                        imap_host_input,
+                                        smtp_host_input,
+                                    ],
+                                    spacing=10,
+                                ),
+                                ft.Column(
+                                    [
+                                        name_input,
+                                        email_input,
+                                        password_input,
+                                        exchange_input,
+                                    ],
+                                    spacing=10,
+                                ),
+                            ],
+                        ),
+                    ],
+                ),
+            )
+
             input_panel.content = ft.Column(
                 [
                     ft.Text("Add Email Account", size=16, weight=ft.FontWeight.BOLD),
-                    name_input,
-                    email_input,
-                    password_input,
-                    imap_host_input,
-                    smtp_host_input,
+                    tabs,
                     ft.Row(
                         [
                             ft.OutlinedButton(
-                                "Connect", icon=ft.Icons.CHECK, on_click=connect_account
+                                "Connect",
+                                icon=ft.Icons.CHECK,
+                                on_click=lambda e: connect_account(e, tabs),
                             ),
                             ft.OutlinedButton("Cancel", icon=ft.Icons.CLOSE, on_click=cancel_add),
                         ],
@@ -140,66 +185,108 @@ class EmailAccountsView(SettingsSubView):
                     ),
                 ],
                 spacing=10,
+                scroll=ft.ScrollMode.AUTO,
             )
             add_button.visible = False
             self.page.update()
 
         # ---------------- Connect Account ----------------
-        def connect_account(e):
-            if (
-                not email_input.value
-                or not password_input.value
-                or not imap_host_input.value
-                or not smtp_host_input.value
-            ):
-                show_snackbar("Please fill in all fields", ft.Colors.RED_400)
-                return
 
-            try:
-                show_snackbar("Connecting...", ft.Colors.BLUE_400)
+        def connect_account(e, tabs=None):
+            selected = tabs.selected_index if tabs else 0
 
-                # --- Check credentials using EmailController ---
-                if "@" not in email_input.value:
-                    show_snackbar("Email must contain '@'", ft.Colors.ERROR)
+            if selected == 0:  # IMAP
+                if (
+                    not email_input.value
+                    or not password_input.value
+                    or not imap_host_input.value
+                    or not smtp_host_input.value
+                ):
+                    show_snackbar("Please fill in all fields", ft.Colors.RED_400)
                     return
-                user, host = email_input.value.split("@")[:2]
-                conn = EmailController().check_credentials(
-                    imap_username=imap_user_input.value or user,
-                    imap_password=imap_pass_input.value or password_input.value,
-                    imap_host=imap_host_input.value or host,
-                    imap_port=int(imap_port_input.value or 993),
-                    imap_security=ConnectionSecurity.SSL_TLS,
-                    imap_method=AuthMethods.PASSWORD,
-                    smtp_username=smtp_user_input.value or user,
-                    smtp_password=smtp_pass_input.value or password_input.value,
-                    smtp_host=smtp_host_input.value or host,
-                    smtp_port=int(smtp_port_input.value or 587),
-                    smtp_method=AuthMethods.PASSWORD,
-                    smtp_security=ConnectionSecurity.SSL_TLS,
-                )
-
-                if conn:
-                    AccountController.create_new_account(
-                        name_input.value.strip(),
-                        email_input.value.strip().lower(),
-                        conn,
-                        Protocol.IMAP,
+                try:
+                    show_snackbar("Connecting...", ft.Colors.BLUE_400)
+                    if "@" not in email_input.value:
+                        show_snackbar("Email must contain '@'", ft.Colors.ERROR)
+                        return
+                    user, host = email_input.value.split("@")[:2]
+                    conn = EmailController().check_credentials(
+                        imap_username=imap_user_input.value or user,
+                        imap_password=imap_pass_input.value or password_input.value,
+                        imap_host=imap_host_input.value or host,
+                        imap_port=int(imap_port_input.value or 993),
+                        imap_security=ConnectionSecurity.SSL_TLS,
+                        imap_method=AuthMethods.PASSWORD,
+                        smtp_username=smtp_user_input.value or user,
+                        smtp_password=smtp_pass_input.value or password_input.value,
+                        smtp_host=smtp_host_input.value or host,
+                        smtp_port=int(smtp_port_input.value or 587),
+                        smtp_method=AuthMethods.PASSWORD,
+                        smtp_security=ConnectionSecurity.SSL_TLS,
                     )
-                    show_snackbar("Account added", ft.Colors.PRIMARY_CONTAINER)
-                else:
-                    show_snackbar("Connection failed", ft.Colors.ERROR)
+                    if conn:
+                        AccountController.create_new_account(
+                            name_input.value.strip(),
+                            email_input.value.strip().lower(),
+                            conn,
+                            Protocol.IMAP,
+                        )
+                        if self._app_state is not None:
+                            self._app_state.set(
+                                MainAppStateProperties.ACCOUNTS_CHANGED,
+                                email_input.value.strip().lower(),
+                            )
+                        show_snackbar("Account added", ft.Colors.PRIMARY_CONTAINER)
+                    else:
+                        show_snackbar("Connection failed", ft.Colors.ERROR)
+                    cancel_add(None)
+                    update_account_view()
+                except Exception as ex:
+                    show_snackbar(f"Error: {str(ex)}", ft.Colors.RED_400)
 
-                cancel_add(None)  # reset input fields
-                update_account_view()
-
-            except Exception as ex:
-                show_snackbar(f"Error: {str(ex)}", ft.Colors.RED_400)
+            else:  # Exchange
+                if (
+                    not name_input.value
+                    or not email_input.value
+                    or not password_input.value
+                    or not exchange_input.value
+                ):
+                    show_snackbar("Please fill in all fields", ft.Colors.RED_400)
+                    return
+                try:
+                    show_snackbar("Connecting...", ft.Colors.BLUE_400)
+                    protocol = ExchangeProtocol(
+                        username=email_input.value.strip().lower(),
+                        password=password_input.value,
+                        server=exchange_input.value.strip(),
+                    )
+                    if protocol.test_connection():
+                        AccountController.create_new_account(
+                            name_input.value.strip(),
+                            email_input.value.strip().lower(),
+                            protocol,
+                            Protocol.EXCHANGE,
+                        )
+                        if self._app_state is not None:
+                            self._app_state.set(
+                                MainAppStateProperties.ACCOUNTS_CHANGED,
+                                email_input.value.strip().lower(),
+                            )
+                        show_snackbar("Account added", ft.Colors.PRIMARY_CONTAINER)
+                    else:
+                        show_snackbar("Connection failed", ft.Colors.ERROR)
+                    cancel_add(None)
+                    update_account_view()
+                except Exception as ex:
+                    show_snackbar(f"Error: {str(ex)}", ft.Colors.RED_400)
 
         # ---------------- Remove Account ----------------
         def remove_account(user: UserDTO):
             def handler(e):
                 try:
                     AccountController(user.id).delete()
+                    if self._app_state is not None:
+                        self._app_state.set(MainAppStateProperties.ACCOUNTS_CHANGED, user.email)
                 except Exception as ex:
                     show_snackbar(f"Failed to remove user: {ex}", ft.Colors.ORANGE_400)
 
@@ -216,7 +303,6 @@ class EmailAccountsView(SettingsSubView):
             name_input.value = user.name
             email_input.value = user.email
             password_input.value = connection.get("imap_password", "")
-
             dlg = ft.AlertDialog(
                 title=ft.Text("Edit Email Account"),
                 content=ft.Column(
@@ -266,6 +352,7 @@ class EmailAccountsView(SettingsSubView):
             password_input.value = ""
             imap_host_input.value = ""
             smtp_host_input.value = ""
+            exchange_input.value = ""
             input_panel.content = None
             add_button.visible = True
             self.page.update()
