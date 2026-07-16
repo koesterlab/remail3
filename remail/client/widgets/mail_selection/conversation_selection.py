@@ -66,16 +66,11 @@ class ConversationSelection(ft.Container):
             if search == self.active_search_cache and not is_load_more:
                 return  # same search -> no change needed
             self.active_search_cache = search
-<<<<<<< HEAD
+
             content: list[ConversationDTO | MessageDTO | Action] = (
                 self.state.get_active_email_account().search(
                     search, requested_emails=self.current_search_limit
                 )
-=======
-            content: list[ConversationDTO | Action] = self.state.get_active_email_account().search(
-                search
->>>>>>> 8df506b (Add lazy loading for conversation and thread lists)
-            )
 
             mail_count = sum(
                 1 for item in content if isinstance(item, (ConversationDTO, MessageDTO))
