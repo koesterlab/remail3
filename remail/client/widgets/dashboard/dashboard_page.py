@@ -99,6 +99,20 @@ class DashboardPage(ft.Column):
             except Exception:  # nosec B110
                 pass
 
+    def refresh(self) -> None:
+        """Rebuild the dashboard from the current DB state.
+
+        Called when the dashboard is (re)opened so background changes such as
+        auto-tagging show up. Reuses this instance, so no extra observer is
+        registered; it just reconstructs the content (todo list, appointments).
+        """
+        self.accounts = list(self.state.account_controllers.values())
+        self._rebuild()
+        try:
+            self.update()
+        except Exception:  # nosec B110
+            pass
+
     def _open_attachments(self, _: object) -> None:
         self.state.set(MainAppStateProperties.ACTIVE_THREAD, None)
         self.state.set(MainAppStateProperties.ACTIVE_ATTACHMENTS, True)
