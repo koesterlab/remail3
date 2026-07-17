@@ -10,7 +10,7 @@ on:
       - reopened
 
 permissions:
-  pull-requests: read
+  pull-requests: write
 
 jobs:
   semantic-pull-request:
