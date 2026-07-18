@@ -358,7 +358,10 @@ def test_exchange_protocol_smoke(monkeypatch):
             return self
 
         def order_by(self, *args, **kwargs):
-            return [SimpleNamespace(id="1", mime_content=b"Subject: Hi\n\nBody")]
+            return [SimpleNamespace(id="1", mime_content=b"Subject: Hi\n\nBody", is_read=False)]
+
+        def all(self):
+            return [SimpleNamespace(id="1", mime_content=b"Subject: Hi\n\nBody", is_read=False)]
 
     class FakeAccount:
         def __init__(self, *args, **kwargs):

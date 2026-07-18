@@ -4,7 +4,6 @@ import asyncio
 import json
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
-from email import message_from_bytes
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -13,8 +12,8 @@ from exchangelib import (
     Account,
     Configuration,
     Credentials,
-    EWSDateTime,
-    EWSTimeZone,
+    EWSDateTime,  # noqa: F401  (unused here, but tests monkeypatch it on this module)
+    EWSTimeZone,  # noqa: F401  (unused here, but tests monkeypatch it on this module)
     Mailbox,
 )
 from exchangelib import Message as ExMessage
@@ -26,7 +25,7 @@ from remail.models.email import Email  # angenommen, dein Email-Datentyp
 class ExchangeProtocol(EmailProtocol):
     """Exchange email protocol implementation using exchangelib."""
 
-    def __init__(self, username="", password="", server="", serialized="{}"):
+    def __init__(self, username="", password="", server="", serialized="{}"):  # nosec B107
         if serialized != "{}":
             self.deserialize(serialized)
         else:
