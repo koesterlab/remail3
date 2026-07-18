@@ -76,29 +76,15 @@ class DashboardPage(ft.Column):
     def on_user_change(self, acc: UserDTO):
         from remail.utils.timer import Timer
 
-        new_accounts = list(self.state.account_controllers.values())
-        if new_accounts != self.accounts:
-            self.accounts = new_accounts
-            _logger.info("DashboardPage: rebuilding...")
-            t = Timer()
-            self._rebuild()
-            _logger.info("DashboardPage: _rebuild done. (%s)", t.elapsed())
-            try:
-                t2 = Timer()
-                self.update()
-                _logger.info("DashboardPage: update done. (%s)", t2.elapsed())
-            except Exception:  # nosec B110
-                pass
-            return
-        if not hasattr(self, "dropdown") or self.dropdown is None:
-            return
-        if acc is not None:
-            self.dropdown.value = str(acc.id)
-            try:
-                self.dropdown.update()
-            except Exception:  # nosec B110
-                pass
-
+        self.accounts = list(self.state.account_controllers.values())
+        _logger.info("DashboardPage: rebuilding...")
+        t = Timer()
+        self._rebuild()
+        _logger.info("DashboardPage: _rebuild done. (%s)", t.elapsed())
+        try:
+            self.update()
+        except Exception:  # nosec B110
+            pass
     def _open_attachments(self, _: object) -> None:
         self.state.set(MainAppStateProperties.ACTIVE_THREAD, None)
         self.state.set(MainAppStateProperties.ACTIVE_ATTACHMENTS, True)

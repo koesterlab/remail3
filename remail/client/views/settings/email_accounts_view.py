@@ -398,16 +398,12 @@ class EmailAccountsView(SettingsSubView):
 
 
                 cancel_add(None)
+                self._app_state.set(MainAppStateProperties.ACCOUNTS_CHANGED, user.email)
+                self._app_state.trigger(MainAppStateProperties.ACCOUNTS_CHANGED)
                 update_account_view()
 
-                active = self.state.get(MainAppStateProperties.ACTIVE_USER)
 
-                if active is not None and active.id == controller.user_id:
-                    print("set wird jz aufgerufen")
-                    self.state.set(
-                        MainAppStateProperties.ACTIVE_USER,
-                        controller.get_user(),
-                    )
+
 
 
             dlg = ft.AlertDialog(
@@ -476,6 +472,7 @@ class EmailAccountsView(SettingsSubView):
             self.page.overlay.append(dlg)
             dlg.open = True
             self.page.update()
+            update_account_view()
 
 
         # ---------------- Cancel Add ----------------
@@ -515,17 +512,17 @@ class EmailAccountsView(SettingsSubView):
                                     ft.Row(
                                         [
                                             ft.Icon(ft.Icons.EMAIL, color=ft.Colors.BLUE),
-                                            ft.Text(controller.get_user().name, expand=True),
+                                            ft.Text(user.name, expand=True),
                                             ft.IconButton(
                                                 icon=ft.Icons.EDIT,
                                                 tooltip="Edit account",
-                                                on_click=lambda e,  c=controller: edit_account(c),
+                                                on_click=lambda e,  c=user: edit_account(c),
                                             ),
                                             ft.IconButton(
                                                 icon=ft.Icons.DELETE,
                                                 icon_color=ft.Colors.RED,
                                                 tooltip="Remove account",
-                                                on_click=remove_account(controller.get_user()),
+                                                on_click=remove_account(user),
                                             ),
                                         ]
                                     ),
