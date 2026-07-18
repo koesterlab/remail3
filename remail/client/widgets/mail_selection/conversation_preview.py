@@ -1,3 +1,4 @@
+import datetime
 from abc import ABC
 
 import flet as ft
@@ -85,7 +86,26 @@ class ConversationPreview(ft.Container, ABC):
             padding=ft.Padding.symmetric(horizontal=6, vertical=2),
             visible=total_unread > 0,
         )
+        last_date = max(
+            (t.last_message_datetime for t in conversation.threads),
+            default=None,
+        )
 
+        def format_date(date):
+            if date is None:
+                return ""
+            today = datetime.date.today()
+            if date.date() == today:
+                return "Today"
+            if date.date() == today - datetime.timedelta(days=1):
+                return "Yesterday"
+            return date.strftime("%d.%m.%Y")
+
+        date_text = ft.Text(
+            format_date(last_date),
+            size=12,
+            color=ft.Colors.ON_SURFACE_VARIANT,
+        )
         profile_picture = ft.Container()
         profile_picture.on_click = lambda e: state.toggle_selection(conversation)
 
@@ -105,6 +125,7 @@ class ConversationPreview(ft.Container, ABC):
         on_toggle_selection(conversation in state.get_selected())
 
         super().__init__(
+            ink=True,
             on_hover=on_hover,
             on_click=lambda: state.set(MainAppStateProperties.ACTIVE_CONVERSATION, conversation),
             bgcolor=ft.Colors.TRANSPARENT,
@@ -137,9 +158,10 @@ class ConversationPreview(ft.Container, ABC):
                                         expand=True,
                                         overflow=ft.TextOverflow.ELLIPSIS,
                                         max_lines=1,
-                                    )
+                                    ),
+                                    date_text,
                                 ],
-                                alignment=ft.MainAxisAlignment.START,
+                                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                                 spacing=6,
                             ),
                         ],

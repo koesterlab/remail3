@@ -1,11 +1,13 @@
 """Tests for ThreadService."""
 
+from datetime import datetime
+
 import pytest
 from sqlmodel import Session
 
 from remail.enums import Protocol
 from remail.interfaces.email.services.thread_service import ThreadService
-from remail.models import Conversation, Email, Thread, User
+from remail.models import Contact, Conversation, Email, Thread, User
 
 
 @pytest.fixture
@@ -34,6 +36,22 @@ def test_conversation(test_engine, test_user):
         session.commit()
         session.refresh(conv)
         return conv.id
+
+
+@pytest.fixture
+def test_sender(test_engine):
+    """Create a sender contact for email tests."""
+    with Session(test_engine) as session:
+        sender = Contact(
+            name="Sender",
+            email_address="sender@example.com",
+            first_name="Sender",
+            last_name="Test",
+        )
+        session.add(sender)
+        session.commit()
+        session.refresh(sender)
+        return sender.id
 
 
 class TestThreadService:
@@ -129,7 +147,7 @@ class TestThreadService:
         assert service.normalize_subject("Meeting Tomorrow") == "Meeting Tomorrow"
 
     def test_organize_email_into_thread_creates_new_thread(
-        self, test_engine, test_conversation, test_user
+        self, test_engine, test_conversation, test_sender
     ):
         """Test organize_email_into_thread creates new thread for new subject."""
         with Session(test_engine) as session:
@@ -139,8 +157,9 @@ class TestThreadService:
                 message_id="<test@example.com>",
                 subject="New Subject",
                 body="Body",
-                sent_at="2024-01-01",
+                sent_at=datetime(2024, 1, 1),
                 imap_uid=1,
+                sender_id=test_sender,
             )
             session.add(email)
             session.flush()
@@ -156,7 +175,7 @@ class TestThreadService:
             assert email.thread == threads[0]
 
     def test_organize_email_into_thread_uses_existing_thread(
-        self, test_engine, test_conversation, test_user
+        self, test_engine, test_conversation, test_sender
     ):
         """Test organize_email_into_thread uses existing thread for same subject."""
         with Session(test_engine) as session:
@@ -172,8 +191,9 @@ class TestThreadService:
                 message_id="<test2@example.com>",
                 subject="Re: Existing Subject",
                 body="Reply",
-                sent_at="2024-01-02",
+                sent_at=datetime(2024, 1, 2),
                 imap_uid=2,
+                sender_id=test_sender,
             )
             session.add(email)
             session.flush()
@@ -186,7 +206,9 @@ class TestThreadService:
             assert email.thread == existing_thread
             assert len(conv.threads) == 1  # Only one thread
 
-    def test_organize_email_into_thread_normalizes_subject(self, test_engine, test_conversation):
+    def test_organize_email_into_thread_normalizes_subject(
+        self, test_engine, test_conversation, test_sender
+    ):
         """Test organize_email_into_thread normalizes subject before matching."""
         with Session(test_engine) as session:
             conv = session.get(Conversation, test_conversation)
@@ -199,8 +221,9 @@ class TestThreadService:
                 message_id="<test3@example.com>",
                 subject="Re: Fw: Test Subject",
                 body="Reply",
-                sent_at="2024-01-03",
+                sent_at=datetime(2024, 1, 3),
                 imap_uid=3,
+                sender_id=test_sender,
             )
             session.add(email)
             session.flush()
@@ -212,7 +235,9 @@ class TestThreadService:
             # Should match despite different prefixes
             assert email.thread == thread1
 
-    def test_organize_email_into_thread_updates_unread_count(self, test_engine, test_conversation):
+    def test_organize_email_into_thread_updates_unread_count(
+        self, test_engine, test_conversation, test_sender
+    ):
         """Test organize_email_into_thread increments unread count for unread emails."""
         with Session(test_engine) as session:
             conv = session.get(Conversation, test_conversation)
@@ -225,9 +250,10 @@ class TestThreadService:
                 message_id="<test4@example.com>",
                 subject="Test",
                 body="Body",
-                sent_at="2024-01-04",
+                sent_at=datetime(2024, 1, 4),
                 imap_uid=4,
                 read=False,
+                sender_id=test_sender,
             )
             session.add(email)
             session.flush()
