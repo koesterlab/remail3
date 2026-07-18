@@ -53,6 +53,7 @@ The project includes several pixi tasks defined in `pixi.toml`:
 2. Format your code: `pixi run format`
 3. Run tests: `pixi run test`
 4. Create a pull request
+5. Ensure that the pull request title follows the Conventional Commits format
 
 ### CI/CD Workflows
 
