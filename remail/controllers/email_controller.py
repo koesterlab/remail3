@@ -39,13 +39,13 @@ class EmailController:
 
         try:
             imap_ok = protocol.test_imap_connection()
-        except Exception as ex:
+        except Exception:
             imap_ok = False
 
 
         try:
             smtp_ok = protocol.test_smtp_connection()
-        except Exception as ex:
+        except Exception:
             smtp_ok = False
 
 

@@ -211,7 +211,7 @@ class ImapProtocol(EmailProtocol):
             return True
         except Exception:
             return False
-        
+
     @imap
     def test_imap_connection(self, client: IMAPClient) -> bool:
         try:

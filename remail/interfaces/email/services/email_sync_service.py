@@ -10,6 +10,7 @@ from sqlmodel import Session, col, select
 
 from remail.enums import Protocol
 from remail.interfaces.email import EmailProtocol, ImapProtocol
+from remail.interfaces.email.protocols.exchange import ExchangeProtocol
 from remail.interfaces.email.services import EmailParser
 from remail.models import (
     Conversation,
@@ -18,8 +19,6 @@ from remail.models import (
 )
 from remail.utils.session_management import session
 from remail.utils.timer import Timer
-from remail.interfaces.email.protocols.exchange import ExchangeProtocol
-
 
 if TYPE_CHECKING:
     from remail.interfaces.email.services.email_parser import EmailParser
