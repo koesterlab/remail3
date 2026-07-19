@@ -7,6 +7,8 @@ from remail.client.widgets.mail_selection.profile_picture import (
 )
 from remail.controllers.dtos.conversations import ContactDTO
 from remail.controllers.dtos.threads import MessageDTO
+from remail.controllers.dtos.threads.attachment import AttachmentDTO
+from remail.utils.file_opener import open_file
 
 
 class MessageBubble(ft.Container):
@@ -75,14 +77,23 @@ class MessageBubble(ft.Container):
         )
 
     @staticmethod
-    def _build_attachments(message: MessageDTO, text_color: str) -> ft.Control:
+    def _on_attachment_click(attachment: AttachmentDTO) -> None:
+        open_file(attachment.url)
+
+    @classmethod
+    def _build_attachments(cls, message: MessageDTO, text_color: str) -> ft.Control:
         controls: list[ft.Control] = []
         for attachment in message.content.attachments:
-            if attachment.file_type.startswith("image/") and attachment.url:
+            has_file = bool(attachment.url)
+
+            if attachment.file_type.startswith("image/") and has_file:
                 controls.append(
                     ft.Container(
                         border_radius=6,
                         clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
+                        ink=True,
+                        tooltip="Open image",
+                        on_click=lambda _, att=attachment: cls._on_attachment_click(att),
                         content=ft.Image(
                             src=attachment.url,
                             width=260,
@@ -92,18 +103,29 @@ class MessageBubble(ft.Container):
                     )
                 )
             controls.append(
-                ft.Row(
-                    [
-                        ft.Icon(ft.Icons.ATTACH_FILE, size=16, color=text_color),
-                        ft.Text(
-                            attachment.file_name,
-                            color=text_color,
-                            size=12,
-                            overflow=ft.TextOverflow.ELLIPSIS,
-                            expand=True,
-                        ),
-                    ],
-                    spacing=6,
+                ft.Container(
+                    padding=ft.Padding.symmetric(horizontal=2, vertical=2),
+                    border_radius=4,
+                    ink=has_file,
+                    tooltip="Open attachment" if has_file else None,
+                    on_click=(
+                        (lambda _, att=attachment: cls._on_attachment_click(att))
+                        if has_file
+                        else None
+                    ),
+                    content=ft.Row(
+                        [
+                            ft.Icon(ft.Icons.ATTACH_FILE, size=16, color=text_color),
+                            ft.Text(
+                                attachment.file_name,
+                                color=text_color,
+                                size=12,
+                                overflow=ft.TextOverflow.ELLIPSIS,
+                                expand=True,
+                            ),
+                        ],
+                        spacing=6,
+                    ),
                 )
             )
         return ft.Column(controls, spacing=6, tight=True)
