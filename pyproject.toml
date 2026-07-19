@@ -70,8 +70,8 @@ test-cov = "pytest --cov=remail --cov-report=term --cov-report=html --cov-report
 check = { depends-on = ["format-check", "typecheck", "security", "test"] }
 
 # 8) Database initialization / migration
-# pixi run init-db --force
-init-db = "python init_db.py"
+# pixi run migrate-db --init (init for delete existing db and migrate from scratch)
+migrate-db = "python migrate_db.py"
 # pixi run db-revision -m "Added new table"
 db-revision = "alembic revision --autogenerate"
 # pixi run db-downgrade

@@ -33,15 +33,14 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Initialize the database via Alembic migrations")
     parser.add_argument(
-        "--force",
-        "-f",
+        "--init",
         action="store_true",
         help="Delete the existing database before migrating",
     )
 
     args = parser.parse_args()
 
-    if args.force and DB_PATH.exists():
+    if args.init and DB_PATH.exists():
         print(f"🗑️  Removing existing database: {DB_PATH}")
         os.remove(DB_PATH)
 
