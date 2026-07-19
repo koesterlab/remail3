@@ -169,6 +169,7 @@ class AccountController:
             self._logger.info("[%s] Showing cached emails from DB.", self.user.email)
             self.progress_callback(task_id, "Syncing emails...", None)
             self.callback(self._get_conversations_from_db())
+            self.done_callback(task_id)
 
             while True:
                 try:
