@@ -15,6 +15,7 @@ class IndexView(ft.Container):
         state = MainAppState()
         state.set(MainAppStateProperties.DISPLAYED_MAILS, [])
         state.set(MainAppStateProperties.ACTIVE_CHATBOT, False)
+        state.set(MainAppStateProperties.ACTIVE_ATTACHMENTS, False)
         state.set(MainAppStateProperties.ACTIVE_THREAD, None)
         state.set(MainAppStateProperties.ACTIVE_CONVERSATION, None)
         state.set(MainAppStateProperties.ACTIVE_THREAD_CONVERSATION, None)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from typing import Any
 
@@ -15,6 +16,8 @@ from remail.enums import SettingsSubView
 AccountDict = dict[str, Any]
 TodoDict = dict[str, Any]
 AppointmentDict = dict[str, Any]
+
+_logger = logging.getLogger(__name__)
 
 
 def _time_greeting(now: datetime | None = None) -> str:
@@ -71,7 +74,48 @@ class DashboardPage(ft.Column):
         self._rebuild()
 
     def on_user_change(self, acc: UserDTO):
-        self.dropdown.value = str(acc.id)
+        from remail.utils.timer import Timer
+
+        new_accounts = list(self.state.account_controllers.values())
+        if new_accounts != self.accounts:
+            self.accounts = new_accounts
+            _logger.info("DashboardPage: rebuilding...")
+            t = Timer()
+            self._rebuild()
+            _logger.info("DashboardPage: _rebuild done. (%s)", t.elapsed())
+            try:
+                t2 = Timer()
+                self.update()
+                _logger.info("DashboardPage: update done. (%s)", t2.elapsed())
+            except Exception:  # nosec B110
+                pass
+            return
+        if not hasattr(self, "dropdown") or self.dropdown is None:
+            return
+        if acc is not None:
+            self.dropdown.value = str(acc.id)
+            try:
+                self.dropdown.update()
+            except Exception:  # nosec B110
+                pass
+
+    def refresh(self) -> None:
+        """Rebuild the dashboard from the current DB state.
+
+        Called when the dashboard is (re)opened so background changes such as
+        auto-tagging show up. Reuses this instance, so no extra observer is
+        registered; it just reconstructs the content (todo list, appointments).
+        """
+        self.accounts = list(self.state.account_controllers.values())
+        self._rebuild()
+        try:
+            self.update()
+        except Exception:  # nosec B110
+            pass
+
+    def _open_attachments(self, _: object) -> None:
+        self.state.set(MainAppStateProperties.ACTIVE_THREAD, None)
+        self.state.set(MainAppStateProperties.ACTIVE_ATTACHMENTS, True)
 
     def _rebuild(self) -> None:
         # Compute greeting + name dynamically
@@ -81,19 +125,21 @@ class DashboardPage(ft.Column):
         first_name = self.accounts[0].get_user().name.split()[0]
 
         self.dropdown = ft.Dropdown(
-            value=self.state.get(MainAppStateProperties.ACTIVE_USER).id,
+            value=str(self.state.get(MainAppStateProperties.ACTIVE_USER).id)
+            if self.state.get(MainAppStateProperties.ACTIVE_USER)
+            else None,
             text_size=10,
             width=250,
             border_radius=24,
             options=[
                 ft.DropdownOption(
-                    content=AccountCard(acc), key=acc.id, text=f"{acc.name} <{acc.email}>"
+                    content=AccountCard(acc), key=str(acc.id), text=f"{acc.name} <{acc.email}>"
                 )
                 for acc in [c.get_user() for c in self.accounts]
             ],
             on_select=lambda user_id: self.state.set(
                 MainAppStateProperties.ACTIVE_USER,
-                [a for a in self.accounts if a.user_id == int(user_id.data)][0].get_user(),
+                [a for a in self.accounts if str(a.user_id) == str(user_id.data)][0].get_user(),
             ),
         )
 
@@ -109,13 +155,26 @@ class DashboardPage(ft.Column):
                     ft.Column(
                         [
                             self.dropdown,
-                            ft.IconButton(
-                                icon_color=ft.Colors.ON_SURFACE_VARIANT,
-                                icon=ft.Icons.SETTINGS,
-                                on_click=lambda _: self.state.set(
-                                    MainAppStateProperties.ACTIVE_SETTINGS,
-                                    SettingsSubView.APPEARANCE,
-                                ),
+                            ft.Row(
+                                [
+                                    ft.IconButton(
+                                        icon_color=ft.Colors.ON_SURFACE_VARIANT,
+                                        icon=ft.Icons.ATTACH_FILE,
+                                        tooltip="Attachments",
+                                        on_click=self._open_attachments,
+                                    ),
+                                    ft.IconButton(
+                                        icon_color=ft.Colors.ON_SURFACE_VARIANT,
+                                        icon=ft.Icons.SETTINGS,
+                                        tooltip="Settings",
+                                        on_click=lambda _: self.state.set(
+                                            MainAppStateProperties.ACTIVE_SETTINGS,
+                                            SettingsSubView.APPEARANCE,
+                                        ),
+                                    ),
+                                ],
+                                spacing=0,
+                                alignment=ft.MainAxisAlignment.END,
                             ),
                         ],
                         horizontal_alignment=ft.CrossAxisAlignment.END,

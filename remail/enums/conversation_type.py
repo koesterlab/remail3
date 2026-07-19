@@ -1,9 +1,6 @@
-from enum import Enum
+from enum import StrEnum  # Enum yerine StrEnum import et
 
 
-class ConversationType(Enum):
+class ConversationType(StrEnum):  # (str, Enum) yerine sadece StrEnum kullan
     CONVERSATION = "conversation"
     GROUP = "group"
-
-
-__all__ = ["ConversationType"]

@@ -3,8 +3,11 @@ from .contact import Contact
 from .conversation import Conversation
 from .conversation_contact import ConversationContact
 from .email import Email
+from .email_chunk import EmailChunk
 from .email_reception import EmailReception
+from .email_tag import EmailTag
 from .settings import Settings
+from .tag import Tag
 from .thread import Thread
 from .user import User
 from .user_conversation import UserConversation
@@ -16,8 +19,10 @@ __all__ = [
     "ConversationContact",
     "Email",
     "EmailReception",
+    "EmailTag",
     "User",
     "UserConversation",
     "Thread",
     "Settings",
+    "Tag",
 ]

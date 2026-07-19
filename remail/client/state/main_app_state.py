@@ -8,6 +8,7 @@ from remail.client.state.task_progress import TaskProgress
 from remail.controllers.account_controller import AccountController
 from remail.controllers.dtos.conversations import ConversationDTO, ThreadPreviewDTO
 from remail.controllers.dtos.user_dto import UserDTO
+from remail.controllers.tag_controller import TagController
 from remail.controllers.thread_controller import ThreadController
 
 
@@ -18,6 +19,7 @@ class MainAppStateProperties(Enum):
     ACTIVE_THREAD_CONVERSATION = "active_thread_conversation"
     ACTIVE_CONVERSATION = "active_conversation"
     ACTIVE_CHATBOT = "active_chatbot"
+    ACTIVE_ATTACHMENTS = "active_attachments"
     ACTIVE_SETTINGS = "active_settings"
     SEARCH_TERM = "search_term"
     DISPLAYED_MAILS = "displayed_mails"
@@ -34,6 +36,7 @@ class MainAppState(ObservableState[MainAppStateProperties]):
         ] = {}
 
         self.thread_controller = ThreadController()
+        self.tag_controller = TagController()
         self.account_controllers: dict[str, AccountController] = {}
         self.sync_threads: list[Future] = []
 
