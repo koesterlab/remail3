@@ -10,7 +10,7 @@ from remail.controllers.dtos.threads import (
 )
 from remail.controllers.dtos.user_dto import UserDTO
 from remail.controllers.thread_controller import ThreadController
-from remail.models import Contact, Conversation, Email, Thread, User
+from remail.models import Conversation, Email, Thread, User
 
 
 @pytest.fixture
@@ -116,25 +116,18 @@ class TestThreadController:
 
     def test_send_message(self, controller, mock_thread_service):
         """Test send_message sends email via protocol."""
-        # Create mock thread with necessary relationships
         mock_user = Mock(spec=User)
         mock_user.name = "John Doe"
         mock_user.email = "john@example.com"
         mock_user.connection = {"host": "imap.example.com"}
 
-        mock_contact = Mock(spec=Contact)
-        mock_contact.first_name = "Jane"
-        mock_contact.last_name = "Smith"
-        mock_contact.email = "jane@example.com"
-
         mock_conversation = Mock(spec=Conversation)
-        mock_conversation.users = [mock_user]
+        mock_conversation.user = mock_user
 
         mock_thread = Mock(spec=Thread)
         mock_thread.id = 1
         mock_thread.title = "Test Thread"
         mock_thread.conversation = mock_conversation
-        mock_thread.contacts = [mock_contact]
         mock_thread.messages = []
 
         mock_thread_service.get_thread_by_id.return_value = mock_thread
@@ -149,12 +142,11 @@ class TestThreadController:
 
             mock_thread_service.get_thread_by_id.assert_called_once_with(1)
             mock_protocol_cls.assert_called_once_with(serialized=mock_user.connection)
-            mock_protocol.send_email.assert_called_once_with(
-                sender=("John Doe", "john@example.com"),
-                recipients=[("Jane Smith", "jane@example.com")],
-                subject="Test Thread",
-                msg="Hello, this is a test message",
-            )
+            mock_protocol.send_email.assert_called_once()
+            mail = mock_protocol.send_email.call_args.args[0]
+            assert mail.body == "Hello, this is a test message"
+            assert mail.thread.title == "Test Thread"
+            assert mail.thread.conversation is mock_conversation
 
     def test_send_message_reply_subject(self, controller, mock_thread_service):
         """Test send_message adds Re: prefix for threads with existing messages."""
@@ -163,13 +155,8 @@ class TestThreadController:
         mock_user.email = "john@example.com"
         mock_user.connection = {"host": "imap.example.com"}
 
-        mock_contact = Mock(spec=Contact)
-        mock_contact.first_name = "Jane"
-        mock_contact.last_name = "Smith"
-        mock_contact.email = "jane@example.com"
-
         mock_conversation = Mock(spec=Conversation)
-        mock_conversation.users = [mock_user]
+        mock_conversation.user = mock_user
 
         mock_message = Mock(spec=Email)
 
@@ -177,7 +164,6 @@ class TestThreadController:
         mock_thread.id = 1
         mock_thread.title = "Test Thread"
         mock_thread.conversation = mock_conversation
-        mock_thread.contacts = [mock_contact]
         mock_thread.messages = [mock_message]  # Has existing message
 
         mock_thread_service.get_thread_by_id.return_value = mock_thread
@@ -188,5 +174,6 @@ class TestThreadController:
 
             controller.send_message(thread_id=1, message="Reply", attachment=[])
 
-            call_args = mock_protocol.send_email.call_args
-            assert call_args.kwargs["subject"] == "Re: Test Thread"
+            mock_protocol.send_email.assert_called_once()
+            mail = mock_protocol.send_email.call_args.args[0]
+            assert mail.thread.title == "Re: Test Thread"

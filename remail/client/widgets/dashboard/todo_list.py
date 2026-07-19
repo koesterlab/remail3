@@ -14,6 +14,7 @@ TodoDict = dict[str, Any]
 class TodoList(ft.Container):
     def __init__(self, state: MainAppState) -> None:
         self.todos = state.thread_controller.get_most_urgent_threads(5)
+
         header_row = ft.Row(
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             controls=[
