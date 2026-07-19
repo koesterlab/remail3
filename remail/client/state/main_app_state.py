@@ -7,6 +7,7 @@ from remail.client.state.observable_state import ObservableState
 from remail.controllers.account_controller import AccountController
 from remail.controllers.dtos.conversations import ConversationDTO, ThreadPreviewDTO
 from remail.controllers.dtos.user_dto import UserDTO
+from remail.controllers.tag_controller import TagController
 from remail.controllers.thread_controller import ThreadController
 
 
@@ -33,6 +34,7 @@ class MainAppState(ObservableState[MainAppStateProperties]):
         ] = {}
 
         self.thread_controller = ThreadController()
+        self.tag_controller = TagController()
         self.account_controllers: dict[str, AccountController] = {}
         self.sync_threads: list[Future] = []
 
