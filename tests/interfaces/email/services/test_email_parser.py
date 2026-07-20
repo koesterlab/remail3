@@ -105,3 +105,29 @@ def test_get_body_skips_empty_attachment_payload(parser: EmailParser):
     body = parser._get_body(msg)
 
     assert body == "body\n"
+
+
+def test_strip_reply_history_on_wrote(parser: EmailParser):
+    body = (
+        "Here is my short reply.\n\n"
+        "On Tue, Jul 2, 2026 at 10:00 AM Alice <alice@example.com> wrote:\n"
+        "> Previous line\n"
+    )
+
+    assert parser._strip_reply_history(body) == "Here is my short reply."
+
+
+def test_strip_reply_history_german_marker(parser: EmailParser):
+    body = (
+        "Danke fur die Infos.\n\n"
+        "Am 02.07.2026 um 09:10 schrieb Max Mustermann <max@example.com>:\n"
+        "> Alter Verlauf\n"
+    )
+
+    assert parser._strip_reply_history(body) == "Danke fur die Infos."
+
+
+def test_strip_reply_history_preserves_plain_message(parser: EmailParser):
+    body = "Nur eine normale Nachricht ohne Verlauf."
+
+    assert parser._strip_reply_history(body) == body

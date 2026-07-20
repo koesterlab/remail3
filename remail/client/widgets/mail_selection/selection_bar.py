@@ -1,3 +1,5 @@
+import logging
+
 import flet as ft
 
 from remail.client.state.main_app_state import MainAppState, MainAppStateProperties
@@ -5,6 +7,9 @@ from remail.client.widgets.mail_selection.conversation_selection import Conversa
 from remail.client.widgets.mail_selection.search_header import SearchHeader
 from remail.client.widgets.mail_selection.thread_selection import ThreadSelection
 from remail.controllers.dtos.conversations import ConversationDTO
+from remail.utils.timer import Timer
+
+_logger = logging.getLogger(__name__)
 
 """
 Overall Widget to combine searchbar and selection widgets
@@ -41,6 +46,7 @@ class SelectionBar(ft.Container):
         )
 
     def _on_selected_conversation_change(self, conversation: ConversationDTO) -> None:
+        t = Timer()
         if conversation:
             if not self.topic_selection_active:  # slide_in_animation
                 self.topic_selection.offset = ft.Offset(0, 0)
@@ -52,6 +58,9 @@ class SelectionBar(ft.Container):
                 self.main_content.offset = ft.Offset(0, 0)
                 self.topic_selection_active = False
         try:
-            self.page.update()
+            _logger.info("SelectionBar: calling update()...")
+            self.topic_selection.update()
+            self.main_content.update()
+            _logger.info("SelectionBar: update() done. (%s)", t.elapsed())
         except RuntimeError:
             pass
