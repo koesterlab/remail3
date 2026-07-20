@@ -113,6 +113,8 @@ class EmailView(ft.Container):
                     acc.set_callback_email_errors(
                         lambda msg, acc_=acc: on_email_sync_error(acc_.get_user(), msg)  # type:ignore
                     )
+                    acc.set_callback_progress(state.report_task)
+                    acc.set_callback_done(state.remove_task)
                     self.accounts.append(acc)
                     cast(ft.Page, self.page).run_thread(
                         lambda acc_=acc: asyncio.run(acc_.start_listening())  # type: ignore[misc]
