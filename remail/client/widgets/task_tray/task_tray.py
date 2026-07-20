@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import logging
+
 import flet as ft
 
 from remail.client.state.main_app_state import MainAppState, MainAppStateProperties
 from remail.client.state.task_progress import TaskProgress
+
+_logger = logging.getLogger(__name__)
 
 
 def _task_row(task: TaskProgress) -> ft.Control:
@@ -117,10 +121,8 @@ class TaskTray(ft.AnimatedSwitcher):
         try:
             self.update()
         except Exception:
-            # Page not yet attached on the very first trigger. The content is
-            # built from the state snapshot, so it will be correct on first
-            # display; ignoring the failed update here is safe.
-            pass
+
+            _logger.debug("TaskTray update skipped (widget not attached)", exc_info=True)
 
     def _build_content(self, tasks: dict[str, TaskProgress]) -> ft.Control:
         """Construct the visible tray container or an empty placeholder.
