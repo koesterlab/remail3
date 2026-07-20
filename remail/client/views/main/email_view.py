@@ -200,6 +200,8 @@ class EmailView(ft.Container):
                 acc.set_callback_email_errors(
                     lambda msg, acc_=acc: self._on_email_sync_error(acc_.get_user(), msg)  # type:ignore
                 )
+                acc.set_callback_progress(self._state.report_task)
+                acc.set_callback_done(self._state.remove_task)
             _logger.info("Setting ACTIVE_USER, triggering observers...")
             t2 = Timer()
             self._state.set(MainAppStateProperties.ACTIVE_USER, accounts[0].get_user())

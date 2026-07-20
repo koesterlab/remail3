@@ -117,7 +117,10 @@ class TaskTray(ft.AnimatedSwitcher):
         try:
             self.update()
         except Exception:
-            pass  # page not yet attached on very first trigger
+            # Page not yet attached on the very first trigger. The content is
+            # built from the state snapshot, so it will be correct on first
+            # display; ignoring the failed update here is safe.
+            pass
 
     def _build_content(self, tasks: dict[str, TaskProgress]) -> ft.Control:
         """Construct the visible tray container or an empty placeholder.

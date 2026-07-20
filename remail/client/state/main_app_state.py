@@ -23,6 +23,7 @@ class MainAppStateProperties(Enum):
     ACTIVE_SETTINGS = "active_settings"
     SEARCH_TERM = "search_term"
     DISPLAYED_MAILS = "displayed_mails"
+    RUNNING_TASKS = "running_tasks"
     ACCOUNTS_CHANGED = "accounts_changed"
     RUNNING_TASKS = "running_tasks"
 

@@ -168,8 +168,8 @@ class AccountController:
         task_id = f"sync-{self.user.email}"
         try:
             self._logger.info("[%s] Showing cached emails from DB.", self.user.email)
-            self.callback(self._get_conversations_from_db())
             self.progress_callback(task_id, "Syncing emails...", None)
+            self.callback(self._get_conversations_from_db())
 
             first_sync = True
             while True:
