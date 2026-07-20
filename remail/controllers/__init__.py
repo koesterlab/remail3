@@ -1,22 +1,21 @@
 from importlib import import_module
 
-from .account_controller import AccountController
-from .email_controller import EmailController
-from .llm_controller import LLMController
-from .settings_controller import SettingsController
-from .thread_controller import ThreadController
-
 __all__ = [
+    "AccountController",
+    "ConversationsController",
     "EmailController",
     "LLMController",
     "SettingsController",
+    "ThreadController",
 ]
 
 _LAZY_IMPORTS = {
+    "AccountController": ".account_controller",
     "ConversationsController": ".conversations_controller",
     "EmailController": ".email_controller",
     "LLMController": ".llm_controller",
     "SettingsController": ".settings_controller",
+    "ThreadController": ".thread_controller",
 }
 
 
