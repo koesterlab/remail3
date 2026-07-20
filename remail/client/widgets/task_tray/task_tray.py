@@ -121,7 +121,6 @@ class TaskTray(ft.AnimatedSwitcher):
         try:
             self.update()
         except Exception:
-
             _logger.debug("TaskTray update skipped (widget not attached)", exc_info=True)
 
     def _build_content(self, tasks: dict[str, TaskProgress]) -> ft.Control:
