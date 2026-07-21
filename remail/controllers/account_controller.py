@@ -59,6 +59,14 @@ class AccountController:
         self.sync_service = EmailSyncService(user_id=self.user.id)
         self.callback: Callable[[Iterable[ConversationDTO]], None] = lambda _: None
         self.error_callback: Callable[[str], None] = lambda _: None
+        # Receives (task_id, message, progress | None).  Called on sync start,
+        # each background tick, and on completion/error so the UI can update the
+        # task tray without knowing about the state layer directly.
+        self.progress_callback: Callable[[str, str, float | None], None] = lambda *_: None
+        # Receives task_id when the sync loop is fully finished so the UI can
+        # remove the task entry from the tray.
+        self.done_callback: Callable[[str], None] = lambda _: None
+
         self.search_controller = SearchController()
 
         threading.Thread(
@@ -114,6 +122,30 @@ class AccountController:
         """Registers a callback that is called when background sync fails."""
         self.error_callback = callback
 
+    def set_callback_progress(self, callback: Callable[[str, str, float | None], None]) -> None:
+        """Register a callback that receives sync-progress updates.
+
+        The callback is invoked with ``(task_id, message, progress)`` where
+        ``task_id`` is stable for the lifetime of this controller instance,
+        ``message`` is a human-readable status string, and ``progress`` is
+        a float in ``[0.0, 1.0]`` or ``None`` for an indeterminate state.
+
+        Args:
+            callback: Function to call on each progress event.
+        """
+        self.progress_callback = callback
+
+    def set_callback_done(self, callback: Callable[[str], None]) -> None:
+        """Register a callback invoked when the sync loop exits (success or error).
+
+        The callback receives the ``task_id`` so the caller can remove the
+        corresponding entry from the task tray.
+
+        Args:
+            callback: Function to call when this account's sync loop finishes.
+        """
+        self.done_callback = callback
+
     @session
     def _notify_callback(self) -> None:
         changed: list[Conversation] = self.sync_service.get_changed_conversations()
@@ -133,10 +165,13 @@ class AccountController:
 
     async def start_listening(self) -> None:
         """Starts background task to wait for email changes in imap idle mode. Calls callback if something changes"""
+        task_id = f"sync-{self.user.email}"
         try:
             self._logger.info("[%s] Showing cached emails from DB.", self.user.email)
+            self.progress_callback(task_id, "Syncing emails...", None)
             self.callback(self._get_conversations_from_db())
 
+            first_sync = True
             while True:
                 try:
                     self._logger.info("[%s] Starting IMAP sync...", self.user.email)
@@ -144,6 +179,9 @@ class AccountController:
                     await asyncio.to_thread(self.sync_service.sync_emails)
                     self._logger.info("[%s] IMAP sync done. (%s)", self.user.email, t.elapsed())
                     self._notify_callback()
+                    if first_sync:
+                        self.done_callback(task_id)
+                        first_sync = False
                     async for _ in self.sync_service.wait_for_mail_changes_async():
                         self._logger.info("[%s] IMAP IDLE: new mail detected.", self.user.email)
                         self._notify_callback()
