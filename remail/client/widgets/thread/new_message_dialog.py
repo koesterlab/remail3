@@ -2,9 +2,9 @@ import flet as ft
 
 from remail import errors as ee
 from remail.client.state import MainAppState, MainAppStateProperties
+from remail.controllers.dtos.conversations import ConversationDTO, ThreadPreviewDTO
 from remail.controllers.llm_controller import LLMController
 from remail.controllers.settings_controller import SettingsController
-from remail.controllers.dtos.conversations import ConversationDTO, ThreadPreviewDTO
 
 
 def create_new_message_dialog(state: MainAppState) -> ft.Container:
