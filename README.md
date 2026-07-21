@@ -12,8 +12,14 @@ This project uses [Pixi](https://pixi.sh) for dependency management and task exe
 
 Install Pixi:
 
+
 ```bash
 curl -fsSL https://pixi.sh/install.sh | bash
+```
+Install Ollama: ollama.com/download
+
+```bash
+curl -fsSL https://ollama.com/install.sh | bash
 ```
 
 #### Setup
@@ -24,6 +30,7 @@ Clone and install dependencies:
 git clone https://github.com/koesterlab/remail2.git
 cd remail2
 pixi install
+ollama pull nomic-embed-text
 ```
 
 ### Available Commands
@@ -46,6 +53,7 @@ The project includes several pixi tasks defined in `pixi.toml`:
 2. Format your code: `pixi run format`
 3. Run tests: `pixi run test`
 4. Create a pull request
+5. Ensure that the pull request title follows the Conventional Commits format
 
 ### CI/CD Workflows
 

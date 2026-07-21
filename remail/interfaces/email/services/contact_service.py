@@ -1,6 +1,6 @@
 from typing import cast
 
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from remail.database import engine
 from remail.models import Contact, User
@@ -48,3 +48,26 @@ class ContactService:
 
     def get_user_contact(self, user: User) -> Contact:
         return cast(Contact, self.get_or_create_contact(user.email, name=user.name or user.email))
+
+    @session
+    def get_or_create_contacts_batch(
+        self,
+        emails_names: list[tuple[str, str | None]],
+        session: Session,
+    ) -> dict[str, Contact]:
+        emails = [e for e, _ in emails_names if e]
+        if not emails:
+            return {}
+        existing = {
+            c.email_address: c
+            for c in session.exec(
+                select(Contact).where(col(Contact.email_address).in_(emails))
+            ).all()
+        }
+        for email, name in emails_names:
+            if not email or email in existing:
+                continue
+            contact = Contact(name=name or email, email_address=email, is_known=False)
+            session.add(contact)
+            existing[email] = contact
+        return existing

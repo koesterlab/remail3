@@ -3,25 +3,25 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable
 from email.header import decode_header
 from typing import TYPE_CHECKING
 
 from sqlalchemy import and_, func
+from sqlalchemy.orm import selectinload
 from sqlmodel import Session, col, select
 
-from remail.controllers.dtos.conversations import ConversationDTO
-from remail.controllers.dtos.threads import ThreadDTO
-from remail.controllers.dtos.user_dto import UserDTO
 from remail.database import engine
 from remail.interfaces.email.services.user_service import UserService
 from remail.models import Conversation, Email, Thread
+from remail.models.user import User
 from remail.utils.session_management import session
 
 if TYPE_CHECKING:
+    from remail.controllers.dtos.conversations import ConversationDTO
     from remail.controllers.dtos.threads import (
         ThreadDTO,
     )
+    from remail.controllers.dtos.user_dto import UserDTO
 
 
 class ThreadService:
@@ -33,17 +33,23 @@ class ThreadService:
 
     @session
     def get_thread_by_id(self, thread_id: int, session: Session) -> Thread | None:
-        """
-        Fetch a thread with all its messages.
+        from remail.models.attachment import Attachment  # noqa: F401
+        from remail.models.email import Email
 
-        Args:
-            thread_id: Thread ID to fetch
-
-        Returns:
-            ThreadDTO with thread data including messages, or None if not found
-        """
-
-        return session.get(Thread, thread_id)
+        return session.exec(
+            select(Thread)
+            .where(Thread.id == thread_id)
+            .options(
+                selectinload(Thread.messages).options(  # type: ignore[arg-type]
+                    selectinload(Email.sender),  # type: ignore[arg-type]
+                    selectinload(Email.attachments),  # type: ignore[arg-type]
+                ),
+                selectinload(Thread.conversation).options(  # type: ignore[arg-type]
+                    selectinload(Conversation.user),  # type: ignore[arg-type]
+                    selectinload(Conversation.contacts),  # type: ignore[arg-type]
+                ),
+            )
+        ).first()
 
     @session
     def create_thread(self, title: str, conversation_id: int, session: Session) -> Thread:
@@ -67,29 +73,49 @@ class ThreadService:
 
     @session
     def organize_email_into_thread(
-        self, email: Email, subject: str, conversation: Conversation, session: Session
+        self,
+        email: Email,
+        subject: str,
+        conversation: Conversation,
+        session: Session,
+        in_reply_to: str | None = None,
+        references: list[str] | None = None,
     ) -> None:
         """
         Organize emails into threads within a conversation.
 
-        Creates or updates a single thread for the conversation with all emails in chronological order.
+        Tries to attach the email to an existing thread using message references first,
+        then falls back to normalized subject matching.
 
         Args:
             email: Email to organize
+            subject: Raw email subject
             conversation: Conversation to search/create thread in
+            in_reply_to: In-Reply-To header value
+            references: References header values
         """
         if conversation.id is None:
             return
+
         conversation_id = conversation.id
-        subject = self.normalize_subject(subject)
-        existing_thread = session.exec(
-            select(Thread).where(
-                and_(
-                    col(Thread.conversation_id) == conversation_id,
-                    func.lower(col(Thread.title)) == subject.lower(),
+        existing_thread = self._find_thread_by_reference(
+            conversation_id=conversation_id,
+            in_reply_to=in_reply_to,
+            references=references,
+            session=session,
+        )
+
+        normalized_subject = self.normalize_subject(subject)
+
+        if not existing_thread:
+            existing_thread = session.exec(
+                select(Thread).where(
+                    and_(
+                        col(Thread.conversation_id) == conversation_id,
+                        func.lower(col(Thread.title)) == normalized_subject.lower(),
+                    )
                 )
-            )
-        ).first()
+            ).first()
 
         if existing_thread:
             if email.thread_id != existing_thread.id and existing_thread.id is not None:
@@ -104,7 +130,7 @@ class ThreadService:
                     )
         else:
             new_thread = Thread(
-                title=subject,
+                title=normalized_subject or "No Subject",
                 conversation_id=conversation.id,
                 unread_count=0 if email.read else 1,
                 last_message_time=email.sent_at,
@@ -183,6 +209,83 @@ class ThreadService:
         r"^(?:" + r"|".join([re.escape(p) for p in _PREFIXES]) + r")\s*:\s*", re.IGNORECASE
     )
 
+    @staticmethod
+    def _normalize_message_id(message_id: str | None) -> str | None:
+        if not message_id:
+            return None
+
+        cleaned = message_id.strip()
+        if not cleaned:
+            return None
+
+        if cleaned.startswith("<") and cleaned.endswith(">"):
+            return cleaned.lower()
+
+        if "@" in cleaned:
+            return f"<{cleaned.lower().strip('<>')}>"
+
+        return cleaned.lower()
+
+    @staticmethod
+    def _extract_message_ids(header_value: str | None) -> list[str]:
+        if not header_value:
+            return []
+
+        ids = re.findall(r"<[^>]+>", header_value)
+        if ids:
+            normalized_ids: list[str] = []
+            for message_id in ids:
+                normalized = ThreadService._normalize_message_id(message_id)
+                if normalized is not None:
+                    normalized_ids.append(normalized)
+            return normalized_ids
+
+        normalized_ids = []
+        for message_id in re.split(r"[,\s]+", header_value):
+            if not message_id.strip():
+                continue
+            normalized = ThreadService._normalize_message_id(message_id)
+            if normalized is not None:
+                normalized_ids.append(normalized)
+        return normalized_ids
+
+    def _find_thread_by_reference(
+        self,
+        conversation_id: int,
+        in_reply_to: str | None,
+        references: list[str] | None,
+        session: Session,
+    ) -> Thread | None:
+        reference_ids = []
+        if in_reply_to:
+            normalized = self._normalize_message_id(in_reply_to)
+            if normalized:
+                reference_ids.append(normalized)
+        if references:
+            for ref_id in references:
+                normalized = self._normalize_message_id(ref_id)
+                if normalized:
+                    reference_ids.append(normalized)
+
+        if not reference_ids:
+            return None
+
+        reference_ids = [ref for ref in reference_ids if ref is not None]
+        if not reference_ids:
+            return None
+
+        return session.exec(
+            select(Thread)
+            .join(Email)
+            .where(
+                and_(
+                    col(Thread.conversation_id) == conversation_id,
+                    col(Email.message_id).in_(reference_ids),
+                )
+            )
+            .order_by(col(Thread.last_message_time).desc())
+        ).first()
+
     @classmethod
     def normalize_subject(cls, subject: str) -> str:
         """
@@ -194,14 +297,14 @@ class ThreadService:
             part.decode(enc or "utf-8") if isinstance(part, bytes) else part
             for part, enc in decode_header(subject)
         )
-        cleaned = subject.strip()
+        cleaned = re.sub(r"\s+", " ", subject.strip())
         while True:
             new = cls._PREFIX_REGEX.sub("", cleaned).lstrip()
             if new == cleaned:
                 break
             cleaned = new
 
-        return cleaned.strip() or "Unparsable Subject"
+        return cleaned.strip()
 
     # chatgpt end
 
@@ -218,18 +321,43 @@ class ThreadService:
         returns: (thread_id, ConversationDTO, UserDTO)
         """
         # todo ai valuing of mails
-        threads: Iterable[Thread] = session.exec(
+        from remail.controllers.dtos.conversations import ConversationDTO
+        from remail.controllers.dtos.threads import ThreadDTO
+        from remail.controllers.dtos.user_dto import UserDTO
+
+        threads = session.exec(
             select(Thread)
-            .order_by(
-                Thread.last_message_time.desc(),  # type: ignore
+            .options(
+                selectinload(Thread.conversation).options(  # type: ignore[arg-type]
+                    selectinload(Conversation.threads).selectinload(Thread.messages),  # type: ignore[arg-type]
+                    selectinload(Conversation.contacts),  # type: ignore[arg-type]
+                    selectinload(Conversation.user),  # type: ignore[arg-type]
+                )
             )
+            .order_by(col(Thread.last_message_time).desc())
             .limit(count)
-        )
-        return [
-            (
-                ThreadDTO.from_model(t),
-                ConversationDTO.from_model(t.conversation, t.conversation.user),
-                UserService.user_to_dto(t.conversation.user),
+        ).all()
+        unread_cache: dict[int, int] = {}
+        result = []
+        for t in threads:
+            conversation = t.conversation
+            if conversation is None:
+                continue
+            user = conversation.user
+            if user is None and conversation.user_id is not None:
+                user = session.get(User, conversation.user_id)
+            if user is None:
+                continue
+            user_id = user.id
+            if user_id is None:
+                continue
+            if user_id not in unread_cache:
+                unread_cache[user_id] = UserService.count_unread(user)
+            result.append(
+                (
+                    ThreadDTO.from_model(t),
+                    ConversationDTO.from_model(conversation, user),
+                    UserDTO.get_from_model(user, unread_cache[user_id]),
+                )
             )
-            for t in threads
-        ]
+        return result
