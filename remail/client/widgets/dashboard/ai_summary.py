@@ -56,6 +56,7 @@ class AiSummary(ft.Container):
         """Called by Flet once the control is on the page: start loading."""
         # self.page is available here. run_thread keeps the UI responsive.
         self.page.run_thread(self._load_summary)  # type: ignore[attr-defined]
+
     def _load_summary(self) -> None:
         """Fetch unread emails, ask the AI for an overview, update the UI."""
         try:
