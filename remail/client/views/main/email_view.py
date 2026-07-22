@@ -39,6 +39,7 @@ class EmailView(ft.Container):
             elif state.get(MainAppStateProperties.ACTIVE_ATTACHMENTS):
                 right_view.content = AttachmentsView()
             else:
+                dashboard_page.refresh()  # pick up background changes (e.g. auto-tagging)
                 right_view.content = dashboard
             try:
                 right_view.update()
@@ -51,6 +52,7 @@ class EmailView(ft.Container):
             controller = state.account_controllers.get(user.email)
             if controller is None:
                 return
+            dashboard_page.refresh()  # pick up background changes (e.g. auto-tagging)
             right_view.content = dashboard
             right_view.update()
             state.set(MainAppStateProperties.DISPLAYED_MAILS, [])
@@ -111,6 +113,8 @@ class EmailView(ft.Container):
                     acc.set_callback_email_errors(
                         lambda msg, acc_=acc: on_email_sync_error(acc_.get_user(), msg)  # type:ignore
                     )
+                    acc.set_callback_progress(state.report_task)
+                    acc.set_callback_done(state.remove_task)
                     self.accounts.append(acc)
                     cast(ft.Page, self.page).run_thread(
                         lambda acc_=acc: asyncio.run(acc_.start_listening())  # type: ignore[misc]
@@ -145,7 +149,8 @@ class EmailView(ft.Container):
             expand=True,
         )
 
-        dashboard = ft.Container(content=DashboardPage(state), padding=10)
+        dashboard_page = DashboardPage(state)
+        dashboard = ft.Container(content=dashboard_page, padding=10)
 
         right_view = ft.Container(
             dashboard if state.account_controllers else empty_accounts_view,
@@ -195,6 +200,8 @@ class EmailView(ft.Container):
                 acc.set_callback_email_errors(
                     lambda msg, acc_=acc: self._on_email_sync_error(acc_.get_user(), msg)  # type:ignore
                 )
+                acc.set_callback_progress(self._state.report_task)
+                acc.set_callback_done(self._state.remove_task)
             _logger.info("Setting ACTIVE_USER, triggering observers...")
             t2 = Timer()
             self._state.set(MainAppStateProperties.ACTIVE_USER, accounts[0].get_user())

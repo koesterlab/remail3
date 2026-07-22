@@ -5,11 +5,13 @@ from sqlmodel import Field, Relationship, SQLModel
 
 # Make target symbol available at runtime so SA can resolve it
 from .contact import Contact  # noqa: F401
+from .email_tag import EmailTag  # noqa: F401 - needed at runtime for link_model
 from .thread import Thread
 
 if TYPE_CHECKING:
     from .attachment import Attachment
     from .email_reception import EmailReception
+    from .tag import Tag
 
 
 class Email(SQLModel, table=True):
@@ -27,6 +29,8 @@ class Email(SQLModel, table=True):
 
     sender: Contact = Relationship(back_populates="sent_emails")
     thread: Thread = Relationship(back_populates="messages")
+
+    tags: list["Tag"] = Relationship(back_populates="emails", link_model=EmailTag)
 
     attachments: list["Attachment"] = Relationship(
         back_populates="email",

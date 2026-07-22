@@ -11,6 +11,7 @@ from remail.client.views.settings import (
     LocalModelsView,
     NotificationsView,
 )
+from remail.client.views.settings.tags_view import TagsView
 from remail.enums import SettingsSubView
 
 
@@ -43,7 +44,11 @@ class SettingsView(ft.Container):
             ("Email Accounts", SettingsSubView.EMAIL_ACCOUNTS),
             ("Notification", SettingsSubView.NOTIFICATIONS),
             ("Language", SettingsSubView.LANGUAGE),
+<<<<<<< HEAD
             ("Local Models", SettingsSubView.LOCAL_MODELS),
+=======
+            ("Tags", SettingsSubView.TAGS),
+>>>>>>> origin/main
         ]
 
         nav_buttons: list[ft.Control] = []
@@ -95,6 +100,7 @@ class SettingsView(ft.Container):
                 SettingsSubView.LANGUAGE: lambda: LanguageView(),
                 SettingsSubView.LOCAL_MODELS: lambda: LocalModelsView(),
                 SettingsSubView.NOTIFICATIONS: lambda: NotificationsView(),
+                SettingsSubView.TAGS: lambda: TagsView(state),
             }[view]()
             try:
                 sub_view.update()
