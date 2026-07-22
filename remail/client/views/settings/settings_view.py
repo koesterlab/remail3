@@ -44,11 +44,8 @@ class SettingsView(ft.Container):
             ("Email Accounts", SettingsSubView.EMAIL_ACCOUNTS),
             ("Notification", SettingsSubView.NOTIFICATIONS),
             ("Language", SettingsSubView.LANGUAGE),
-<<<<<<< HEAD
             ("Local Models", SettingsSubView.LOCAL_MODELS),
-=======
             ("Tags", SettingsSubView.TAGS),
->>>>>>> origin/main
         ]
 
         nav_buttons: list[ft.Control] = []
