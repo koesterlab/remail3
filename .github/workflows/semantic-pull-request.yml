@@ -10,7 +10,7 @@ on:
       - reopened
 
 permissions:
-  pull-requests: write
+  pull-requests: read
 
 jobs:
   semantic-pull-request:
@@ -19,7 +19,7 @@ jobs:
       # The GitHub token is required to authenticate with the GitHub API.
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: amannn/action-semantic-pull-request@v5
+      - uses: amannn/action-semantic-pull-request@v6
         with:
           # The types of commits that are allowed in the PR title.
           # like feat: add login, fix: correct typo, docs: update README, etc.
@@ -35,5 +35,3 @@ jobs:
             ci
             build
           requireScope: false # Scope is optional.
-          wip: true   # Allows PR titles marked as WIP (work in progress), like WIP: feat: add login. 
-          draft: false # The title check still runs for draft PRs.

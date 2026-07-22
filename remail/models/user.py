@@ -26,4 +26,7 @@ class User(SQLModel, table=True):
     connection: str = Field(default="{}")
 
     # one-to-many relationship with conversations
-    conversations: list["Conversation"] = Relationship(back_populates="user", cascade_delete=True)
+    conversations: list["Conversation"] = Relationship(
+        back_populates="user",
+        cascade_delete=True,
+    )
