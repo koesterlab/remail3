@@ -58,6 +58,35 @@ class DashboardService:
             return session.exec(stmt).all()
 
     @staticmethod
+    def get_unread_emails_for_user(
+        user_id: int,
+        limit: int = 10,
+    ) -> list[dict[str, object]]:
+        """Return the user's unread (and not deleted) emails, newest first."""
+        with Session(engine) as session:
+            stmt = (
+                select(Email, Contact, Thread)
+                .join(Contact)  # Email.sender_id -> Contact.id
+                .join(Thread)  # Email.thread_id -> Thread.id
+                .join(Conversation)  # Thread.conversation_id -> Conversation.id
+                .where(Conversation.user_id == user_id)
+                .where(col(Email.read).is_(False))
+                .where(col(Email.deleted).is_(False))
+                .order_by(col(Email.sent_at).desc())
+                .limit(limit)
+            )
+            rows = session.exec(stmt).all()
+            return [
+                {
+                    "sender": contact.name or contact.email_address,
+                    "title": thread.title or "(no subject)",
+                    "body": email.body or "",
+                    "sent_at": email.sent_at,
+                }
+                for email, contact, thread in rows
+            ]
+
+    @staticmethod
     def get_recent_appointment_items_for_user(
         user_id: int,
         limit: int = 3,
