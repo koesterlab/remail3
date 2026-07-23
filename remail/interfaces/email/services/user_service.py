@@ -25,14 +25,14 @@ class UserService:
     @staticmethod
     @session
     def update_user(
-            user_id: int,
-            name: str,
-            password: str,
-            imap_host: str,
-            imap_port: int,
-            smtp_host: str,
-            smtp_port: int,
-            session: Session,
+        user_id: int,
+        name: str,
+        password: str,
+        imap_host: str,
+        imap_port: int,
+        smtp_host: str,
+        smtp_port: int,
+        session: Session,
     ) -> None:
         user = session.get(User, user_id)
 
@@ -53,7 +53,6 @@ class UserService:
         connection["smtp_port"] = smtp_port
 
         user.connection = json.dumps(connection)
-
 
         session.add(user)
         session.commit()

@@ -333,7 +333,7 @@ class EmailAccountsView(SettingsSubView):
                 value=str(connection.get("smtp_port", 587)),
             )
 
-            def update_account(e,dlg):
+            def update_account(e, dlg):
                 edit_imap_host_input.border_color = None
                 edit_imap_port_input.border_color = None
 
@@ -341,15 +341,14 @@ class EmailAccountsView(SettingsSubView):
                 edit_smtp_port_input.border_color = None
                 edit_password_input.border_color = None
                 connection_changed = (
-                        edit_password_input.value != connection.get("imap_password", "")
-                        or edit_imap_host_input.value != connection.get("imap_host", "")
-                        or edit_imap_port_input.value != str(connection.get("imap_port", 993))
-                        or edit_smtp_host_input.value != connection.get("smtp_host", "")
-                        or edit_smtp_port_input.value != str(connection.get("smtp_port", 587))
+                    edit_password_input.value != connection.get("imap_password", "")
+                    or edit_imap_host_input.value != connection.get("imap_host", "")
+                    or edit_imap_port_input.value != str(connection.get("imap_port", 993))
+                    or edit_smtp_host_input.value != connection.get("smtp_host", "")
+                    or edit_smtp_port_input.value != str(connection.get("smtp_port", 587))
                 )
 
                 if connection_changed:
-
                     result = EmailController().check_credentials(
                         imap_username=imap_username,
                         imap_password=edit_password_input.value,
@@ -357,7 +356,6 @@ class EmailAccountsView(SettingsSubView):
                         imap_port=int(edit_imap_port_input.value),
                         imap_security=ConnectionSecurity.SSL_TLS,
                         imap_method=AuthMethods.PASSWORD,
-
                         smtp_username=smtp_username,
                         smtp_password=edit_password_input.value,
                         smtp_host=edit_smtp_host_input.value,
@@ -397,84 +395,72 @@ class EmailAccountsView(SettingsSubView):
 
                 close_dialog(dlg)
 
-
                 cancel_add(None)
                 self._app_state.set(MainAppStateProperties.ACCOUNTS_CHANGED, user.email)
                 self._app_state.trigger(MainAppStateProperties.ACCOUNTS_CHANGED)
                 update_account_view()
 
-
-
-
-
             dlg = ft.AlertDialog(
-                    title=ft.Text("Edit Email Account"),
-                    content=ft.Column(
-                        [
-                            ft.Text(
-                                user.email,
-                                size=14,
-                                color=ft.Colors.GREY_500,
-                            ),
-
-                            ft.Divider(),
-
-                            ft.Text(
-                                "Account Information",
-                                weight=ft.FontWeight.BOLD,
-                            ),
-
-                            ft.Row([
+                title=ft.Text("Edit Email Account"),
+                content=ft.Column(
+                    [
+                        ft.Text(
+                            user.email,
+                            size=14,
+                            color=ft.Colors.GREY_500,
+                        ),
+                        ft.Divider(),
+                        ft.Text(
+                            "Account Information",
+                            weight=ft.FontWeight.BOLD,
+                        ),
+                        ft.Row(
+                            [
                                 edit_name_input,
                                 edit_password_input,
-                            ]),
-
-                            ft.Divider(),
-
-                            ft.Text(
-                                "IMAP Settings",
-                                weight=ft.FontWeight.BOLD,
-                            ),
-
-                            ft.Row([
+                            ]
+                        ),
+                        ft.Divider(),
+                        ft.Text(
+                            "IMAP Settings",
+                            weight=ft.FontWeight.BOLD,
+                        ),
+                        ft.Row(
+                            [
                                 edit_imap_host_input,
                                 edit_imap_port_input,
-                            ]),
-
-                            ft.Divider(),
-
-                            ft.Text(
-                                "SMTP Settings",
-                                weight=ft.FontWeight.BOLD,
-                            ),
-
-                            ft.Row([
+                            ]
+                        ),
+                        ft.Divider(),
+                        ft.Text(
+                            "SMTP Settings",
+                            weight=ft.FontWeight.BOLD,
+                        ),
+                        ft.Row(
+                            [
                                 edit_smtp_host_input,
                                 edit_smtp_port_input,
-                            ]),
-                        ],
-                        spacing=10,
-                        tight=True,
-                    ),
-                    actions=[
-                        ft.TextButton(
-                            "Cancel",
-                            on_click=lambda e: close_dialog(dlg),
-                        ),
-                        ft.FilledButton(
-                            "Update",
-                            on_click=lambda e: (
-                                update_account(e, dlg),
-
-                            ),
+                            ]
                         ),
                     ],
-                )
+                    spacing=10,
+                    tight=True,
+                ),
+                actions=[
+                    ft.TextButton(
+                        "Cancel",
+                        on_click=lambda e: close_dialog(dlg),
+                    ),
+                    ft.FilledButton(
+                        "Update",
+                        on_click=lambda e: (update_account(e, dlg),),
+                    ),
+                ],
+            )
             self.page.overlay.append(dlg)
             dlg.open = True
             self.page.update()
             update_account_view()
-
 
         # ---------------- Cancel Add ----------------
         def cancel_add(e):
@@ -518,7 +504,7 @@ class EmailAccountsView(SettingsSubView):
                                             ft.IconButton(
                                                 icon=ft.Icons.EDIT,
                                                 tooltip="Edit account",
-                                                on_click=lambda e,  c=user: edit_account(c),
+                                                on_click=lambda e, c=user: edit_account(c),
                                             ),
                                             ft.IconButton(
                                                 icon=ft.Icons.DELETE,

@@ -42,13 +42,10 @@ class EmailController:
         except Exception:
             imap_ok = False
 
-
         try:
             smtp_ok = protocol.test_smtp_connection()
         except Exception:
             smtp_ok = False
-
-
 
         return {
             "protocol": protocol if imap_ok and smtp_ok else None,

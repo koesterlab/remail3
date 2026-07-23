@@ -221,7 +221,10 @@ class ImapProtocol(EmailProtocol):
             return False
 
     @smtp
-    def test_smtp_connection(self, server: smtplib.SMTP,) -> bool:
+    def test_smtp_connection(
+        self,
+        server: smtplib.SMTP,
+    ) -> bool:
         try:
             server.noop()
             return True
