@@ -185,7 +185,8 @@ class ImapProtocol(EmailProtocol):
         def wrapper(self, *args, **kwargs):
             ssl = self.smtp_security == ConnectionSecurity.SSL_TLS
             if ssl:
-                server = smtplib.SMTP_SSL(self.smtp_host, self.smtp_port)
+                server = smtplib.SMTP(self.smtp_host, self.smtp_port)
+                server.starttls()
             else:
                 server = smtplib.SMTP(self.smtp_host, self.smtp_port)
                 if self.smtp_security == ConnectionSecurity.STARTTLS:
@@ -207,6 +208,25 @@ class ImapProtocol(EmailProtocol):
     def test_connection(self, client: IMAPClient) -> bool:
         try:
             client.noop()
+            return True
+        except Exception:
+            return False
+
+    @imap
+    def test_imap_connection(self, client: IMAPClient) -> bool:
+        try:
+            client.noop()
+            return True
+        except Exception:
+            return False
+
+    @smtp
+    def test_smtp_connection(
+        self,
+        server: smtplib.SMTP,
+    ) -> bool:
+        try:
+            server.noop()
             return True
         except Exception:
             return False

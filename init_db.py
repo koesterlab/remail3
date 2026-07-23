@@ -7,6 +7,7 @@ from pathlib import Path
 from sqlmodel import SQLModel, create_engine
 
 import remail.models  # noqa: F401
+from remail.database.schema_migration import ensure_settings_columns
 
 
 def init_database(db_path: str = "database.db") -> None:
@@ -29,6 +30,7 @@ def init_database(db_path: str = "database.db") -> None:
     print(f"{'=' * 80}\n")
 
     SQLModel.metadata.create_all(engine)
+    ensure_settings_columns(engine)
 
     print(f"\n{'=' * 80}")
     print("✅ Database initialized successfully!")

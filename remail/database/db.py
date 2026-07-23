@@ -12,9 +12,10 @@ import sqlite_vec
 from sqlalchemy import event
 from sqlmodel import create_engine
 
+from remail.database.schema_migration import ensure_settings_columns
+
 DB_PATH = Path(__file__).resolve().parent.parent.parent / "database.db"
 database_url = f"sqlite:///{DB_PATH}"
-
 # Create an engine (with multi-threading support for Flet)
 engine = create_engine(database_url, echo=False, connect_args={"check_same_thread": False})
 
@@ -28,3 +29,6 @@ def load_sqlite_vec_extension(dbapi_conn, connection_record):
     dbapi_conn.enable_load_extension(False)
     # Enable foreign key constraints so cascade_delete=True works in SQLite
     dbapi_conn.execute("PRAGMA foreign_keys = ON")
+
+
+ensure_settings_columns(engine)

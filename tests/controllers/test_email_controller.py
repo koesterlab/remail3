@@ -15,7 +15,8 @@ class TestCheckCredentials:
 
         with patch("remail.controllers.email_controller.ImapProtocol") as mock_protocol_cls:
             protocol_instance = MagicMock()
-            protocol_instance.test_connection.return_value = True
+            protocol_instance.test_imap_connection.return_value = True
+            protocol_instance.test_smtp_connection.return_value = True
             mock_protocol_cls.return_value = protocol_instance
 
             result = controller.check_credentials(
@@ -33,7 +34,10 @@ class TestCheckCredentials:
                 smtp_method=AuthMethods.PASSWORD,
             )
 
-        assert result is protocol_instance
+        assert result["protocol"] is protocol_instance
+        assert result["imap_ok"] is True
+        assert result["smtp_ok"] is True
+
         mock_protocol_cls.assert_called_once_with(
             imap_username="imap_user@example.com",
             imap_host="imap.example.com",
@@ -48,7 +52,8 @@ class TestCheckCredentials:
             smtp_method=AuthMethods.PASSWORD,
             smtp_security=ConnectionSecurity.SSL_TLS,
         )
-        protocol_instance.test_connection.assert_called_once()
+        protocol_instance.test_imap_connection.assert_called_once()
+        protocol_instance.test_smtp_connection.assert_called_once()
 
     def test_check_credentials_returns_none_when_connection_fails(self):
         """It should return None when connection test returns False."""
@@ -56,7 +61,8 @@ class TestCheckCredentials:
 
         with patch("remail.controllers.email_controller.ImapProtocol") as mock_protocol_cls:
             protocol_instance = MagicMock()
-            protocol_instance.test_connection.return_value = False
+            protocol_instance.test_imap_connection.return_value = False
+            protocol_instance.test_smtp_connection.return_value = True
             mock_protocol_cls.return_value = protocol_instance
 
             result = controller.check_credentials(
@@ -74,8 +80,11 @@ class TestCheckCredentials:
                 smtp_method=AuthMethods.PASSWORD,
             )
 
-        assert result is None
-        protocol_instance.test_connection.assert_called_once()
+        assert result["protocol"] is None
+        assert result["imap_ok"] is False
+        assert result["smtp_ok"] is True
+        protocol_instance.test_imap_connection.assert_called_once()
+        protocol_instance.test_smtp_connection.assert_called_once()
 
     def test_check_credentials_returns_none_when_connection_raises(self):
         """It should return None when connection test raises an exception."""
@@ -83,7 +92,8 @@ class TestCheckCredentials:
 
         with patch("remail.controllers.email_controller.ImapProtocol") as mock_protocol_cls:
             protocol_instance = MagicMock()
-            protocol_instance.test_connection.side_effect = Exception("connection error")
+            protocol_instance.test_imap_connection.side_effect = Exception("connection error")
+            protocol_instance.test_smtp_connection.return_value = True
             mock_protocol_cls.return_value = protocol_instance
 
             result = controller.check_credentials(
@@ -101,5 +111,8 @@ class TestCheckCredentials:
                 smtp_method=AuthMethods.PASSWORD,
             )
 
-        assert result is None
-        protocol_instance.test_connection.assert_called_once()
+        assert result["protocol"] is None
+        assert result["imap_ok"] is False
+        assert result["smtp_ok"] is True
+        protocol_instance.test_imap_connection.assert_called_once()
+        protocol_instance.test_smtp_connection.assert_called_once()
