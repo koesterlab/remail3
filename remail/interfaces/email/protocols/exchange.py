@@ -4,7 +4,6 @@ import asyncio
 import json
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
-from email import message_from_bytes
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -13,8 +12,6 @@ from exchangelib import (
     Account,
     Configuration,
     Credentials,
-    EWSDateTime,
-    EWSTimeZone,
     Mailbox,
 )
 from exchangelib import Message as ExMessage
