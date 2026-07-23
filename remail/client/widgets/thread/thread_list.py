@@ -37,8 +37,50 @@ class ThreadList(ft.Container):
         if not new_thread:  # dashboard -> just do nothing
             self.thread = None
             return
+        if not self.thread and new_thread.thread_id > 0:
+            # Show a loading spinner while the thread is being loaded from the database
+            self.content = ft.Column(
+                [
+                    ft.Container(
+                        ft.ProgressRing(),
+                        alignment=ft.Alignment.CENTER,
+                        expand=True,
+                    )
+                ],
+                expand=True,
+            )
 
-        if new_thread.thread_id < 0:  # new, unsaved thread
+            # Load the thread from the database in the background so the UI doesn't freeze
+            async def load_thread():
+                self.thread = ThreadController().get_thread(new_thread.thread_id)
+                self.active_user = self.state.get(MainAppStateProperties.ACTIVE_USER)
+                if self.thread is None:
+                    return
+                self._render()
+                try:
+                    if self.page:
+                        self.update()
+                except RuntimeError:
+                    pass  # nosec - widget may not be on page
+
+            # Start loading in the background using Flet's task system
+            try:
+                if self.page:
+                    self.page.run_task(load_thread)  # type: ignore[attr-defined]
+                else:
+                    # Fallback: load synchronously if page is not yet available
+                    self.thread = ThreadController().get_thread(new_thread.thread_id)
+                    self.active_user = self.state.get(MainAppStateProperties.ACTIVE_USER)
+                    if self.thread is not None:
+                        self._render()
+            except RuntimeError:
+                # Widget not yet added to page, load synchronously
+                self.thread = ThreadController().get_thread(new_thread.thread_id)
+                self.active_user = self.state.get(MainAppStateProperties.ACTIVE_USER)
+                if self.thread is not None:
+                    self._render()
+            return
+        elif new_thread.thread_id < 0:  # new, unsaved thread
             self.thread = ThreadDTO(-1, new_thread.title, [], self.conversation.contacts)
             self._render()
         elif not self.thread or self.thread.id != new_thread.thread_id:
@@ -55,67 +97,15 @@ class ThreadList(ft.Container):
     def _render(self) -> None:
         """Render the thread UI once the thread data is available."""
         if self.thread is None:
+            return  # just for mypy
+        self._render()
+        _logger.info("ThreadList._rebuild done. (%s)", t_total.elapsed())
+
+    def _render(self) -> None:
+        """Render the thread UI once the thread data is available."""
+        if self.thread is None:
             return
         self.active_user = self.state.get(MainAppStateProperties.ACTIVE_USER)
-
-        # ---------- the information of top contact -------- #
-
-        # This function is called when the user clicks the delete button
-        def on_delete_click(_):
-            # This function is called when the user confirms the deletion
-            def confirm_delete(_):
-                thread_id = self.thread.id if self.thread else None
-                if not thread_id:
-                    return
-                print(f"Deleting thread with id: {thread_id}")
-                # Delete the thread from the database
-                ThreadController().delete_thread(thread_id)
-
-                # Remove deleted thread from the left side list
-                # We modify threads in place and set a new list reference to force UI update
-                displayed = self.state.get(MainAppStateProperties.DISPLAYED_MAILS)
-                thread_id = self.thread.id
-                from dataclasses import replace
-
-                new_displayed = [
-                    replace(conv, threads=[t for t in conv.threads if t.thread_id != thread_id])
-                    for conv in displayed
-                ]
-                self.state._values[MainAppStateProperties.DISPLAYED_MAILS] = []
-                self.state.set(MainAppStateProperties.DISPLAYED_MAILS, new_displayed)
-
-                # Force complete reload of the conversation list
-                self.state.set(MainAppStateProperties.ACTIVE_CONVERSATION, None)
-                self.state.set(MainAppStateProperties.ACTIVE_THREAD, None)
-                dialog.open = False
-                self.page.update()
-
-            # This function is called when the user cancels the deletion
-            def cancel_delete(_):
-                # Just close the dialog, do nothing
-                dialog.open = False
-                self.page.update()
-
-            # Show a confirmation popup before deleting
-            dialog = ft.AlertDialog(
-                modal=True,
-                title=ft.Text("Delete Thread"),
-                content=ft.Text(f'Are you sure you want to delete "{self.thread.title}"?'),
-                actions=[
-                    ft.TextButton("Cancel", on_click=cancel_delete),
-                    ft.TextButton(
-                        "Delete",
-                        on_click=confirm_delete,
-                        style=ft.ButtonStyle(
-                            color=ft.Colors.ERROR
-                        ),  # Red color for destructive action
-                    ),
-                ],
-                actions_alignment=ft.MainAxisAlignment.END,
-            )
-            self.page.overlay.append(dialog)
-            dialog.open = True
-            self.page.update()
 
         header = ft.Container(
             ft.Row(
