@@ -39,3 +39,4 @@ test.db-shm
 *.egg-info/
 dist/
 build/
+_build/

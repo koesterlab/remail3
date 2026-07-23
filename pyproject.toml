@@ -22,8 +22,12 @@ dependencies = [
     "llama-cpp-python>=0.3.16,<0.4",
     "llama-index-embeddings-huggingface>=0.6.1,<0.7",
     "llama-index-readers-database>=0.5.1,<0.6",
-    "faker>=30.8.2,<31"
-, "llama-index-embeddings-ollama>=0.9.0,<0.10", "sqlite-vec>=0.1.9,<0.2", "llama-index-core>=0.14.22,<0.15"]
+    "faker>=30.8.2,<31",
+    "llama-index-embeddings-ollama>=0.9.0,<0.10",
+    "sqlite-vec>=0.1.9,<0.2",
+    "llama-index-core>=0.14.22,<0.15",
+    "sphinx-rtd-theme>=3.1.0,<4",
+]
 
 [tool.pixi.workspace]
 channels = ["conda-forge"]
@@ -78,8 +82,13 @@ app = "python -m remail.client.index"
 # 11) Seed demo / UI test data
 seed-demo = "python -m remail.scripts.seed_demo_data"
 
+[tool.pixi.feature.dev.tasks]
+build-docs = "sphinx-apidoc -o docs/api remail && sphinx-build -b html . _build/docs/html"
+
 [tool.pixi.dependencies]
+sphinx = ">=9.1.0,<10"
 pixi-pycharm = ">=0.0.10,<0.0.11"
+myst-parser = ">=5.1.0,<6"
 python = "3.12.*"
 cffi = ">=2.0.0,<3"
 
@@ -88,8 +97,8 @@ line-length = 100
 target-version = "py312"
 
 [tool.ruff.lint]
-select = ["E","W","F","I","B","C4","UP"]
-ignore = ["E501","B008","W191"]
+select = ["E", "W", "F", "I", "B", "C4", "UP"]
+ignore = ["E501", "B008", "W191"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
@@ -99,7 +108,7 @@ testpaths = ["tests", "remail"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = ["--strict-markers","--strict-config","-ra"]
+addopts = ["--strict-markers", "--strict-config", "-ra"]
 
 [tool.coverage.run]
 relative_files = true
