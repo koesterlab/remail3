@@ -10,6 +10,7 @@ from remail.controllers.dtos.conversations import ConversationDTO, ThreadPreview
 from remail.controllers.dtos.user_dto import UserDTO
 from remail.controllers.tag_controller import TagController
 from remail.controllers.thread_controller import ThreadController
+from remail.enums import MainView, SettingsSubView
 
 
 class MainAppStateProperties(Enum):
@@ -39,6 +40,7 @@ class MainAppState(ObservableState[MainAppStateProperties]):
         self.tag_controller = TagController()
         self.account_controllers: dict[str, AccountController] = {}
         self.sync_threads: list[Future] = []
+        self._current_view: tuple[MainView | None, SettingsSubView | None] = (None, None)
 
         # Seed the running-tasks dict so observers never receive None.
         self._values[MainAppStateProperties.RUNNING_TASKS] = {}
@@ -124,3 +126,17 @@ class MainAppState(ObservableState[MainAppStateProperties]):
 
         if None in self.__selection_listeners:
             self.__selection_listeners[None](False)
+
+    @property
+    def current_view(self) -> tuple[MainView | None, SettingsSubView | None]:
+        """Get the current view."""
+        return self._current_view
+
+    def set_current_view(self, main_view: MainView, sub_view: SettingsSubView) -> None:
+        """Set the current view.
+
+        Args:
+            main_view: The main view enum value
+            sub_view: The settings sub-view enum value
+        """
+        self._current_view = (main_view, sub_view)

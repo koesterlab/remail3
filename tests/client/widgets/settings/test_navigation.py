@@ -3,9 +3,9 @@
 from unittest.mock import Mock
 
 import flet as ft
-from remail.client.state.app_state import AppState
-from remail.client.widgets.settings.navigation import create_settings_navigation
 
+from remail.client.state import MainAppState as AppState
+from remail.client.widgets.settings.navigation import create_settings_navigation
 from remail.enums import MainView, SettingsSubView
 
 
@@ -39,7 +39,7 @@ class TestCreateSettingsNavigation:
         first_control = result.content.controls[0]
 
         assert isinstance(first_control, ft.TextButton)
-        assert first_control.text == "Appearance"
+        assert first_control.content.value == "Appearance"
 
     def test_second_control_is_button(self):
         """Test that second control is a navigation button."""
@@ -50,7 +50,7 @@ class TestCreateSettingsNavigation:
         second_control = result.content.controls[1]
 
         assert isinstance(second_control, ft.TextButton)
-        assert second_control.text == "Email Accounts"
+        assert second_control.content.value == "Email Accounts"
 
     def test_has_four_navigation_buttons(self):
         """Test that navigation has 4 menu items."""
@@ -70,10 +70,10 @@ class TestCreateSettingsNavigation:
         result = create_settings_navigation(app_state, on_navigate)
         buttons = result.content.controls  # All controls are buttons now
 
-        assert buttons[0].text == "Appearance"
-        assert buttons[1].text == "Email Accounts"
-        assert buttons[2].text == "Language & Region"
-        assert buttons[3].text == "Notifications"
+        assert buttons[0].content.value == "Appearance"
+        assert buttons[1].content.value == "Email Accounts"
+        assert buttons[2].content.value == "Language & Region"
+        assert buttons[3].content.value == "Notifications"
 
     def test_all_buttons_are_text_buttons(self):
         """Test that all navigation items are TextButtons."""
