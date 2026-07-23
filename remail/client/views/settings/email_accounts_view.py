@@ -185,6 +185,7 @@ class EmailAccountsView(SettingsSubView):
                     ),
                 ],
                 spacing=10,
+                scroll=ft.ScrollMode.AUTO,
             )
             add_button.visible = False
             self.page.update()
@@ -481,6 +482,7 @@ class EmailAccountsView(SettingsSubView):
             password_input.value = ""
             imap_host_input.value = ""
             smtp_host_input.value = ""
+            exchange_input.value = ""
             input_panel.content = None
             add_button.visible = True
             self.page.update()

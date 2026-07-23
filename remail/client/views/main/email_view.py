@@ -111,25 +111,21 @@ class EmailView(ft.Container):
             self.accounts = [a for a in self.accounts if a.get_email_address() in current_emails]
             print(self.accounts)
 
-
-
             for acc in new_accounts:
                 if acc.get_email_address() not in state.account_controllers:
                     state.account_controllers[acc.get_email_address()] = acc
                     acc.set_callback_email_changes(
-                        lambda updates, acc_=acc: on_emails_synced(acc_.get_user(), updates) # type: ignore[misc]
+                        lambda updates, acc_=acc: on_emails_synced(acc_.get_user(), updates)  # type:ignore
                     )
                     acc.set_callback_email_errors(
-                        lambda msg, acc_=acc: on_email_sync_error(acc_.get_user(), msg) # type: ignore[misc]
+                        lambda msg, acc_=acc: on_email_sync_error(acc_.get_user(), msg)  # type:ignore
                     )
                     acc.set_callback_progress(state.report_task)
                     acc.set_callback_done(state.remove_task)
                     self.accounts.append(acc)
                     cast(ft.Page, self.page).run_thread(
-                        lambda acc_=acc: asyncio.run(acc_.start_listening()) # type: ignore[misc]
+                        lambda acc_=acc: asyncio.run(acc_.start_listening())  # type: ignore[misc]
                     )
-                else:
-                    state.account_controllers[acc.get_email_address()].user = acc.get_user()
 
             active_user = state.get(MainAppStateProperties.ACTIVE_USER)
             if not new_accounts:
