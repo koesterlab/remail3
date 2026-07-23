@@ -188,7 +188,7 @@ class DashboardPage(ft.Column):
 
         sub_header = ft.Text(
             """
-This should be the summary of the emails since the last login. It could for example be a hint for very important message from the supervisor, a summery of multiple client complains, a relationship between multiple mails (maybe even links to the threads) or a warning for a failed email sending.
+This should be the summary of the emails since the last login. It could for example be a hint for very important message from the supervisor, a summary of multiple client complains, a relationship between multiple mails (maybe even links to the threads) or a warning for a failed email sending.
             """,
             size=16,
             color=ft.Colors.ON_SURFACE_VARIANT,
