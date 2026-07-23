@@ -46,6 +46,17 @@ class AccountController:
             raise ValueError("Creating account with invalid credentials")
         UserService().add_user(email, clearname, method, connection)
 
+    def get_connection_data(self) -> dict[str, str]:
+        connection = cast(
+            dict[str, str] | None,
+            UserService.get_connection_by_user_id(self.user_id),
+        )
+
+        if connection is None:
+            return {}
+
+        return connection
+
     @session
     def __init__(self, account_id: int) -> None:
         self.user_id = account_id
@@ -117,6 +128,26 @@ class AccountController:
     ) -> None:
         """Registers a callback that is called every time when a Conversation is updated or new with the conversation"""
         self.callback = callback
+
+    def update_account(
+        self,
+        name: str,
+        password: str,
+        imap_host: str,
+        imap_port: int,
+        smtp_host: str,
+        smtp_port: int,
+    ):
+        UserService.update_user(
+            self.user_id,
+            name,
+            password,
+            imap_host,
+            imap_port,
+            smtp_host,
+            smtp_port,
+        )
+        self.user.name = name
 
     def set_callback_email_errors(self, callback: Callable[[str], None]) -> None:
         """Registers a callback that is called when background sync fails."""
