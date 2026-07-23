@@ -8,6 +8,7 @@ import flet as ft
 
 from remail.client.state import MainAppState, MainAppStateProperties
 from remail.client.widgets.dashboard.account_card import AccountCard
+from remail.client.widgets.dashboard.ai_summary import AiSummary
 from remail.client.widgets.dashboard.appointments_list import AppointmentsList
 from remail.client.widgets.dashboard.todo_list import TodoList
 from remail.controllers.dtos.user_dto import UserDTO
@@ -186,14 +187,7 @@ class DashboardPage(ft.Column):
             )
         )
 
-        sub_header = ft.Text(
-            """
-This should be the summary of the emails since the last login. It could for example be a hint for very important message from the supervisor, a summery of multiple client complains, a relationship between multiple mails (maybe even links to the threads) or a warning for a failed email sending.
-            """,
-            size=16,
-            color=ft.Colors.ON_SURFACE_VARIANT,
-            selectable=True,
-        )
+        sub_header = AiSummary(self.state)
 
         content_card = ft.Container(
             bgcolor=ft.Colors.SECONDARY_CONTAINER,

@@ -68,3 +68,36 @@ class LLMController:
         self.conversation_history.append(assistant_msg)
 
         return LLMResponseDTO.from_completion_text(response_text)
+
+    def summarize_emails(
+        self,
+        emails: list[dict[str, object]],
+        max_tokens: int | None = None,
+        temperature: float | None = None,
+    ) -> LLMResponseDTO:
+        """Build a short AI overview of the given (unread) emails."""
+        if not emails:
+            return LLMResponseDTO.from_completion_text(
+                "You're all caught up — no new emails since your last visit."
+            )
+
+        lines: list[str] = []
+        for index, email in enumerate(emails, start=1):
+            sender = str(email.get("sender", "Unknown sender"))
+            title = str(email.get("title", "(no subject)"))
+            body = str(email.get("body", "")).strip().replace("\n", " ")
+            if len(body) > 300:
+                body = body[:300] + "..."
+            lines.append(f"{index}. From {sender} — {title}: {body}")
+
+        content = (
+            f"Here are {len(emails)} new email(s). "
+            "Write a short overview for the user:\n\n" + "\n".join(lines)
+        )
+
+        completion_response = self.service.generate_summary(
+            content=content,
+            max_tokens=max_tokens or 250,
+            temperature=temperature if temperature is not None else 0.3,
+        )
+        return LLMResponseDTO.from_completion_text(completion_response.completion_text)

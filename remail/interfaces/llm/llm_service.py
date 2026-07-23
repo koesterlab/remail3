@@ -70,6 +70,30 @@ class LLMService(LLMBase):
 
         return self._generate_completion_internal(messages, max_tokens, temperature, **kwargs)
 
+    def generate_summary(
+        self,
+        content: str,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
+        **kwargs: Any,
+    ) -> LLMCompletionResponse:
+        """One-shot summary (no conversation history)."""
+        messages = [
+            LLMMessage(
+                role=LLMMessageRole.SYSTEM,
+                content=(
+                    "You are Alfred, an email assistant. Write a short overview of "
+                    "the user's new emails in plain text (no markdown, no bullet "
+                    "points). Be concise: at most 4 short sentences. Point out "
+                    "anything urgent or important first, group related emails, and "
+                    "mention who the emails are from. If there is nothing important, "
+                    "say so briefly."
+                ),
+            ),
+            LLMMessage(role=LLMMessageRole.USER, content=content),
+        ]
+        return self._generate_completion_internal(messages, max_tokens, temperature, **kwargs)
+
     def _generate_completion_internal(
         self,
         messages: list[LLMMessage],
