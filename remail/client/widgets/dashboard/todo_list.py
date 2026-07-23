@@ -13,7 +13,53 @@ TodoDict = dict[str, Any]
 
 class TodoList(ft.Container):
     def __init__(self, state: MainAppState) -> None:
-        self.todos = state.thread_controller.get_most_urgent_threads(5)
+        # Show a loading indicator while the todos are being loaded from the database
+        super().__init__(
+            bgcolor=None,
+            padding=ft.Padding.all(15),
+            border_radius=24,
+            expand=True,
+            content=ft.Column(
+                spacing=16,
+                scroll=ft.ScrollMode.AUTO,
+                controls=[
+                    ft.Row(
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                        controls=[
+                            ft.Column(
+                                spacing=2,
+                                controls=[
+                                    ft.Text(
+                                        "To Do",
+                                        size=18,
+                                        weight=ft.FontWeight.BOLD,
+                                        color=ft.Colors.ON_SURFACE,
+                                    ),
+                                    ft.Text(
+                                        "Loading...",
+                                        size=13,
+                                        color=ft.Colors.ON_SURFACE_VARIANT,
+                                    ),
+                                ],
+                            ),
+                        ],
+                    ),
+                    ft.ProgressRing(),  # Show spinner while loading
+                ],
+            ),
+        )
+        # Store the state for use in did_mount
+        self._state = state
+
+    def did_mount(self):
+        # Start loading todos when the widget is added to the page
+        # This runs in the background so the UI doesn't freeze
+        self.page.run_task(self._load_todos)
+
+    async def _load_todos(self):
+        # Load the todos from the database in the background
+        # Without async, this can take several seconds and block the dashboard from opening
+        todos = self._state.thread_controller.get_most_urgent_threads(5)
 
         header_row = ft.Row(
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
@@ -28,7 +74,7 @@ class TodoList(ft.Container):
                             color=ft.Colors.ON_SURFACE,
                         ),
                         ft.Text(
-                            f"{len(self.todos)} emails to answer",
+                            f"{len(todos)} emails to answer",
                             size=13,
                             color=ft.Colors.ON_SURFACE_VARIANT,
                         ),
@@ -40,26 +86,17 @@ class TodoList(ft.Container):
         items_column = ft.Column(
             spacing=6,
             controls=[
-                TodoItem(state, thread, user)
-                for thread, conversation, user in self.todos
+                TodoItem(self._state, thread, user)
+                for thread, conversation, user in todos
                 if thread.messages
             ],
         )
 
-        content_column = ft.Column(
+        # Update the UI with the loaded todos
+        self.content = ft.Column(
             spacing=16,
             scroll=ft.ScrollMode.AUTO,
-            controls=[
-                header_row,
-                items_column,
-            ],
+            controls=[header_row, items_column],
         )
-
-        super().__init__(
-            bgcolor=None,
-            # bgcolor=ft.Colors.SURFACE,
-            padding=ft.Padding.all(15),
-            border_radius=24,
-            expand=True,
-            content=content_column,
-        )
+        if self.page:
+            self.update()
