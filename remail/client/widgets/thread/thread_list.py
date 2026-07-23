@@ -82,7 +82,20 @@ class ThreadList(ft.Container):
             return
         elif new_thread.thread_id < 0:  # new, unsaved thread
             self.thread = ThreadDTO(-1, new_thread.title, [], self.conversation.contacts)
-        self.active_user = self.state.get(MainAppStateProperties.ACTIVE_USER)
+            self._render()
+        elif not self.thread or self.thread.id != new_thread.thread_id:
+            # Load the thread directly since page may not be available yet
+            self.thread = ThreadController().get_thread(new_thread.thread_id)
+            self.active_user = self.state.get(MainAppStateProperties.ACTIVE_USER)
+            if self.thread is not None:
+                self._render()
+        else:
+            self._render()
+
+        _logger.info("ThreadList._rebuild done. (%s)", t_total.elapsed())
+
+    def _render(self) -> None:
+        """Render the thread UI once the thread data is available."""
         if self.thread is None:
             return  # just for mypy
         self._render()
@@ -119,9 +132,17 @@ class ThreadList(ft.Container):
                             ),
                         ],
                         spacing=0,
+                        expand=True,  # Expand the column to fill available space
+                    ),
+                    ft.IconButton(  # Delete button in the top right corner of the thread header
+                        icon=ft.Icons.DELETE_OUTLINE,
+                        icon_color=ft.Colors.ERROR,  # Red color to indicate a destructive action
+                        tooltip="Delete thread",  # Shown on hover
+                        on_click=on_delete_click,  # Calls the function we defined above
                     ),
                 ],
-                alignment=ft.MainAxisAlignment.START,
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,  # Push column to left, button to right
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,  # Vertically center both items
                 spacing=10,
             ),
             padding=ft.Padding.only(left=10, top=5, bottom=5, right=10),

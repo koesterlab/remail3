@@ -34,9 +34,21 @@ class EmailController:
             smtp_method=smtp_method,
             smtp_security=smtp_security,
         )
+        imap_ok = False
+        smtp_ok = False
+
         try:
-            if protocol.test_connection():
-                return protocol
-        except Exception as _:
-            pass  # nosec
-        return None
+            imap_ok = protocol.test_imap_connection()
+        except Exception:
+            imap_ok = False
+
+        try:
+            smtp_ok = protocol.test_smtp_connection()
+        except Exception:
+            smtp_ok = False
+
+        return {
+            "protocol": protocol if imap_ok and smtp_ok else None,
+            "imap_ok": imap_ok,
+            "smtp_ok": smtp_ok,
+        }

@@ -8,6 +8,7 @@ from remail.client.views.settings import (
     AttachmentsView,
     EmailAccountsView,
     LanguageView,
+    LocalModelsView,
     NotificationsView,
 )
 from remail.client.views.settings.tags_view import TagsView
@@ -43,6 +44,7 @@ class SettingsView(ft.Container):
             ("Email Accounts", SettingsSubView.EMAIL_ACCOUNTS),
             ("Notification", SettingsSubView.NOTIFICATIONS),
             ("Language", SettingsSubView.LANGUAGE),
+            ("Local Models", SettingsSubView.LOCAL_MODELS),
             ("Tags", SettingsSubView.TAGS),
         ]
 
@@ -93,6 +95,7 @@ class SettingsView(ft.Container):
                 SettingsSubView.ATTACHMENTS: lambda: AttachmentsView(),
                 SettingsSubView.EMAIL_ACCOUNTS: lambda: EmailAccountsView(state),
                 SettingsSubView.LANGUAGE: lambda: LanguageView(),
+                SettingsSubView.LOCAL_MODELS: lambda: LocalModelsView(),
                 SettingsSubView.NOTIFICATIONS: lambda: NotificationsView(),
                 SettingsSubView.TAGS: lambda: TagsView(state),
             }[view]()

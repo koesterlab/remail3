@@ -45,3 +45,5 @@ class SettingsController:
         settings_obj.desktop_notifications = settings.desktop_notifications
         settings_obj.email_notifications = settings.email_notifications
         settings_obj.quiet_hours = settings.quiet_hours
+        settings_obj.ollama_base_url = settings.ollama_base_url
+        settings_obj.selected_local_model = settings.selected_local_model
