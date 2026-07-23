@@ -39,8 +39,11 @@ class SearchHeader(ft.Container):
 
         def on_home_clicked(_):
             state.set(MainAppStateProperties.SEARCH_TERM, "")
+            state.set(MainAppStateProperties.SORT_BY_DATE, False)
             state.set(MainAppStateProperties.ACTIVE_THREAD, None)
             state.set(MainAppStateProperties.ACTIVE_THREAD_CONVERSATION, None)
+            state.trigger(MainAppStateProperties.DISPLAYED_MAILS)
+
             # todo: load mails from controller
 
         # ----- Home Icon -----
@@ -50,6 +53,57 @@ class SearchHeader(ft.Container):
             on_click=on_home_clicked,
             icon_size=30,
             style=ft.ButtonStyle(padding=0, bgcolor="transparent"),
+        )
+
+        # ---- Filter Menu -----
+        all_mails: list[ConversationDTO] = []
+
+        def sort_by_date(_):
+            nonlocal all_mails
+            state.set(MainAppStateProperties.SORT_BY_DATE, True)
+            mails = state.get(MainAppStateProperties.DISPLAYED_MAILS)
+            if not all_mails and mails:
+                all_mails = mails.copy()
+            source = all_mails if all_mails else mails
+            if not source:
+                return
+            sorted_mails = sorted(
+                source,
+                key=lambda c: max(
+                    (t.last_message_datetime for t in c.threads),
+                    default=datetime.datetime.min,
+                ),
+                reverse=True,
+            )
+            all_mails = sorted_mails.copy()
+            state.set(MainAppStateProperties.DISPLAYED_MAILS, sorted_mails)
+
+        def filter_unread(_):
+            nonlocal all_mails
+            state.set(MainAppStateProperties.SORT_BY_DATE, False)
+            mails = state.get(MainAppStateProperties.DISPLAYED_MAILS)
+            if not mails:
+                return
+            if not all_mails:
+                all_mails = mails.copy()
+            unread = [c for c in all_mails if any(t.unread_count > 0 for t in c.threads)]
+            state.set(MainAppStateProperties.DISPLAYED_MAILS, unread)
+
+        filter_menu = ft.PopupMenuButton(
+            icon=ft.Icons.TUNE,
+            icon_size=18,
+            padding=0,
+            tooltip="Filter / Sort",
+            items=[
+                ft.PopupMenuItem(
+                    content=ft.Text("Sort by Date"),
+                    on_click=sort_by_date,
+                ),
+                ft.PopupMenuItem(
+                    content=ft.Text("Filter Unread only"),
+                    on_click=filter_unread,
+                ),
+            ],
         )
 
         # ----- Compose Icon -----
@@ -125,7 +179,7 @@ class SearchHeader(ft.Container):
         content = ft.Column(
             controls=[
                 ft.Row([self.input, home_icon, compose_icon], alignment=ft.MainAxisAlignment.START),
-                bottom_row,
+                ft.Row([bottom_row, filter_menu], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
                 ft.Divider(height=3, thickness=2),
             ],
             spacing=5,

@@ -128,7 +128,19 @@ class ThreadSelection(ft.Container):
                 content.custom_name if content.custom_name else content.get_member_string()
             )
             self._secondary_text.value = str(len(content.contacts)) + " Members"
-        sorted_threads = sorted(content.threads, key=lambda t: t.unread_count, reverse=True)
+        if self._state.get(MainAppStateProperties.SORT_BY_DATE):
+            # Sort by date: nur nach Datum, neueste zuerst
+            sorted_threads = sorted(
+                content.threads, key=lambda t: t.last_message_datetime, reverse=True
+            )
+        else:
+            # Standard / Show unread only: erst ungelesen, dann nach Datum
+            sorted_threads = sorted(
+                content.threads,
+                key=lambda t: (t.unread_count > 0, t.last_message_datetime),
+                reverse=True,
+            )
+
         self._content.controls = [
             ThreadPreview(self._state, elem, self.conversation) for elem in sorted_threads
         ] + [self.add_thread_btn]  # type: ignore

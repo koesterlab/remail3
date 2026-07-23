@@ -25,6 +25,7 @@ class MainAppStateProperties(Enum):
     DISPLAYED_MAILS = "displayed_mails"
     RUNNING_TASKS = "running_tasks"
     ACCOUNTS_CHANGED = "accounts_changed"
+    SORT_BY_DATE = "sort_by_date"
 
 
 class MainAppState(ObservableState[MainAppStateProperties]):
