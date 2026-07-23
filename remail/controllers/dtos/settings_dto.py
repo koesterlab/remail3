@@ -35,6 +35,8 @@ class SettingsDTO:
     quiet_hours: bool
     llm_url: str
     llm_key: str
+    ollama_base_url: str = "http://localhost:11434"
+    selected_local_model: str | None = None
 
     @classmethod
     @session
@@ -60,4 +62,6 @@ class SettingsDTO:
             quiet_hours=settings.quiet_hours,
             llm_url=settings.llm_url,
             llm_key=settings.llm_key,
+            ollama_base_url=getattr(settings, "ollama_base_url", "http://localhost:11434"),
+            selected_local_model=getattr(settings, "selected_local_model", None),
         )
