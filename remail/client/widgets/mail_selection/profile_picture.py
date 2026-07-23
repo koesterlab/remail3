@@ -29,9 +29,8 @@ def create_contact_picture(contact: SenderDTO):
     else:
         initials = "@"
 
-    image = (
-        ft.Text(initials) if True else ft.Icon(ft.Icons.PERSON)
-    )  # todo contact.is_known make contact ContactDTO
+    # todo: use contact.is_known to switch to ft.Icon(ft.Icons.PERSON) once contact is a ContactDTO
+    image = ft.Text(initials)
     image.color = ft.Colors.ON_SECONDARY
     return ft.CircleAvatar(
         content=image,

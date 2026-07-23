@@ -74,4 +74,3 @@ class ConversationDTO:
             ],
             threads=threads,
         )
-        pass

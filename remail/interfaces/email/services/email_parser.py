@@ -111,7 +111,6 @@ class EmailParser:
             existing: The db email model (active session)
             mail_data: the corresponding raw imap data with FLAGS
         """
-        # msg = message_from_bytes(mail_data[b"BODY[]"])
         flags = mail_data[b"FLAGS"]
         read = b"\\Seen" in flags
         deleted = b"\\Deleted" in flags

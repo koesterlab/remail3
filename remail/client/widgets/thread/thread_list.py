@@ -83,36 +83,6 @@ class ThreadList(ft.Container):
             bgcolor=ft.Colors.SURFACE,
         )
 
-        # ---------- “Discussing email”  ---------- #
-        # title = str(thread.get("title", "")) or ""
-        #
-        # if messages_raw:
-        #     last_msg = messages_raw[-1]
-        #     last_summary = str(last_msg.get("content", {}).get("body", ""))
-        # else:
-        #     last_summary = ""
-        #
-        # discussing_card = ft.Container(
-        #     width=500,
-        #     bgcolor="white",
-        #     padding=15,
-        #     border_radius=12,
-        #     content=ft.Column(
-        #         controls=[
-        #             ft.Text("Discussing email:", size=12, color="gray"),
-        #             ft.Text(title, weight="bold"),
-        #             ft.Text(
-        #                 last_summary,
-        #                 size=12,
-        #                 color="gray",
-        #                 max_lines=3,
-        #                 overflow=ft.TextOverflow.ELLIPSIS,
-        #             ),
-        #         ],
-        #         spacing=4,
-        #     ),
-        # )
-
         t_widgets = Timer()
         messages_column = ft.Container(
             ft.Column(
@@ -130,8 +100,6 @@ class ThreadList(ft.Container):
         self.content = ft.Column(
             [
                 header,
-                # discussing_card,
-                # ft.Container(height=20),
                 messages_column,
                 create_new_message_dialog(self.state),
             ],

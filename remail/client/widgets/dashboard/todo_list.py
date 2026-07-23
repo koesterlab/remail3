@@ -57,7 +57,6 @@ class TodoList(ft.Container):
 
         super().__init__(
             bgcolor=None,
-            # bgcolor=ft.Colors.SURFACE,
             padding=ft.Padding.all(15),
             border_radius=24,
             expand=True,
