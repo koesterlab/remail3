@@ -23,7 +23,7 @@ def main(page: ft.Page):
     """
     global application_page
     application_page = page
-    page.title = "Remail 2.0"
+    page.title = "Remail 3.0"
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
     view = IndexView()
     page.add(view)
