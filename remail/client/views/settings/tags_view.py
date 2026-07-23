@@ -2,7 +2,7 @@ from typing import cast
 
 import flet as ft
 
-from remail.client.state import MainAppState
+from remail.client.state import MainAppState, MainAppStateProperties
 from remail.client.views.settings.settings_sub_view import SettingsSubView
 from remail.client.widgets.tag_chip import tag_chip, tag_color
 from remail.controllers.dtos import SettingsDTO
@@ -26,6 +26,7 @@ def _tag_count_badge(count: int) -> ft.Container:
 
 class TagsView(SettingsSubView):
     def __init__(self, state: MainAppState) -> None:
+        self.state = state
         self.tag_controller = state.tag_controller
         self.name_input = ft.TextField(
             label="Tag name",
@@ -130,6 +131,10 @@ class TagsView(SettingsSubView):
         self.status_text.color = color
         self.status_text.visible = True
 
+    def _notify_tags_changed(self) -> None:
+        revision = self.state.get(MainAppStateProperties.TAGS_CHANGED) or 0
+        self.state.set(MainAppStateProperties.TAGS_CHANGED, revision + 1)
+
     def _add_tag(self) -> None:
         try:
             tag = self.tag_controller.create_tag(
@@ -144,6 +149,7 @@ class TagsView(SettingsSubView):
         self.name_input.value = ""
         self.description_input.value = ""
         self._set_status(f'"{tag.name}" is saved.', ft.Colors.PRIMARY)
+        self._notify_tags_changed()
         self._refresh()
 
     def _retag_emails(self) -> None:
@@ -217,4 +223,5 @@ class TagsView(SettingsSubView):
             return
         self.tag_controller.delete_tag(tag_id)
         self._set_status("Tag deleted.", ft.Colors.ON_SURFACE_VARIANT)
+        self._notify_tags_changed()
         self._refresh()

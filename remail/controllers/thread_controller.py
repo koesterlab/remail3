@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 from sqlmodel import Session
 
@@ -42,9 +42,15 @@ class ThreadController:
         return None
 
     def get_most_urgent_threads(
-        self, count: int = 5
+        self, count: int = 5, tag_id: int | None = None
     ) -> list[tuple[ThreadDTO, ConversationDTO, UserDTO]]:
-        return self.service.get_most_important_threads(count=count)  # type:ignore
+        return cast(
+            list[tuple[ThreadDTO, ConversationDTO, UserDTO]],
+            self.service.get_most_important_threads(
+                count=count,
+                tag_id=tag_id,
+            ),
+        )
 
     @session
     def create_thread(self, conversation_id: int, name: str) -> ThreadDTO:

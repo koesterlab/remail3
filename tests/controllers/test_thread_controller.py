@@ -90,7 +90,10 @@ class TestThreadController:
         result = controller.get_most_urgent_threads(count=5)
 
         assert result == mock_results
-        mock_thread_service.get_most_important_threads.assert_called_once_with(count=5)
+        mock_thread_service.get_most_important_threads.assert_called_once_with(
+            count=5,
+            tag_id=None,
+        )
 
     def test_get_most_urgent_threads_default_count(self, controller, mock_thread_service):
         """Test get_most_urgent_threads with default count."""
@@ -98,7 +101,21 @@ class TestThreadController:
 
         controller.get_most_urgent_threads()
 
-        mock_thread_service.get_most_important_threads.assert_called_once_with(count=5)
+        mock_thread_service.get_most_important_threads.assert_called_once_with(
+            count=5,
+            tag_id=None,
+        )
+
+    def test_get_most_urgent_threads_forwards_tag_id(self, controller, mock_thread_service):
+        """Test get_most_urgent_threads forwards the selected tag ID."""
+        mock_thread_service.get_most_important_threads.return_value = []
+
+        controller.get_most_urgent_threads(count=3, tag_id=42)
+
+        mock_thread_service.get_most_important_threads.assert_called_once_with(
+            count=3,
+            tag_id=42,
+        )
 
     def test_create_thread(self, controller, mock_thread_service, mock_thread_model):
         """Test create_thread creates and returns ThreadDTO."""
