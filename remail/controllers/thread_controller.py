@@ -41,6 +41,11 @@ class ThreadController:
             return dto
         return None
 
+    def delete_thread(self, thread_id: int) -> bool:
+        # Call the delete method we wrote in thread_service.py
+        # and return the result (True if deleted, False if not found)
+        return bool(self.service.delete_thread(thread_id))
+
     def get_most_urgent_threads(
         self, count: int = 5
     ) -> list[tuple[ThreadDTO, ConversationDTO, UserDTO]]:

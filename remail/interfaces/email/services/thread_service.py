@@ -361,3 +361,20 @@ class ThreadService:
                 )
             )
         return result
+
+    @session
+    def delete_thread(self, thread_id: int, session: Session) -> bool:
+        # Step 1: Try to find the thread in the database
+        # session.get() is like saying "go to the Thread table, find the row with this id"
+        thread = session.get(Thread, thread_id)
+        # Step 2: If nothing was found, stop here and return False
+        # (you can't delete something that doesn't exist)
+        if not thread:
+            return False
+        # Step 3: Tell the database "mark this row for deletion"
+        session.delete(thread)
+        # Step 4: Actually save the change to the database
+        # (without commit, the deletion doesn't happen for real)
+        session.commit()
+        # Step 5: Everything went fine, return True
+        return True

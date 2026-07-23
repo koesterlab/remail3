@@ -27,6 +27,8 @@ def load_sqlite_vec_extension(dbapi_conn, connection_record):
     dbapi_conn.enable_load_extension(True)
     sqlite_vec.load(dbapi_conn)
     dbapi_conn.enable_load_extension(False)
+    # Enable foreign key constraints so cascade_delete=True works in SQLite
+    dbapi_conn.execute("PRAGMA foreign_keys = ON")
 
 
 ensure_settings_columns(engine)
