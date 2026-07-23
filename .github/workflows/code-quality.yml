@@ -31,7 +31,7 @@ jobs:
           cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
 
       - name: "Init database (schema + fixtures)"
-        run: pixi run init-db
+        run: pixi run migrate-db
 
       - name: "Format check (Ruff: lint + code style)"
         run: pixi run format-check
