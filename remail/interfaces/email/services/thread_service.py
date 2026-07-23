@@ -12,7 +12,7 @@ from sqlmodel import Session, col, select
 
 from remail.database import engine
 from remail.interfaces.email.services.user_service import UserService
-from remail.models import Conversation, Email, Thread
+from remail.models import Conversation, Email, EmailTag, Thread
 from remail.models.user import User
 from remail.utils.session_management import session
 
@@ -313,32 +313,35 @@ class ThreadService:
         self,
         session: Session,
         count: int = 5,
+        tag_id: int | None = None,
     ) -> list[tuple[ThreadDTO, ConversationDTO, UserDTO]]:
-        """
-        Calculates the most urgent threads from the database for all accounts
-        Currently by time, later by ai
-
-        returns: (thread_id, ConversationDTO, UserDTO)
-        """
-        # todo ai valuing of mails
         from remail.controllers.dtos.conversations import ConversationDTO
         from remail.controllers.dtos.threads import ThreadDTO
         from remail.controllers.dtos.user_dto import UserDTO
 
-        threads = session.exec(
-            select(Thread)
-            .options(
-                selectinload(Thread.conversation).options(  # type: ignore[arg-type]
-                    selectinload(Conversation.threads).selectinload(Thread.messages),  # type: ignore[arg-type]
-                    selectinload(Conversation.contacts),  # type: ignore[arg-type]
-                    selectinload(Conversation.user),  # type: ignore[arg-type]
-                )
+        query = select(Thread).options(
+            selectinload(Thread.conversation).options(  # type: ignore[arg-type]
+                selectinload(Conversation.threads).selectinload(Thread.messages),  # type: ignore[arg-type]
+                selectinload(Conversation.contacts),  # type: ignore[arg-type]
+                selectinload(Conversation.user),  # type: ignore[arg-type]
             )
-            .order_by(col(Thread.last_message_time).desc())
-            .limit(count)
-        ).all()
+        )
+
+        if tag_id is not None:
+            query = (
+                query.join(Email, col(Email.thread_id) == col(Thread.id))
+                .join(EmailTag, col(EmailTag.email_id) == col(Email.id))
+                .where(EmailTag.tag_id == tag_id)
+                .distinct()
+            )
+
+        query = query.order_by(col(Thread.last_message_time).desc()).limit(count)
+
+        threads = session.exec(query).all()
+
         unread_cache: dict[int, int] = {}
         result = []
+
         for t in threads:
             conversation = t.conversation
             if conversation is None:
@@ -349,10 +352,13 @@ class ThreadService:
             if user is None:
                 continue
             user_id = user.id
+
             if user_id is None:
                 continue
+
             if user_id not in unread_cache:
                 unread_cache[user_id] = UserService.count_unread(user)
+
             result.append(
                 (
                     ThreadDTO.from_model(t),
@@ -360,6 +366,7 @@ class ThreadService:
                     UserDTO.get_from_model(user, unread_cache[user_id]),
                 )
             )
+
         return result
 
     @session
