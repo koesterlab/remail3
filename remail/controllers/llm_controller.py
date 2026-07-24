@@ -68,3 +68,33 @@ class LLMController:
         self.conversation_history.append(assistant_msg)
 
         return LLMResponseDTO.from_completion_text(response_text)
+
+    def generate_reply(
+        self,
+        email_body: str,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
+    ) -> LLMResponseDTO:
+        """
+        Generate a draft reply for a received email.
+
+        Args:
+            email_body: The body text of the email to reply to
+            max_tokens: Maximum tokens to generate
+            temperature: Sampling temperature (0.0 to 2.0)
+
+        Returns:
+            Structured LLMResponseDTO with the AI-generated draft reply
+        """
+
+        prompt = (
+            "Write a polite and professional draft reply to the following email. "
+            "Only return the reply text itself, without any extra explanation.\n\n"
+            f"Email:\n{email_body}"
+        )
+
+        return self.chat(
+            prompt=prompt,
+            max_tokens=max_tokens,
+            temperature=temperature,
+        )
